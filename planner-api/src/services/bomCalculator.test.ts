@@ -196,4 +196,40 @@ describe('bomCalculator', () => {
     expect(extraLine?.list_price_net).toBe(120);
     expect(extraLine?.line_net_after_discounts).toBeCloseTo(120 * 3);
   });
+
+  it('uses placement price overrides and includes chosen options in line description', () => {
+    const project = baseProject();
+    project.cabinets = [
+      {
+        id: 'cab-article-1',
+        catalog_item_id: 'article-900',
+        catalog_article_id: 'article-900',
+        description: 'Hersteller-Unterschrank 90',
+        chosen_options: {
+          front: 'Mattweiß',
+          griff: 'Stange',
+        },
+        list_price_net: 850,
+        dealer_price_net: 610,
+        tax_group_id: 'tax-de',
+        flags: {
+          requires_customization: false,
+          height_variant: null,
+          labor_surcharge: false,
+          special_trim_needed: false,
+        },
+      },
+    ];
+
+    const lines = calculateBOM(project);
+    const cabinetLine = lines.find((line: BOMLine) => line.type === 'cabinet');
+
+    expect(cabinetLine).toBeDefined();
+    expect(cabinetLine?.catalog_item_id).toBe('article-900');
+    expect(cabinetLine?.list_price_net).toBe(850);
+    expect(cabinetLine?.dealer_price_net).toBe(610);
+    expect(cabinetLine?.description).toContain('Hersteller-Unterschrank 90');
+    expect(cabinetLine?.description).toContain('front: Mattweiß');
+    expect(cabinetLine?.description).toContain('griff: Stange');
+  });
 });

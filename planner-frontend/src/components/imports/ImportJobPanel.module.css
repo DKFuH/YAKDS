@@ -3,9 +3,10 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-default);
+  box-shadow: var(--shadow-card);
 }
 
 .header {
@@ -18,12 +19,12 @@
 .title {
   margin: 0;
   font-size: 0.95rem;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .status {
   font-size: 0.8rem;
-  color: #4b5563;
+  color: var(--text-muted);
 }
 
 .controls {
@@ -38,13 +39,14 @@
 }
 
 .uploadBtn {
-  border: 1px solid #6366f1;
-  background: #6366f1;
-  color: #ffffff;
-  border-radius: 6px;
+  border: 1px solid var(--primary-color);
+  background: var(--primary-color);
+  color: var(--text-inverse);
+  border-radius: var(--radius-pill);
   padding: 0.35rem 0.7rem;
   font-size: 0.82rem;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
 }
 
 .uploadBtn:disabled {
@@ -55,12 +57,12 @@
 .meta {
   margin: 0;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .error {
   margin: 0;
-  color: #b91c1c;
+  color: var(--status-danger);
   font-size: 0.82rem;
 }
 
@@ -74,7 +76,7 @@
 
 .protocolItem {
   font-size: 0.8rem;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .protocolTag {
@@ -82,5 +84,5 @@
   margin-right: 0.35rem;
   min-width: 5.2rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }

@@ -5,6 +5,11 @@ import { shouldUseDemoFallback } from './client.js'
 export interface Placement {
   id: string
   catalog_item_id: string
+  catalog_article_id?: string
+  description?: string
+  chosen_options?: Record<string, string>
+  list_price_net?: number
+  dealer_price_net?: number
   wall_id: string
   offset_mm: number
   width_mm: number

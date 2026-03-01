@@ -2,7 +2,7 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .header {
@@ -27,14 +27,15 @@
   display: flex;
   justify-content: center;
   padding: 4rem;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .error {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
   padding: 0.75rem 1rem;
-  border-radius: 6px;
+  border: 1px solid var(--status-danger-border);
+  border-radius: var(--radius-sm);
   margin-bottom: 1rem;
 }
 
@@ -47,13 +48,20 @@
 .createForm input {
   flex: 1;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
+  background: var(--surface-default);
+}
+
+.createForm input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .empty {
-  color: #6b7280;
+  color: var(--text-muted);
   text-align: center;
   padding: 3rem;
 }
@@ -70,14 +78,18 @@
 .card {
   display: flex;
   align-items: stretch;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #fff;
+  background: var(--surface-default);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .card:hover {
-  border-color: #6366f1;
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .cardBody {
@@ -98,47 +110,48 @@
 }
 
 .cardBody span {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.875rem;
 }
 
 .btnPrimary {
-  background: #6366f1;
-  color: #fff;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
   padding: 0.5rem 1rem;
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   font-size: 0.95rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .btnPrimary:hover {
-  background: #4f46e5;
+  background: var(--primary-hover);
 }
 
 .btnSecondary {
-  background: #fff;
-  color: #1f2937;
-  border: 1px solid #d1d5db;
+  background: var(--surface-default);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   padding: 0.5rem 1rem;
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   font-size: 0.95rem;
 }
 
 .btnSecondary:hover {
-  background: #f9fafb;
+  background: var(--surface-muted);
 }
 
 .btnDanger {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--text-muted);
   padding: 0 1rem;
   font-size: 1.25rem;
   cursor: pointer;
 }
 
 .btnDanger:hover {
-  color: #ef4444;
+  color: var(--status-danger);
 }

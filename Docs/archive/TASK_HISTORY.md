@@ -1962,3 +1962,24 @@ Empfehlungen zur Einhaltung der Datenschutzrichtlinien.
 
 ---
 
+## TASK-25-F01 – Frontend-Upgrade: Herstellerkatalog & Konfigurator (Phase 2 Bridge)
+**Sprint:** 25 | **Zuständig:** Antigravity (Claude) | **Priorität:** Hoch | **Status:** Erledigt ✅
+
+### Zusammenfassung
+Upgrade des Frontends zur Unterstützung der in Phase 2 eingeführten Herstellerstrukturen.
+
+### Durchgeführte Arbeiten:
+1.  **API Integration**: `catalogApi` um Hersteller- und Artikel-Typen sowie entsprechende Fetch-Methoden erweitert.
+2.  **LeftSidebar Upgrade**: 
+    - Toggle zwischen Standard-Katalog und Hersteller-Katalog hinzugefügt.
+    - Hersteller-Auswahl und gefilterte Artikelliste implementiert.
+    - Unterstützung für `CatalogArticle` (Phase 2) neben legacy `CatalogItem`.
+3.  **RightSidebar / Konfigurator**:
+    - `KonfiguratorPanel` erweitert zur Anzeige dynamischer Optionen (`ArticleOption`).
+    - Unterstützung für Enum-Optionen (Dropdown) und Text/Dimensions-Optionen direkt im Panel.
+    - Zustandsverwaltung für `chosenOptions` im `Editor.tsx` integriert.
+4.  **Styling**: Definition moderner UI-Elemente für den Modus-Switch und das Optionen-Raster in Vanilla CSS (CSS Modules).
+
+### Ergebnis
+Der Editor ist nun technisch bereit, herstellerspezifische Artikel mit individuellen Optionen (z.B. Fronten, Griffe, Maße) zu verarbeiten und anzuzeigen. Der Build (TSC + Vite) wurde erfolgreich verifiziert.
+

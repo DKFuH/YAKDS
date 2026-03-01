@@ -11,6 +11,7 @@ import styles from './QuoteExportPanel.module.css'
 interface Props {
   projectId: string
   createPayload?: CreateQuotePayload
+  buildCreatePayload?: () => Promise<CreateQuotePayload>
 }
 
 function formatDate(value: string): string {
@@ -21,7 +22,7 @@ function formatDate(value: string): string {
   return asDate.toLocaleDateString('de-DE')
 }
 
-export function QuoteExportPanel({ projectId, createPayload = {} }: Props) {
+export function QuoteExportPanel({ projectId, createPayload = {}, buildCreatePayload }: Props) {
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loadingCreate, setLoadingCreate] = useState(false)
   const [loadingQuote, setLoadingQuote] = useState(false)
@@ -33,7 +34,8 @@ export function QuoteExportPanel({ projectId, createPayload = {} }: Props) {
     setError(null)
 
     try {
-      const created = await createQuote(projectId, createPayload)
+      const payload = buildCreatePayload ? await buildCreatePayload() : createPayload
+      const created = await createQuote(projectId, payload)
       setQuote(created)
     } catch (caughtError: unknown) {
       setError(caughtError instanceof Error ? caughtError.message : 'Angebot konnte nicht erzeugt werden.')

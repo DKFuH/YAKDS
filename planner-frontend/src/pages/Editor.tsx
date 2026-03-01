@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import type { Vertex } from '@shared/types'
 import { projectsApi, type ProjectDetail } from '../api/projects.js'
-import type { CatalogItem } from '../api/catalog.js'
+import {
+  type UnifiedCatalogItem
+} from '../api/catalog.js'
 import { placementsApi, type Placement } from '../api/placements.js'
 import { roomsApi, type RoomBoundaryPayload, type RoomPayload } from '../api/rooms.js'
 import { openingsApi, type Opening } from '../api/openings.js'
@@ -28,8 +30,9 @@ export function Editor() {
   const [selectedOpeningId, setSelectedOpeningId] = useState<string | null>(null)
   const [placements, setPlacements] = useState<Placement[]>([])
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null)
-  const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItem | null>(null)
+  const [selectedCatalogItem, setSelectedCatalogItem] = useState<UnifiedCatalogItem | null>(null)
   const [configuredDimensions, setConfiguredDimensions] = useState<ConfiguredDimensions | null>(null)
+  const [chosenOptions, setChosenOptions] = useState<Record<string, string>>({})
   const [validationResult, setValidationResult] = useState<ValidateResponse | null>(null)
   const [validationLoading, setValidationLoading] = useState(false)
   const [autoCompleteLoading, setAutoCompleteLoading] = useState(false)
@@ -76,7 +79,7 @@ export function Editor() {
     // Öffnungen aus room.openings laden (JSONB, bereits im room-Objekt)
     setOpenings((room?.openings as unknown as Opening[]) ?? [])
     setPlacements((room?.placements as unknown as Placement[]) ?? [])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoomId])
 
   // Raum anlegen
@@ -164,13 +167,26 @@ export function Editor() {
   // Reset configuredDimensions whenever the selected catalog item changes
   useEffect(() => {
     if (selectedCatalogItem) {
-      setConfiguredDimensions({
-        width_mm: selectedCatalogItem.width_mm,
-        height_mm: selectedCatalogItem.height_mm,
-        depth_mm: selectedCatalogItem.depth_mm,
-      })
+      if ('base_dims_json' in selectedCatalogItem) {
+        // CatalogArticle
+        setConfiguredDimensions({
+          width_mm: selectedCatalogItem.base_dims_json.width_mm,
+          height_mm: selectedCatalogItem.base_dims_json.height_mm,
+          depth_mm: selectedCatalogItem.base_dims_json.depth_mm,
+        })
+        setChosenOptions({})
+      } else {
+        // Legacy CatalogItem
+        setConfiguredDimensions({
+          width_mm: selectedCatalogItem.width_mm,
+          height_mm: selectedCatalogItem.height_mm,
+          depth_mm: selectedCatalogItem.depth_mm,
+        })
+        setChosenOptions({})
+      }
     } else {
       setConfiguredDimensions(null)
+      setChosenOptions({})
     }
   }, [selectedCatalogItem])
 
@@ -180,16 +196,36 @@ export function Editor() {
       return
     }
 
+    const isArticle = 'base_dims_json' in selectedCatalogItem
+
+    const itemWidth = isArticle ? selectedCatalogItem.base_dims_json.width_mm : selectedCatalogItem.width_mm
+    const itemHeight = isArticle ? selectedCatalogItem.base_dims_json.height_mm : selectedCatalogItem.height_mm
+    const itemDepth = isArticle ? selectedCatalogItem.base_dims_json.depth_mm : selectedCatalogItem.depth_mm
+
     const dims = configuredDimensions ?? {
-      width_mm: selectedCatalogItem.width_mm,
-      height_mm: selectedCatalogItem.height_mm,
-      depth_mm: selectedCatalogItem.depth_mm,
+      width_mm: itemWidth,
+      height_mm: itemHeight,
+      depth_mm: itemDepth,
     }
+
+    const cleanedChosenOptions = Object.fromEntries(
+      Object.entries(chosenOptions).filter(([, value]) => value.trim() !== ''),
+    )
+
     const placementWidth = Math.max(1, dims.width_mm)
     const offset = Math.max(0, Math.round((wallLengthMm - placementWidth) / 2))
     const newPlacement: Placement = {
       id: crypto.randomUUID(),
       catalog_item_id: selectedCatalogItem.id,
+      ...(isArticle ? { catalog_article_id: selectedCatalogItem.id } : {}),
+      description: selectedCatalogItem.name,
+      ...(isArticle && Object.keys(cleanedChosenOptions).length > 0
+        ? { chosen_options: cleanedChosenOptions }
+        : {}),
+      ...(!isArticle ? { list_price_net: selectedCatalogItem.list_price_net } : {}),
+      ...(!isArticle && selectedCatalogItem.dealer_price_net != null
+        ? { dealer_price_net: selectedCatalogItem.dealer_price_net }
+        : {}),
       wall_id: wallId,
       offset_mm: offset,
       width_mm: placementWidth,
@@ -201,7 +237,7 @@ export function Editor() {
     setPlacements(updated)
     setSelectedPlacementId(newPlacement.id)
     handleSavePlacements(updated)
-  }, [handleSavePlacements, selectedCatalogItem, configuredDimensions])
+  }, [handleSavePlacements, selectedCatalogItem, configuredDimensions, chosenOptions])
 
   const handleUpdatePlacement = useCallback((updated: Placement) => {
     const nextPlacements = placementsRef.current.map((placement) => (
@@ -236,7 +272,7 @@ export function Editor() {
   const handleRunValidation = useCallback(async () => {
     if (!selectedRoomRef.current || !id) return
     const room = selectedRoomRef.current
-    const boundary = room.boundary as { vertices?: Array<{id:string;x_mm:number;y_mm:number}>; wall_segments?: Array<{id:string;start_vertex_id?:string;end_vertex_id?:string;length_mm?:number}> }
+    const boundary = room.boundary as { vertices?: Array<{ id: string; x_mm: number; y_mm: number }>; wall_segments?: Array<{ id: string; start_vertex_id?: string; end_vertex_id?: string; length_mm?: number }> }
     const vertices = boundary.vertices ?? []
     const wallSegments = boundary.wall_segments ?? []
     const roomPolygon = vertices.map(v => ({ x_mm: v.x_mm, y_mm: v.y_mm }))
@@ -390,6 +426,8 @@ export function Editor() {
           selectedCatalogItem={selectedCatalogItem}
           configuredDimensions={configuredDimensions}
           onConfigureDimensions={setConfiguredDimensions}
+          chosenOptions={chosenOptions}
+          onSetChosenOptions={setChosenOptions}
           ceilingConstraints={ceilingConstraints}
           selectedWallGeom={selectedWallGeom}
           onMoveVertex={editor.moveVertex}

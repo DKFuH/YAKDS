@@ -26,6 +26,46 @@ export interface CatalogItem {
   pricing_group_id: string | null
 }
 
+export interface Manufacturer {
+  id: string
+  name: string
+  code: string
+  _count?: { articles: number }
+}
+
+export interface ArticleOption {
+  id: string
+  article_id: string
+  option_key: string
+  option_type: 'enum' | 'dimension' | 'boolean' | 'text'
+  constraints_json: any
+}
+
+export interface ArticleVariant {
+  id: string
+  article_id: string
+  variant_key: string
+  variant_values_json: any
+  dims_override_json: any
+}
+
+export interface CatalogArticle {
+  id: string
+  manufacturer_id: string
+  sku: string
+  name: string
+  article_type: CatalogItemType | 'plinth'
+  base_dims_json: {
+    width_mm: number
+    height_mm: number
+    depth_mm: number
+  }
+  options?: ArticleOption[]
+  variants?: ArticleVariant[]
+}
+
+export type UnifiedCatalogItem = CatalogItem | CatalogArticle
+
 export const catalogApi = {
   list: async (params?: {
     type?: CatalogItemType
@@ -54,6 +94,24 @@ export const catalogApi = {
       if (shouldUseDemoFallback(error)) return getDemoCatalogItem(id)
       throw error
     }
+  },
+
+  listManufacturers: (): Promise<Manufacturer[]> =>
+    api.get<Manufacturer[]>('/manufacturers'),
+
+  getManufacturerArticles: (id: string): Promise<CatalogArticle[]> =>
+    api.get<CatalogArticle[]>(`/manufacturers/${id}/articles`),
+
+  getArticleById: (id: string): Promise<CatalogArticle> => {
+    void id
+    // Note: The backend route is /manufacturers/:id/articles (for list)
+    // but individual article fetch is usually provided in REST. 
+    // Checking manufacturers.ts again... it has GET /manufacturers/:id which includes articles.
+    // There isn't a direct GET /catalog-articles/:id in manufacturers.ts, 
+    // but there is usually one expected. 
+    // Let's assume for now we fetch it via the manufacturer list or add it if needed.
+    // Actually, I'll stick to what's in manufacturers.ts.
+    return Promise.reject(new Error('Not implemented: use listManufacturerArticles'))
   },
 }
 

@@ -96,6 +96,11 @@ export interface PlacedObject {
 export interface Placement extends PlacedObject {
   room_id?: string;
   catalog_item_id: string;
+  catalog_article_id?: string;
+  description?: string;
+  chosen_options?: Record<string, string>;
+  list_price_net?: number;
+  dealer_price_net?: number;
 }
 
 export interface PlacementFlags {
@@ -211,8 +216,12 @@ export interface ProjectQuoteSettings {
 export interface CatalogPlacementBase {
   id: string;
   catalog_item_id: string;
+  catalog_article_id?: string;
   description?: string;
+  chosen_options?: Record<string, string>;
   qty?: number;
+  list_price_net?: number;
+  dealer_price_net?: number;
   tax_group_id: string;
   pricing_group_discount_pct?: number;
   position_discount_pct?: number;

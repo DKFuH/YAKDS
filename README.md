@@ -60,6 +60,7 @@ cd planner-api && npm run dev
 - [Architektur](Docs/ARCHITECTURE.md)
 - [Domänenmodelle](Docs/DOMAIN_MODELS.md) – Raummodell, Preislogik, Angebotswesen
 - [Interop](Docs/INTEROP.md) – DXF/DWG, SketchUp, Render-Worker-Protokoll
+- [Styling Guide (YAKDS)](Docs/STYLING_GUIDE_YAKDS.md) – Tokens, Komponentenmuster, Rollout
 - [Roadmap](Docs/ROADMAP.md) – Sprints 0–19 (MVP) + Phase 2 (20–24)
 - [Status](Docs/STATUS.md) – MVP-Abschluss, Review-Ergebnisse, offene Punkte
 

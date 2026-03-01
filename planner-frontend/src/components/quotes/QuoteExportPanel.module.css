@@ -1,11 +1,12 @@
 .panel {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-default);
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  box-shadow: var(--shadow-card);
 }
 
 .header {
@@ -17,7 +18,7 @@
 .title {
   margin: 0;
   font-size: 0.95rem;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .actions {
@@ -29,24 +30,29 @@
 .primaryBtn,
 .secondaryBtn,
 .refreshBtn {
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   font-size: 0.82rem;
   padding: 0.35rem 0.7rem;
   cursor: pointer;
 }
 
 .primaryBtn {
-  border: 1px solid #6366f1;
-  background: #6366f1;
-  color: #ffffff;
+  border: 1px solid var(--primary-color);
+  background: var(--primary-color);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-sm);
 }
 
 .secondaryBtn,
 .refreshBtn {
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #111827;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-default);
+  color: var(--text-primary);
 }
+
+.primaryBtn:hover { background: var(--primary-hover); }
+.secondaryBtn:hover,
+.refreshBtn:hover { background: var(--surface-muted); }
 
 .primaryBtn:disabled,
 .secondaryBtn:disabled,
@@ -64,23 +70,23 @@
 }
 
 .metaList dt {
-  color: #4b5563;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 .metaList dd {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .empty {
   margin: 0;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.82rem;
 }
 
 .error {
   margin: 0;
-  color: #b91c1c;
+  color: var(--status-danger);
   font-size: 0.82rem;
 }

@@ -14,22 +14,33 @@ const SCALE = 0.15 // 1px = ~6,67mm → 5m Raum = 750px
 
 function worldToCanvas(mm: number): number { return mm * SCALE }
 function canvasToWorld(px: number): number { return px / SCALE }
+function resolveColor(token: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback
+  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim()
+  return value || fallback
+}
 
 // ─── Farben ───────────────────────────────────────────────────────────────────
 
 const COLOR = {
-  polygon: '#6366f1',
-  polygonFill: '#6366f120',
-  preview: '#94a3b8',
-  vertex: '#6366f1',
-  vertexHover: '#ef4444',
-  vertexSelected: '#f59e0b',
-  edgeSelected: '#f59e0b',
-  error: '#ef4444',
-  openingDoor: '#3b82f6',
-  openingWindow: '#06b6d4',
-  openingPassThrough: '#10b981',
-  openingSelected: '#f97316',
+  polygon: resolveColor('--primary-color', '#6366f1'),
+  polygonFill: resolveColor('--primary-light', 'rgba(99, 102, 241, 0.14)'),
+  preview: resolveColor('--text-muted', '#94a3b8'),
+  vertex: resolveColor('--primary-color', '#6366f1'),
+  vertexHover: resolveColor('--status-danger', '#ef4444'),
+  vertexSelected: resolveColor('--status-warning', '#f59e0b'),
+  edgeSelected: resolveColor('--status-warning', '#f59e0b'),
+  error: resolveColor('--status-danger', '#ef4444'),
+  errorFill: resolveColor('--status-danger-bg', 'rgba(239, 68, 68, 0.10)'),
+  openingDoor: resolveColor('--status-info', '#3b82f6'),
+  openingWindow: resolveColor('--status-info-soft', '#06b6d4'),
+  openingPassThrough: resolveColor('--status-success', '#10b981'),
+  openingSelected: resolveColor('--status-warning', '#f97316'),
+  placementFill: resolveColor('--primary-soft', '#a78bfa'),
+  placementStroke: resolveColor('--primary-color', '#7c3aed'),
+  placementSelectedFill: resolveColor('--status-warning', '#f97316'),
+  placementSelectedStroke: resolveColor('--status-warning-strong', '#ea580c'),
+  vertexStroke: resolveColor('--text-inverse', '#ffffff'),
 } as const
 
 function openingColor(type: Opening['type'], selected: boolean) {
@@ -210,7 +221,7 @@ export function PolygonEditor({
             <Line
               points={closedLinePoints}
               closed
-              fill={hasErrors ? '#ef444415' : COLOR.polygonFill}
+              fill={hasErrors ? COLOR.errorFill : COLOR.polygonFill}
               stroke={hasErrors ? COLOR.error : COLOR.polygon}
               strokeWidth={2}
             />
@@ -293,8 +304,8 @@ export function PolygonEditor({
                     offsetX={w / 2}
                     offsetY={Math.max(d, 4) / 2}
                     rotation={angle}
-                    fill={isSelected ? '#f97316' : '#a78bfa'}
-                    stroke={isSelected ? '#ea580c' : '#7c3aed'}
+                    fill={isSelected ? COLOR.placementSelectedFill : COLOR.placementFill}
+                    stroke={isSelected ? COLOR.placementSelectedStroke : COLOR.placementStroke}
                     strokeWidth={isSelected ? 2 : 1}
                     opacity={0.7}
                     onClick={(e) => {
@@ -323,7 +334,7 @@ export function PolygonEditor({
                   y={p.y}
                   radius={isSelected || isHover ? 8 : 6}
                   fill={color}
-                  stroke="#fff"
+                  stroke={COLOR.vertexStroke}
                   strokeWidth={2}
                   draggable={state.tool === 'select'}
                   onMouseEnter={() => onHoverVertex(i)}

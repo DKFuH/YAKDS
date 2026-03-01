@@ -16,8 +16,12 @@ const FlagsSchema = z.object({
 const PlacementBaseSchema = z.object({
   id: z.string().min(1),
   catalog_item_id: z.string().min(1),
+  catalog_article_id: z.string().min(1).optional(),
   description: z.string().optional(),
+  chosen_options: z.record(z.string(), z.string()).optional(),
   qty: z.number().positive().optional(),
+  list_price_net: z.number().min(0).optional(),
+  dealer_price_net: z.number().min(0).optional(),
   tax_group_id: z.string().min(1),
   pricing_group_discount_pct: z.number().min(0).max(100).optional(),
   position_discount_pct: z.number().min(0).max(100).optional(),

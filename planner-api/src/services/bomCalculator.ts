@@ -20,6 +20,20 @@ function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, value));
 }
 
+function renderChosenOptions(source: CatalogPlacementBase): string {
+  const entries = Object.entries(source.chosen_options ?? {}).filter(([, value]) => value.trim() !== '');
+  if (entries.length === 0) {
+    return '';
+  }
+
+  const sorted = [...entries].sort(([left], [right]) => left.localeCompare(right));
+  return sorted.map(([key, value]) => `${key}: ${value}`).join(', ');
+}
+
+function placementLabel(source: CatalogPlacementBase): string {
+  return source.description ?? source.catalog_article_id ?? source.catalog_item_id;
+}
+
 function createCatalogLine(
   projectId: string,
   source: CatalogPlacementBase,
@@ -28,13 +42,15 @@ function createCatalogLine(
   taxGroups: TaxGroup[]
 ): BOMLine {
   const price = findPrice(source.catalog_item_id, priceListItems);
-  const listPrice = price?.list_price_net ?? 0;
-  const dealerPrice = price?.dealer_price_net ?? 0;
+  const listPrice = source.list_price_net ?? price?.list_price_net ?? 0;
+  const dealerPrice = source.dealer_price_net ?? price?.dealer_price_net ?? 0;
   const qty = source.qty ?? 1;
   const variantSurcharge = source.flags.variant_surcharge ?? 0;
   const objectSurcharges = source.flags.object_surcharges ?? 0;
   const posDiscount = clampPercent(source.position_discount_pct ?? 0);
   const groupDiscount = clampPercent(source.pricing_group_discount_pct ?? 0);
+  const optionLabel = renderChosenOptions(source);
+  const baseLabel = placementLabel(source);
 
   const grossLineNet = qty * listPrice + variantSurcharge + objectSurcharges;
   const afterPos = grossLineNet * (1 - posDiscount / 100);
@@ -44,8 +60,8 @@ function createCatalogLine(
     id: crypto.randomUUID(),
     project_id: projectId,
     type: lineType,
-    catalog_item_id: source.catalog_item_id,
-    description: source.description ?? source.catalog_item_id,
+    catalog_item_id: source.catalog_article_id ?? source.catalog_item_id,
+    description: optionLabel ? `${baseLabel} (${optionLabel})` : baseLabel,
     qty,
     unit: 'stk',
     list_price_net: listPrice,
@@ -154,7 +170,7 @@ export function calculateBOM(project: ProjectSnapshot, options: CalculateBOMOpti
         createFlatLine(
           project.id,
           'surcharge',
-          `Sonderblende für ${cabinet.catalog_item_id}`,
+          `Sonderblende für ${placementLabel(cabinet)}`,
           specialTrimSurchargeNet,
           cabinet.tax_group_id,
           findTaxRate(cabinet.tax_group_id, project.taxGroups)
@@ -167,7 +183,7 @@ export function calculateBOM(project: ProjectSnapshot, options: CalculateBOMOpti
         createFlatLine(
           project.id,
           'assembly',
-          `Montagezuschlag für ${cabinet.catalog_item_id}`,
+          `Montagezuschlag für ${placementLabel(cabinet)}`,
           project.quoteSettings.assembly_rate_per_item,
           cabinet.tax_group_id,
           findTaxRate(cabinet.tax_group_id, project.taxGroups)
@@ -184,7 +200,7 @@ export function calculateBOM(project: ProjectSnapshot, options: CalculateBOMOpti
         createFlatLine(
           project.id,
           'assembly',
-          `Montagezuschlag für ${appliance.catalog_item_id}`,
+          `Montagezuschlag für ${placementLabel(appliance)}`,
           project.quoteSettings.assembly_rate_per_item,
           appliance.tax_group_id,
           findTaxRate(appliance.tax_group_id, project.taxGroups)

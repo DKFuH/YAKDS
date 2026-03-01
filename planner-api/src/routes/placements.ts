@@ -15,6 +15,11 @@ const PointSchema = z.object({
 const PlacementSchema = z.object({
   id: z.string().min(1).default(() => randomUUID()),
   catalog_item_id: z.string().min(1),
+  catalog_article_id: z.string().min(1).optional(),
+  description: z.string().min(1).optional(),
+  chosen_options: z.record(z.string(), z.string()).optional(),
+  list_price_net: z.number().min(0).optional(),
+  dealer_price_net: z.number().min(0).optional(),
   wall_id: z.string().min(1),
   offset_mm: z.number().min(0),
   width_mm: z.number().positive(),

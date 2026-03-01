@@ -3,8 +3,8 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  font-family: system-ui, sans-serif;
-  background: #f3f4f6;
+  font-family: var(--font-sans);
+  background: var(--bg-light);
 }
 
 .center {
@@ -12,7 +12,7 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 /* ── Topbar ── */
@@ -22,22 +22,22 @@
   gap: 1rem;
   padding: 0 1rem;
   height: 48px;
-  background: #1e1e2e;
-  color: #fff;
+  background: var(--editor-surface);
+  color: var(--editor-text);
   flex-shrink: 0;
 }
 
 .backBtn {
   background: none;
   border: none;
-  color: #a1a1aa;
+  color: var(--editor-text-muted);
   cursor: pointer;
   font-size: 0.875rem;
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
-.backBtn:hover { color: #fff; background: #ffffff1a; }
+.backBtn:hover { color: var(--editor-text); background: rgba(255, 255, 255, 0.1); }
 
 .projectName {
   flex: 1;
@@ -52,33 +52,33 @@
 
 .autoCompleteHint {
   font-size: 0.75rem;
-  color: #86efac;
+  color: var(--status-success);
   padding: 0 0.25rem;
 }
 
 .btnSecondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btnPrimary {
-  background: #6366f1;
-  color: #fff;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
   padding: 0.35rem 0.85rem;
-  border-radius: 5px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   font-size: 0.875rem;
 }
-.btnPrimary:hover { background: #4f46e5; }
+.btnPrimary:hover { background: var(--primary-hover); }
 
 .btnSecondary {
-  background: #3f3f5a;
-  color: #e4e4f0;
+  background: var(--editor-surface-alt);
+  color: var(--editor-text);
   border: none;
   padding: 0.35rem 0.85rem;
-  border-radius: 5px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   font-size: 0.875rem;
 }
-.btnSecondary:hover { background: #52526e; }
+.btnSecondary:hover { background: var(--editor-border); }
 
 /* ── Workspace ── */
 .workspace {

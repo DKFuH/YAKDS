@@ -3,8 +3,10 @@ import type { Vertex, Point2D } from '@shared/types'
 import type { Opening } from '../../api/openings.js'
 import type { Placement } from '../../api/placements.js'
 import type { Room } from '../../api/projects.js'
-import type { CatalogItem } from '../../api/catalog.js'
+import type { UnifiedCatalogItem, CatalogArticle } from '../../api/catalog.js'
 import type { ValidateResponse } from '../../api/validate.js'
+import { previewBom, toQuoteBomLines, type BomPreviewRequest } from '../../api/bom.js'
+import { QuoteExportPanel } from '../quotes/QuoteExportPanel.js'
 import { ProtectPanel } from './ProtectPanel.js'
 import styles from './RightSidebar.module.css'
 
@@ -33,9 +35,11 @@ interface Props {
   edgeLengthMm: number | null
   selectedOpening: Opening | null
   selectedPlacement: Placement | null
-  selectedCatalogItem: CatalogItem | null
+  selectedCatalogItem: UnifiedCatalogItem | null
   configuredDimensions: ConfiguredDimensions | null
   onConfigureDimensions: (dims: ConfiguredDimensions) => void
+  chosenOptions: Record<string, string>
+  onSetChosenOptions: (options: Record<string, string>) => void
   ceilingConstraints: CeilingConstraint[]
   selectedWallGeom: { id: string; start: Point2D; end: Point2D } | null
   onMoveVertex: (index: number, pos: Point2D) => void
@@ -62,6 +66,8 @@ export function RightSidebar({
   selectedCatalogItem,
   configuredDimensions,
   onConfigureDimensions,
+  chosenOptions,
+  onSetChosenOptions,
   ceilingConstraints,
   selectedWallGeom,
   onMoveVertex, onSetEdgeLength,
@@ -72,6 +78,57 @@ export function RightSidebar({
   placements,
   selectedRoomId,
 }: Props) {
+  async function buildQuoteCreatePayload() {
+    const taxGroupId = 'tax-default'
+    const taxRate = 0.19
+
+    const placementWithPricing = placements.filter((placement) => placement.list_price_net != null)
+    const priceListItems = placementWithPricing.map((placement) => ({
+      catalog_item_id: placement.catalog_item_id,
+      list_price_net: placement.list_price_net ?? 0,
+      dealer_price_net: placement.dealer_price_net ?? 0,
+    }))
+
+    const cabinets: BomPreviewRequest['project']['cabinets'] = placements.map((placement) => ({
+      ...placement,
+      id: placement.id,
+      tax_group_id: taxGroupId,
+      qty: 1,
+      pricing_group_discount_pct: 0,
+      position_discount_pct: 0,
+      flags: {
+        requires_customization: false,
+        height_variant: null,
+        labor_surcharge: false,
+        special_trim_needed: false,
+      },
+    }))
+
+    const payload: BomPreviewRequest = {
+      project: {
+        id: projectId,
+        cabinets,
+        appliances: [],
+        accessories: [],
+        priceListItems,
+        taxGroups: [{ id: taxGroupId, name: 'Standard', tax_rate: taxRate }],
+        quoteSettings: {
+          freight_flat_rate: 89,
+          assembly_rate_per_item: 45,
+        },
+      },
+    }
+
+    const preview = await previewBom(payload)
+    return {
+      bom_lines: toQuoteBomLines(preview.lines),
+      price_summary: {
+        subtotal_net: preview.totals.total_net_after_discounts,
+        total_gross: preview.totals.total_net_after_discounts * (1 + taxRate),
+      },
+    }
+  }
+
   return (
     <aside className={styles.sidebar}>
       {selectedOpening ? (
@@ -110,6 +167,8 @@ export function RightSidebar({
               item={selectedCatalogItem}
               dimensions={configuredDimensions}
               onChange={onConfigureDimensions}
+              chosenOptions={chosenOptions}
+              onSetOptions={onSetChosenOptions}
             />
           ) : (
             <div className={styles.section}>
@@ -146,6 +205,11 @@ export function RightSidebar({
         roomId={selectedRoomId}
         placements={placements}
         ceilingHeightMm={room?.ceiling_height_mm ?? 2500}
+      />
+
+      <QuoteExportPanel
+        projectId={projectId}
+        buildCreatePayload={buildQuoteCreatePayload}
       />
     </aside>
   )
@@ -600,14 +664,19 @@ function ConstraintRow({ constraint, onUpdate, onDelete }: {
 
 // ─── Konfigurator-Panel ───────────────────────────────────────────────────────
 
-function KonfiguratorPanel({ item, dimensions, onChange }: {
-  item: CatalogItem
+function KonfiguratorPanel({ item, dimensions, onChange, chosenOptions, onSetOptions }: {
+  item: UnifiedCatalogItem
   dimensions: ConfiguredDimensions
   onChange: (dims: ConfiguredDimensions) => void
+  chosenOptions: Record<string, string>
+  onSetOptions: (opts: Record<string, string>) => void
 }) {
   const [w, setW] = useState(String(Math.round(dimensions.width_mm)))
   const [h, setH] = useState(String(Math.round(dimensions.height_mm)))
   const [d, setD] = useState(String(Math.round(dimensions.depth_mm)))
+
+  const isArticle = 'base_dims_json' in item
+  const article = isArticle ? item as CatalogArticle : null
 
   useEffect(() => {
     setW(String(Math.round(dimensions.width_mm)))
@@ -619,6 +688,10 @@ function KonfiguratorPanel({ item, dimensions, onChange }: {
     const n = parseFloat(raw)
     if (!Number.isFinite(n) || n <= 0) return
     onChange({ ...dimensions, [field]: n })
+  }
+
+  function handleOptionChange(key: string, val: string) {
+    onSetOptions({ ...chosenOptions, [key]: val })
   }
 
   return (
@@ -666,6 +739,39 @@ function KonfiguratorPanel({ item, dimensions, onChange }: {
           onKeyDown={e => { if (e.key === 'Enter') commit('depth_mm', d) }}
         />
       </div>
+
+      {article?.options && article.options.length > 0 && (
+        <div className={styles.optionsBlock}>
+          <h4 className={styles.subTitle}>Optionen</h4>
+          {article.options.map(opt => (
+            <div key={opt.id} className={styles.field}>
+              <label className={styles.fieldLabel}>{opt.option_key}</label>
+              {opt.option_type === 'enum' && Array.isArray(opt.constraints_json?.values) ? (
+                <select
+                  aria-label={`Option ${opt.option_key}`}
+                  className={styles.fieldInput}
+                  value={chosenOptions[opt.option_key] ?? ''}
+                  onChange={e => handleOptionChange(opt.option_key, e.target.value)}
+                >
+                  <option value="">Wählen…</option>
+                  {opt.constraints_json.values.map((v: string) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  aria-label={`Option ${opt.option_key}`}
+                  className={styles.fieldInput}
+                  type="text"
+                  value={chosenOptions[opt.option_key] ?? ''}
+                  onChange={e => handleOptionChange(opt.option_key, e.target.value)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       <p className={styles.hint}>
         Maße anpassen → dann Wand anklicken und "+ Platzieren"
       </p>

@@ -2,7 +2,7 @@
   max-width: 960px;
   margin: 0 auto;
   padding: 1.5rem;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .header {
@@ -15,31 +15,33 @@
 .title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .backBtn {
   background: none;
-  border: 1px solid #d1d5db;
-  border-radius: 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.8rem;
   font-size: 0.875rem;
   cursor: pointer;
-  color: #374151;
+  color: var(--text-primary);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
-.backBtn:hover { background: #f3f4f6; }
+.backBtn:hover { background: var(--surface-muted); border-color: var(--primary-color); }
 
 .filterBar {
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
   flex-wrap: wrap;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
 }
 
 .filterField {
@@ -47,35 +49,44 @@
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .input {
   padding: 0.35rem 0.6rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   min-width: 180px;
+  background: var(--surface-default);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .loadBtn {
-  background: #6366f1;
-  color: #fff;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-pill);
   padding: 0.4rem 1rem;
   font-size: 0.875rem;
   cursor: pointer;
   align-self: flex-end;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
-.loadBtn:hover { background: #4f46e5; }
+.loadBtn:hover { background: var(--primary-hover); transform: translateY(-1px); }
 .loadBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .error {
-  color: #ef4444;
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
-  border-radius: 5px;
+  color: var(--status-danger);
+  background: var(--status-danger-bg);
+  border: 1px solid var(--status-danger-border);
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   margin-bottom: 1rem;
@@ -89,19 +100,25 @@
 }
 
 .kpiCard {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--surface-default);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  box-shadow: 0 1px 3px #0000000d;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.kpiCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .kpiLabel {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -109,24 +126,25 @@
 .kpiValue {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
 }
 
-.won { color: #16a34a; }
-.lost { color: #dc2626; }
+.won { color: var(--status-success); }
+.lost { color: var(--status-danger); }
 
 .section {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--surface-default);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
 }
 
 .sectionTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   margin: 0 0 0.75rem;
 }
 
@@ -139,11 +157,11 @@
 .table th, .table td {
   text-align: left;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .table th {
-  color: #6b7280;
+  color: var(--text-muted);
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -151,7 +169,7 @@
 
 .empty {
   text-align: center;
-  color: #9ca3af;
+  color: var(--text-muted);
   padding: 3rem 0;
   font-size: 0.9rem;
 }
