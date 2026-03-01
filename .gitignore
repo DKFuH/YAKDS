@@ -6,6 +6,7 @@ build/
 *.log
 .DS_Store
 Thumbs.db
+.vscode/
 coverage/
 .nyc_output/
 *.skp
