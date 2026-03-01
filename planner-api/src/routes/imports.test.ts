@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const projectId = '11111111-1111-1111-1111-111111111111'
 const importJobId = '22222222-2222-2222-2222-222222222222'
+const TENANT_ID = '00000000-0000-0000-0000-000000000001'
 
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     project: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     importJob: {
       create: vi.fn(),
@@ -21,7 +23,15 @@ vi.mock('../db.js', () => ({
   prisma: prismaMock,
 }))
 
+import { tenantMiddleware } from '../tenantMiddleware.js'
 import { importRoutes } from './imports.js'
+
+async function makeApp() {
+  const app = Fastify()
+  await tenantMiddleware(app)
+  app.register(importRoutes, { prefix: '/api/v1' })
+  return app
+}
 
 function createMinimalDxf(): string {
   return [
@@ -107,7 +117,7 @@ describe('importRoutes', () => {
     vi.clearAllMocks()
     persistedJob = null
 
-    prismaMock.project.findUnique.mockResolvedValue({ id: projectId })
+    prismaMock.project.findFirst.mockResolvedValue({ id: projectId })
     prismaMock.importJob.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => {
       persistedJob = createImportJob(data)
       return persistedJob
@@ -179,12 +189,12 @@ describe('importRoutes', () => {
   })
 
   it('creates and stores a processed DXF import job', async () => {
-    const app = Fastify()
-    await app.register(importRoutes, { prefix: '/api/v1' })
+    const app = await makeApp()
 
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/imports/cad',
+      headers: { 'x-tenant-id': TENANT_ID },
       payload: {
         project_id: projectId,
         source_filename: 'room.dxf',
@@ -221,12 +231,12 @@ describe('importRoutes', () => {
   })
 
   it('stores DWG uploads as reviewable import jobs', async () => {
-    const app = Fastify()
-    await app.register(importRoutes, { prefix: '/api/v1' })
+    const app = await makeApp()
 
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/imports/cad',
+      headers: { 'x-tenant-id': TENANT_ID },
       payload: {
         project_id: projectId,
         source_filename: 'room.dwg',
@@ -249,12 +259,12 @@ describe('importRoutes', () => {
   })
 
   it('creates and stores a processed SKP import job with mapping overrides', async () => {
-    const app = Fastify()
-    await app.register(importRoutes, { prefix: '/api/v1' })
+    const app = await makeApp()
 
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/imports/skp',
+      headers: { 'x-tenant-id': TENANT_ID },
       payload: {
         project_id: projectId,
         source_filename: 'reference.skp',
@@ -491,14 +501,14 @@ describe('importRoutes', () => {
   })
 
   it('returns 404 when the project for an import job does not exist', async () => {
-    prismaMock.project.findUnique.mockResolvedValueOnce(null)
+    prismaMock.project.findFirst.mockResolvedValueOnce(null)
 
-    const app = Fastify()
-    await app.register(importRoutes, { prefix: '/api/v1' })
+    const app = await makeApp()
 
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/imports/skp',
+      headers: { 'x-tenant-id': TENANT_ID },
       payload: {
         project_id: projectId,
         source_filename: 'missing-project.skp',

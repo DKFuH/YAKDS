@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendForbidden, sendNotFound } from '../errors.js'
-import { RuleEngineV2, type PlacedObjectV2 } from '../services/ruleEngineV2.js'
+import { RuleEngineV2, type PlacedObjectV2, type WallDef } from '../services/ruleEngineV2.js'
 
 const ProjectParamsSchema = z.object({ id: z.string().uuid() })
 
@@ -25,12 +25,69 @@ const PlacedObjectSchema = z.object({
     worldPos: z.object({ x_mm: z.number(), y_mm: z.number() }).optional(),
 })
 
+const WallDefSchema = z.object({
+    id: z.string().min(1),
+    start: z.object({ x_mm: z.number(), y_mm: z.number() }),
+    end: z.object({ x_mm: z.number(), y_mm: z.number() }),
+})
+
 const ValidateV2BodySchema = z.object({
     room_id: z.string().uuid(),
     placements: z.array(PlacedObjectSchema).max(500).default([]),
     ceiling_height_mm: z.number().positive().default(2500),
     min_clearance_mm: z.number().nonnegative().default(50),
+    /** Pre-resolved wall geometry for cross-wall corner collision detection.
+     *  When omitted the route will attempt to load walls from the stored room boundary. */
+    walls: z.array(WallDefSchema).optional(),
 })
+
+/**
+ * Resolve wall start/end coordinates from a room boundary stored in the DB.
+ * Handles both vertex-reference format and inline start/end format.
+ */
+function resolveWallDefs(boundary: unknown): WallDef[] {
+    if (!boundary || typeof boundary !== 'object') return []
+
+    type InlineWall = { id: string; start?: { x_mm?: number; x?: number; y_mm?: number; y?: number }; end?: { x_mm?: number; x?: number; y_mm?: number; y?: number } }
+    type RefWall = { id: string; start_vertex_id?: string; end_vertex_id?: string }
+    type BoundaryVertex = { id: string; x_mm: number; y_mm: number }
+
+    const b = boundary as { vertices?: unknown; wall_segments?: unknown }
+    const rawSegments = Array.isArray(b.wall_segments) ? b.wall_segments : []
+    const rawVertices = Array.isArray(b.vertices) ? b.vertices as BoundaryVertex[] : []
+
+    const vertexById = new Map<string, BoundaryVertex>(
+        rawVertices.map((v) => [v.id, v]),
+    )
+
+    const walls: WallDef[] = []
+
+    for (const seg of rawSegments) {
+        const id: string = seg.id
+        if (!id) continue
+
+        // Inline start/end format (used in leads.ts & cad-boundary)
+        const inline = seg as InlineWall
+        if (inline.start && inline.end) {
+            const sx = inline.start.x_mm ?? inline.start.x ?? 0
+            const sy = inline.start.y_mm ?? inline.start.y ?? 0
+            const ex = inline.end.x_mm ?? inline.end.x ?? 0
+            const ey = inline.end.y_mm ?? inline.end.y ?? 0
+            walls.push({ id, start: { x_mm: sx, y_mm: sy }, end: { x_mm: ex, y_mm: ey } })
+            continue
+        }
+
+        // Vertex-reference format (used in rooms.ts CreateRoomSchema)
+        const ref = seg as RefWall
+        const sv = ref.start_vertex_id ? vertexById.get(ref.start_vertex_id) : undefined
+        const ev = ref.end_vertex_id ? vertexById.get(ref.end_vertex_id) : undefined
+        if (sv && ev) {
+            walls.push({ id, start: { x_mm: sv.x_mm, y_mm: sv.y_mm }, end: { x_mm: ev.x_mm, y_mm: ev.y_mm } })
+        }
+    }
+
+    return walls
+}
 
 const RuleDefCreateSchema = z.object({
     rule_key: z.string().regex(/^[A-Z]+-\d{3}$/),
@@ -75,6 +132,20 @@ export async function validateV2Routes(app: FastifyInstance) {
             select: { id: true, item_type: true, qty: true },
         })
 
+        // Resolve wall geometry for cross-wall collision detection.
+        // Use caller-provided walls when present; otherwise load from the stored room boundary.
+        let walls: WallDef[] | undefined = body.data.walls as WallDef[] | undefined
+        if (!walls) {
+            const room = await prisma.room.findUnique({
+                where: { id: body.data.room_id },
+                select: { boundary: true },
+            })
+            if (room?.boundary) {
+                const resolved = resolveWallDefs(room.boundary)
+                if (resolved.length > 0) walls = resolved
+            }
+        }
+
         const snapshot = {
             project_id: params.data.id,
             room_id: body.data.room_id,
@@ -83,6 +154,7 @@ export async function validateV2Routes(app: FastifyInstance) {
             plinth_items: generatedItems.filter((i) => i.item_type === 'plinth'),
             ceiling_height_mm: body.data.ceiling_height_mm,
             min_clearance_mm: body.data.min_clearance_mm,
+            walls,
         }
 
         const result = await RuleEngineV2.run(snapshot, tenantId)

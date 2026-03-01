@@ -8,7 +8,7 @@ import type { FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../db.js'
-import { sendBadRequest, sendForbidden } from '../errors.js'
+import { sendBadRequest, sendForbidden, sendNotFound } from '../errors.js'
 
 const DateRangeSchema = z.object({
     from: z.coerce.date().optional(),
@@ -202,16 +202,22 @@ export async function biRoutes(app: FastifyInstance) {
 
     // ── Tenant / Branch CRUD (Verwaltung) ────────────────────────
 
-    /** GET /tenants */
-    app.get('/tenants', async (_request, reply) => {
-        const tenants = await prisma.tenant.findMany({
+    /** GET /tenants – return only the requesting tenant's own record */
+    app.get('/tenants', async (request, reply) => {
+        const tenantId = getTenantId(request)
+        if (!tenantId) return sendForbidden(reply, 'Tenant scope is required')
+
+        const tenant = await prisma.tenant.findUnique({
+            where: { id: tenantId },
             include: { _count: { select: { branches: true, users: true, projects: true } } },
         })
-        return reply.send(tenants)
+        if (!tenant) return sendNotFound(reply, 'Tenant not found')
+        return reply.send([tenant])
     })
 
-    /** POST /tenants */
+    /** POST /tenants – only permitted when no tenant scope is set (super-admin path) */
     app.post('/tenants', async (request, reply) => {
+        if (getTenantId(request)) return sendForbidden(reply, 'Cannot create a tenant within an existing tenant scope')
         const parsed = z.object({ name: z.string().min(1).max(120) }).safeParse(request.body)
         if (!parsed.success) return sendBadRequest(reply, parsed.error.errors[0].message)
         const tenant = await prisma.tenant.create({ data: parsed.data })

@@ -14,6 +14,7 @@ const { prismaMock } = vi.hoisted(() => ({
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     renderJobResult: {
       upsert: vi.fn(),
@@ -74,12 +75,9 @@ describe('renderJobRoutes', () => {
       created_at: new Date('2026-03-01T00:00:00.000Z'),
     })
 
+    // fetch-job now uses updateMany (atomic) + findUnique instead of update,
+    // so there are only 2 update calls: start (running) and complete (done).
     prismaMock.renderJob.update
-      .mockResolvedValueOnce({
-        id: '33333333-3333-3333-3333-333333333333',
-        status: 'assigned',
-        worker_id: '44444444-4444-4444-4444-444444444444',
-      })
       .mockResolvedValueOnce({
         id: '33333333-3333-3333-3333-333333333333',
         status: 'running',
@@ -110,11 +108,7 @@ describe('renderJobRoutes', () => {
 
     const workerId = registerResponse.json().worker_id as string
 
-    prismaMock.renderJob.update.mockImplementation(async (args: { data: { worker_id?: string; status: string } }) => ({
-      id: '33333333-3333-3333-3333-333333333333',
-      status: args.data.status,
-      worker_id: args.data.worker_id ?? workerId,
-    }))
+    prismaMock.renderJob.updateMany.mockResolvedValue({ count: 1 })
 
     prismaMock.renderJob.findUnique.mockResolvedValue({
       id: '33333333-3333-3333-3333-333333333333',

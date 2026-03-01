@@ -1,7 +1,30 @@
 import Fastify from 'fastify'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const TENANT_ID = '00000000-0000-0000-0000-000000000001'
+const projectId = '11111111-1111-1111-1111-111111111111'
+
+const { prismaMock } = vi.hoisted(() => ({
+  prismaMock: {
+    project: {
+      findFirst: vi.fn(),
+    },
+  },
+}))
+
+vi.mock('../db.js', () => ({
+  prisma: prismaMock,
+}))
+
+import { tenantMiddleware } from '../tenantMiddleware.js'
 import { exportRoutes } from './exports.js'
+
+async function makeApp() {
+  const app = Fastify()
+  await tenantMiddleware(app)
+  app.register(exportRoutes, { prefix: '/api/v1' })
+  return app
+}
 
 function createPayload() {
   return {
@@ -47,6 +70,8 @@ function createPayload() {
 }
 
 describe('exportRoutes', () => {
+  beforeEach(() => vi.clearAllMocks())
+
   it('returns a DXF document as attachment', async () => {
     const app = Fastify()
     await app.register(exportRoutes, { prefix: '/api/v1' })
@@ -109,12 +134,14 @@ describe('exportRoutes', () => {
   })
 
   it('can fall back from DWG export requests to DXF attachments when allowed', async () => {
-    const app = Fastify()
-    await app.register(exportRoutes, { prefix: '/api/v1' })
+    prismaMock.project.findFirst.mockResolvedValue({ id: projectId })
+
+    const app = await makeApp()
 
     const response = await app.inject({
       method: 'POST',
-      url: '/api/v1/projects/11111111-1111-1111-1111-111111111111/export-dwg',
+      url: `/api/v1/projects/${projectId}/export-dwg`,
+      headers: { 'x-tenant-id': TENANT_ID },
       payload: {
         ...createPayload(),
         filename: 'kitchen-plan.dwg',

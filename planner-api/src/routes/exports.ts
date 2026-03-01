@@ -3,7 +3,13 @@ import { z } from 'zod'
 import type { ExportPayload } from '@yakds/shared-schemas'
 import { exportToDxf } from '@yakds/dxf-export'
 
-import { sendBadRequest } from '../errors.js'
+import { prisma } from '../db.js'
+import { sendBadRequest, sendForbidden, sendNotFound } from '../errors.js'
+
+function getTenantId(request: unknown): string | null {
+  const tenantId = (request as { tenantId?: string | null }).tenantId
+  return tenantId ?? null
+}
 
 const PointSchema = z.object({
   x_mm: z.number(),
@@ -89,7 +95,7 @@ export async function exportRoutes(app: FastifyInstance) {
     }
 
     if (!parsed.data.allow_dxf_fallback) {
-      return reply.status(501).send({
+      return (reply as FastifyReply).status(501).send({
         error: 'DWG_EXPORT_NOT_AVAILABLE',
         message: 'Native DWG export is not wired yet. Use /exports/dxf or set allow_dxf_fallback=true.',
       })
@@ -99,14 +105,44 @@ export async function exportRoutes(app: FastifyInstance) {
     const requestedFilename = normalizeDwgFilename(parsed.data.filename)
     const fallbackFilename = requestedFilename.replace(/\.dwg$/i, '.dxf')
 
-    reply.header('x-yakds-export-fallback', 'dwg->dxf')
+    ;(reply as FastifyReply).header('x-yakds-export-fallback', 'dwg->dxf')
     reply.header('content-disposition', `attachment; filename="${fallbackFilename}"`)
     reply.type('application/dxf; charset=utf-8')
     return reply.send(dxf)
   }
 
+  /** Verify that the project in the URL belongs to the requesting tenant. */
+  async function assertProjectTenantScope(
+    request: unknown,
+    reply: FastifyReply,
+    projectId: string,
+  ): Promise<boolean> {
+    const tenantId = getTenantId(request)
+    if (!tenantId) {
+      sendForbidden(reply, 'Tenant scope is required')
+      return false
+    }
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, tenant_id: tenantId },
+      select: { id: true },
+    })
+    if (!project) {
+      sendNotFound(reply, 'Project not found')
+      return false
+    }
+    return true
+  }
+
   app.post('/exports/dxf', dxfHandler)
-  app.post('/projects/:projectId/export-dxf', dxfHandler)
   app.post('/exports/dwg', dwgHandler)
-  app.post('/projects/:projectId/export-dwg', dwgHandler)
+
+  app.post<{ Params: { projectId: string } }>('/projects/:projectId/export-dxf', async (request, reply) => {
+    if (!(await assertProjectTenantScope(request, reply, request.params.projectId))) return
+    return dxfHandler(request, reply)
+  })
+
+  app.post<{ Params: { projectId: string } }>('/projects/:projectId/export-dwg', async (request, reply) => {
+    if (!(await assertProjectTenantScope(request, reply, request.params.projectId))) return
+    return dwgHandler(request, reply)
+  })
 }

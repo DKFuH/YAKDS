@@ -6,7 +6,12 @@ import { parseDxf } from '@yakds/dxf-import'
 import { parseSkp } from '@yakds/skp-import'
 import type { CadLayer } from '@yakds/shared-schemas'
 import { prisma } from '../db.js'
-import { sendBadRequest, sendNotFound, sendServerError } from '../errors.js'
+import { sendBadRequest, sendForbidden, sendNotFound, sendServerError } from '../errors.js'
+
+function getTenantId(request: unknown): string | null {
+  const tenantId = (request as { tenantId?: string | null }).tenantId
+  return tenantId ?? null
+}
 
 const LegacyImportJobSchema = z.object({
   project_id: z.string().uuid(),
@@ -371,8 +376,11 @@ export async function importRoutes(app: FastifyInstance) {
       return sendBadRequest(reply, parsed.error.errors[0].message)
     }
 
-    const project = await prisma.project.findUnique({
-      where: { id: parsed.data.project_id },
+    const tenantId = getTenantId(request)
+    if (!tenantId) return sendForbidden(reply, 'Tenant scope is required')
+
+    const project = await prisma.project.findFirst({
+      where: { id: parsed.data.project_id, tenant_id: tenantId },
       select: { id: true },
     })
     if (!project) {
@@ -460,8 +468,11 @@ export async function importRoutes(app: FastifyInstance) {
       return sendBadRequest(reply, parsed.error.errors[0].message)
     }
 
-    const project = await prisma.project.findUnique({
-      where: { id: parsed.data.project_id },
+    const tenantId = getTenantId(request)
+    if (!tenantId) return sendForbidden(reply, 'Tenant scope is required')
+
+    const project = await prisma.project.findFirst({
+      where: { id: parsed.data.project_id, tenant_id: tenantId },
       select: { id: true },
     })
     if (!project) {

@@ -6,19 +6,23 @@ const LEAD_ID = '00000000-0000-0000-0000-000000000002'
 const USER_ID = '00000000-0000-0000-0000-000000000003'
 const PROJECT_ID = '00000000-0000-0000-0000-000000000004'
 
-const { prismaMock } = vi.hoisted(() => ({
-  prismaMock: {
+const { prismaMock } = vi.hoisted(() => {
+  const mock = {
     lead: {
       create: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
     project: { create: vi.fn() },
     room: { create: vi.fn() },
-  },
-}))
+    $transaction: vi.fn(),
+  }
+  mock.$transaction.mockImplementation(async (cb: (tx: typeof mock) => Promise<unknown>) => cb(mock))
+  return { prismaMock: mock }
+})
 
 vi.mock('../db.js', () => ({ prisma: prismaMock }))
 
@@ -128,6 +132,8 @@ describe('leadRoutes', () => {
 
   it('POST /leads/promote promotes a lead to a project', async () => {
     prismaMock.lead.findFirst.mockResolvedValue(makeStoredLead())
+    // updateMany claims the lead (atomic lock step inside transaction)
+    prismaMock.lead.updateMany.mockResolvedValue({ count: 1 })
     prismaMock.project.create.mockResolvedValue({
       id: PROJECT_ID,
       name: 'Lead: Max Mustermann',

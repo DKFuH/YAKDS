@@ -1,13 +1,16 @@
 import Fastify from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { prismaMock } = vi.hoisted(() => ({
-  prismaMock: {
+const { prismaMock } = vi.hoisted(() => {
+  const mock = {
     project: { findUnique: vi.fn() },
     quote: { findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn() },
     quoteSettings: { findUnique: vi.fn() },
-  },
-}))
+    $transaction: vi.fn(),
+  }
+  mock.$transaction.mockImplementation(async (cb: (tx: typeof mock) => Promise<unknown>) => cb(mock))
+  return { prismaMock: mock }
+})
 
 vi.mock('../db.js', () => ({
   prisma: prismaMock,

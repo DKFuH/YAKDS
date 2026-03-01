@@ -2,6 +2,7 @@
  * ruleEngineV2.ts – Sprint 22 / TASK-22-A01
  * "Protect"-Framework: konfigurierbarer Regelkatalog + Persistenz
  */
+import { segmentsIntersect, pointInPolygon } from '@yakds/shared-schemas'
 import { prisma } from '../db.js'
 
 // ─── Typen ───────────────────────────────────────────────────────
@@ -19,6 +20,13 @@ export interface PlacedObjectV2 {
     worldPos?: { x_mm: number; y_mm: number }
 }
 
+/** A wall segment with resolved 2D start/end coordinates for footprint computation. */
+export interface WallDef {
+    id: string
+    start: { x_mm: number; y_mm: number }
+    end: { x_mm: number; y_mm: number }
+}
+
 export interface ProjectSnapshot {
     project_id: string
     room_id: string
@@ -27,6 +35,8 @@ export interface ProjectSnapshot {
     plinth_items: { id: string; qty: number }[]
     ceiling_height_mm: number
     min_clearance_mm: number
+    /** Optional wall geometry used for cross-wall (corner) collision detection. */
+    walls?: WallDef[]
 }
 
 interface ViolationInput {
@@ -40,6 +50,68 @@ interface ViolationInput {
 
 type RuleHandler = (s: ProjectSnapshot, p: Record<string, unknown>) => ViolationInput[]
 
+// ─── Footprint helpers ────────────────────────────────────────────
+
+type Point2D = { x_mm: number; y_mm: number }
+
+/**
+ * Compute the 2D floor-plan footprint of a cabinet placed on a wall.
+ * The cabinet's footprint is a rectangle:
+ *   - along the wall: from offset_mm to offset_mm + width_mm
+ *   - perpendicular (into the room): depth_mm
+ * The inward direction (into the room) is the left-perpendicular of the wall
+ * direction (assumes CCW room polygon winding; correct for typical plans).
+ * Returns null when the wall is not found or has zero length.
+ */
+function getCabinetFootprint(p: PlacedObjectV2, walls: WallDef[]): Point2D[] | null {
+    const wall = walls.find((w) => w.id === p.wall_id)
+    if (!wall) return null
+
+    const dx = wall.end.x_mm - wall.start.x_mm
+    const dy = wall.end.y_mm - wall.start.y_mm
+    const len = Math.hypot(dx, dy)
+    if (len < 1e-6) return null
+
+    const ux = dx / len  // unit vector along wall
+    const uy = dy / len
+    const nx = -uy  // inward normal (left perpendicular, CCW polygon)
+    const ny = ux
+
+    // Four corners of the footprint rectangle
+    const x0 = wall.start.x_mm + ux * p.offset_mm
+    const y0 = wall.start.y_mm + uy * p.offset_mm
+    const x1 = x0 + ux * p.width_mm
+    const y1 = y0 + uy * p.width_mm
+
+    return [
+        { x_mm: x0, y_mm: y0 },
+        { x_mm: x1, y_mm: y1 },
+        { x_mm: x1 + nx * p.depth_mm, y_mm: y1 + ny * p.depth_mm },
+        { x_mm: x0 + nx * p.depth_mm, y_mm: y0 + ny * p.depth_mm },
+    ]
+}
+
+/**
+ * Returns true when polygon A and polygon B intersect (edge-crossing or containment).
+ * Uses the segmentsIntersect / pointInPolygon helpers from shared-schemas.
+ */
+function polygonsIntersect(a: Point2D[], b: Point2D[]): boolean {
+    // Check all edge pairs for intersection
+    for (let i = 0; i < a.length; i++) {
+        const a1 = a[i]
+        const a2 = a[(i + 1) % a.length]
+        for (let j = 0; j < b.length; j++) {
+            const b1 = b[j]
+            const b2 = b[(j + 1) % b.length]
+            if (segmentsIntersect(a1, a2, b1, b2)) return true
+        }
+    }
+    // Check containment (one polygon fully inside the other)
+    if (a.length > 0 && pointInPolygon(a[0], b)) return true
+    if (b.length > 0 && pointInPolygon(b[0], a)) return true
+    return false
+}
+
 // ─── Regelimplementierungen ───────────────────────────────────────
 
 const rules: Record<string, RuleHandler> = {
@@ -49,9 +121,18 @@ const rules: Record<string, RuleHandler> = {
         for (let i = 0; i < bases.length; i++) {
             for (let j = i + 1; j < bases.length; j++) {
                 const a = bases[i], b = bases[j]
-                if (a.wall_id !== b.wall_id) continue
-                if (a.offset_mm < b.offset_mm + b.width_mm && a.offset_mm + a.width_mm > b.offset_mm) {
-                    out.push({ rule_key: 'COLL-001', severity: 'error', entity_refs: [a.id, b.id], message: `Schrank ${a.id} und ${b.id} überlappen.` })
+                if (a.wall_id === b.wall_id) {
+                    // Same-wall: fast 1-D overlap check
+                    if (a.offset_mm < b.offset_mm + b.width_mm && a.offset_mm + a.width_mm > b.offset_mm) {
+                        out.push({ rule_key: 'COLL-001', severity: 'error', entity_refs: [a.id, b.id], message: `Schrank ${a.id} und ${b.id} überlappen.` })
+                    }
+                } else if (s.walls) {
+                    // Cross-wall: 2D polygon footprint intersection (handles L/U corner cases)
+                    const polyA = getCabinetFootprint(a, s.walls)
+                    const polyB = getCabinetFootprint(b, s.walls)
+                    if (polyA && polyB && polygonsIntersect(polyA, polyB)) {
+                        out.push({ rule_key: 'COLL-001', severity: 'error', entity_refs: [a.id, b.id], message: `Schrank ${a.id} und ${b.id} überlappen (Eckbereich).` })
+                    }
                 }
             }
         }
@@ -87,12 +168,22 @@ const rules: Record<string, RuleHandler> = {
     'CLEAR-001': (s, p) => {
         const min = Number(p['min_passage_mm'] ?? 600)
         const out: ViolationInput[] = []
-        const sorted = [...s.placements].sort((a, b) => a.offset_mm - b.offset_mm)
-        for (let i = 1; i < sorted.length; i++) {
-            const prev = sorted[i - 1], curr = sorted[i]
-            if (prev.wall_id !== curr.wall_id) continue
-            const gap = curr.offset_mm - (prev.offset_mm + prev.width_mm)
-            if (gap > 0 && gap < min) out.push({ rule_key: 'CLEAR-001', severity: 'warning', entity_refs: [prev.id, curr.id], message: `Durchgang ${gap}mm < ${min}mm.` })
+        // Group placements by wall before sorting so gaps are only checked
+        // between cabinets on the SAME wall (previous code sorted across all
+        // walls which caused same-wall gaps to be skipped).
+        const byWall = new Map<string, PlacedObjectV2[]>()
+        for (const pl of s.placements) {
+            const existing = byWall.get(pl.wall_id) ?? []
+            existing.push(pl)
+            byWall.set(pl.wall_id, existing)
+        }
+        for (const wallPlacements of byWall.values()) {
+            const sorted = [...wallPlacements].sort((a, b) => a.offset_mm - b.offset_mm)
+            for (let i = 1; i < sorted.length; i++) {
+                const prev = sorted[i - 1], curr = sorted[i]
+                const gap = curr.offset_mm - (prev.offset_mm + prev.width_mm)
+                if (gap > 0 && gap < min) out.push({ rule_key: 'CLEAR-001', severity: 'warning', entity_refs: [prev.id, curr.id], message: `Durchgang ${gap}mm < ${min}mm.` })
+            }
         }
         return out
     },

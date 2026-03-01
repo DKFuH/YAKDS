@@ -8,8 +8,20 @@ import type {
   TaxGroup
 } from '@yakds/shared-schemas';
 
+/** Phase-2 per-article price entry (maps catalog_article_id → list/dealer prices). */
+export interface ArticlePriceItem {
+  catalog_article_id: string;
+  list_net: number;
+  dealer_net: number;
+}
+
 function findPrice(itemId: string, priceListItems: PriceListItem[]): PriceListItem | null {
   return priceListItems.find((item) => item.catalog_item_id === itemId) ?? null;
+}
+
+function findArticlePrice(source: CatalogPlacementBase, articlePrices: ArticlePriceItem[]): ArticlePriceItem | null {
+  if (!source.catalog_article_id) return null;
+  return articlePrices.find((p) => p.catalog_article_id === source.catalog_article_id) ?? null;
 }
 
 function findTaxRate(taxGroupId: string, taxGroups: TaxGroup[]): number {
@@ -39,11 +51,14 @@ function createCatalogLine(
   source: CatalogPlacementBase,
   lineType: 'cabinet' | 'appliance' | 'accessory',
   priceListItems: PriceListItem[],
-  taxGroups: TaxGroup[]
+  taxGroups: TaxGroup[],
+  articlePrices: ArticlePriceItem[] = []
 ): BOMLine {
-  const price = findPrice(source.catalog_item_id, priceListItems);
-  const listPrice = source.list_price_net ?? price?.list_price_net ?? 0;
-  const dealerPrice = source.dealer_price_net ?? price?.dealer_price_net ?? 0;
+  const legacyPrice = findPrice(source.catalog_item_id, priceListItems);
+  const articlePrice = findArticlePrice(source, articlePrices);
+  // Phase-2 article prices take precedence over legacy price-list lookup.
+  const listPrice = source.list_price_net ?? articlePrice?.list_net ?? legacyPrice?.list_price_net ?? 0;
+  const dealerPrice = source.dealer_price_net ?? articlePrice?.dealer_net ?? legacyPrice?.dealer_price_net ?? 0;
   const qty = source.qty ?? 1;
   const variantSurcharge = source.flags.variant_surcharge ?? 0;
   const objectSurcharges = source.flags.object_surcharges ?? 0;
@@ -151,19 +166,24 @@ export interface GeneratedItemInput {
 export interface CalculateBOMOptions {
   specialTrimSurchargeNet?: number;
   generatedItems?: GeneratedItemInput[];
+  /** Phase-2 article prices keyed by catalog_article_id.
+   *  These are looked up when a placement has catalog_article_id set but no
+   *  matching entry exists in the legacy priceListItems. */
+  articlePrices?: ArticlePriceItem[];
 }
 
 export function calculateBOM(project: ProjectSnapshot, options: CalculateBOMOptions = {}): BOMLine[] {
   const lines: BOMLine[] = [];
   const defaultTax = defaultTaxGroup(project.taxGroups);
   const specialTrimSurchargeNet = options.specialTrimSurchargeNet ?? 0;
+  const articlePrices = options.articlePrices ?? [];
 
   const cabinets: PlacedCabinet[] = project.cabinets ?? [];
   const appliances: PlacedAppliance[] = project.appliances ?? [];
   const accessories = project.accessories ?? [];
 
   for (const cabinet of cabinets) {
-    lines.push(createCatalogLine(project.id, cabinet, 'cabinet', project.priceListItems, project.taxGroups));
+    lines.push(createCatalogLine(project.id, cabinet, 'cabinet', project.priceListItems, project.taxGroups, articlePrices));
 
     if (cabinet.flags.special_trim_needed) {
       lines.push(
@@ -193,7 +213,7 @@ export function calculateBOM(project: ProjectSnapshot, options: CalculateBOMOpti
   }
 
   for (const appliance of appliances) {
-    lines.push(createCatalogLine(project.id, appliance, 'appliance', project.priceListItems, project.taxGroups));
+    lines.push(createCatalogLine(project.id, appliance, 'appliance', project.priceListItems, project.taxGroups, articlePrices));
 
     if (appliance.flags.labor_surcharge) {
       lines.push(
@@ -210,7 +230,7 @@ export function calculateBOM(project: ProjectSnapshot, options: CalculateBOMOpti
   }
 
   for (const accessory of accessories) {
-    lines.push(createCatalogLine(project.id, accessory, 'accessory', project.priceListItems, project.taxGroups));
+    lines.push(createCatalogLine(project.id, accessory, 'accessory', project.priceListItems, project.taxGroups, articlePrices));
   }
 
   for (const item of options.generatedItems ?? []) {

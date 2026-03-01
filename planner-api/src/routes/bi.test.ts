@@ -8,7 +8,7 @@ const { prismaMock } = vi.hoisted(() => ({
     project: { findMany: vi.fn() },
     quote: { findMany: vi.fn() },
     quoteItem: { findMany: vi.fn() },
-    tenant: { findMany: vi.fn(), create: vi.fn() },
+    tenant: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
     branch: { findMany: vi.fn(), create: vi.fn() },
   },
 }))
@@ -113,20 +113,32 @@ describe('biRoutes', () => {
     await app.close()
   })
 
-  it('GET /tenants returns tenant list', async () => {
-    prismaMock.tenant.findMany.mockResolvedValue([
+  it('GET /tenants returns tenant list for the requesting tenant', async () => {
+    prismaMock.tenant.findUnique.mockResolvedValue(
       { id: TENANT_ID, name: 'Studio Nord', _count: { branches: 2, users: 5, projects: 10 } },
-    ])
+    )
 
     const app = makeApp()
-    const res = await app.inject({ method: 'GET', url: '/tenants' })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/tenants',
+      headers: { 'x-tenant-id': TENANT_ID },
+    })
 
     expect(res.statusCode).toBe(200)
     expect(res.json()).toHaveLength(1)
+    expect(res.json()[0].id).toBe(TENANT_ID)
     await app.close()
   })
 
-  it('POST /tenants creates a tenant', async () => {
+  it('GET /tenants returns 403 without tenant header', async () => {
+    const app = makeApp()
+    const res = await app.inject({ method: 'GET', url: '/tenants' })
+    expect(res.statusCode).toBe(403)
+    await app.close()
+  })
+
+  it('POST /tenants creates a tenant when no tenant scope is set', async () => {
     prismaMock.tenant.create.mockResolvedValue({ id: TENANT_ID, name: 'Studio Süd' })
 
     const app = makeApp()
@@ -138,6 +150,18 @@ describe('biRoutes', () => {
 
     expect(res.statusCode).toBe(201)
     expect(res.json().name).toBe('Studio Süd')
+    await app.close()
+  })
+
+  it('POST /tenants returns 403 when a tenant scope is already set', async () => {
+    const app = makeApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants',
+      headers: { 'x-tenant-id': TENANT_ID },
+      payload: { name: 'Evil Tenant' },
+    })
+    expect(res.statusCode).toBe(403)
     await app.close()
   })
 })
