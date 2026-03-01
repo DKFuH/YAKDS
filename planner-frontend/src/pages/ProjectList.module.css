@@ -12,6 +12,12 @@
   margin-bottom: 1.5rem;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .header h1 {
   margin: 0;
   font-size: 1.5rem;
@@ -108,6 +114,20 @@
 
 .btnPrimary:hover {
   background: #4f46e5;
+}
+
+.btnSecondary {
+  background: #fff;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.btnSecondary:hover {
+  background: #f9fafb;
 }
 
 .btnDanger {

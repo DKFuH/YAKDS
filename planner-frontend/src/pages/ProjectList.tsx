@@ -41,9 +41,14 @@ export function ProjectList() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h1>YAKDS – Küchenplaner</h1>
-        <button className={styles.btnPrimary} onClick={() => setCreating(true)}>
-          + Neues Projekt
-        </button>
+        <div className={styles.headerActions}>
+          <button className={styles.btnSecondary} onClick={() => navigate('/catalog')}>
+            Katalog
+          </button>
+          <button className={styles.btnPrimary} onClick={() => setCreating(true)}>
+            + Neues Projekt
+          </button>
+        </div>
       </header>
 
       {error && <div className={styles.error}>{error}</div>}
