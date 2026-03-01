@@ -8,6 +8,24 @@ import type { ValidatePayload, ValidateResponse } from './validate.js'
 interface DemoStore {
   projects: ProjectDetail[]
   catalog: CatalogItem[]
+  dashboard_configs: Array<{
+    id: string
+    user_id: string
+    tenant_id: string
+    widgets: Array<{ id: string; title?: string; config?: Record<string, unknown> }>
+    layout: { columns: number; items: Array<{ widget_id: string; x: number; y: number; w: number; h: number }> }
+    created_at: string
+    updated_at: string
+  }>
+  catalog_indices: Array<{
+    id: string
+    project_id: string
+    catalog_id: string
+    purchase_index: number
+    sales_index: number
+    applied_at: string
+    applied_by: string
+  }>
   documents: Array<{
     id: string
     project_id: string
@@ -154,6 +172,8 @@ function seedStore(): DemoStore {
       }
     ],
     catalog: seedCatalog(),
+    dashboard_configs: [],
+    catalog_indices: [],
     documents: [
       {
         id: uid('doc'),
@@ -550,6 +570,220 @@ export function deleteDocument(projectId: string, documentId: string): void {
     ...current,
     documents: current.documents.filter((document) => !(document.project_id === projectId && document.id === documentId))
   }))
+}
+
+export function getDashboardConfig(userId: string, tenantId: string) {
+  const store = loadStore()
+  const existing = store.dashboard_configs.find((entry) => entry.user_id === userId && entry.tenant_id === tenantId)
+  if (existing) {
+    return existing
+  }
+
+  return {
+    id: null,
+    user_id: userId,
+    tenant_id: tenantId,
+    widgets: [
+      { id: 'sales_chart' },
+      { id: 'kpi_cards' },
+      { id: 'current_projects' },
+      { id: 'current_contacts' },
+      { id: 'project_pipeline' },
+    ],
+    layout: {
+      columns: 12,
+      items: [
+        { widget_id: 'sales_chart', x: 0, y: 0, w: 8, h: 4 },
+        { widget_id: 'kpi_cards', x: 8, y: 0, w: 4, h: 4 },
+        { widget_id: 'current_projects', x: 0, y: 4, w: 6, h: 4 },
+        { widget_id: 'current_contacts', x: 6, y: 4, w: 6, h: 4 },
+        { widget_id: 'project_pipeline', x: 0, y: 8, w: 12, h: 4 },
+      ],
+    },
+  }
+}
+
+export function saveDashboardConfig(
+  userId: string,
+  tenantId: string,
+  payload: {
+    widgets: Array<{ id: string; title?: string; config?: Record<string, unknown> }>
+    layout: { columns: number; items: Array<{ widget_id: string; x: number; y: number; w: number; h: number }> }
+  },
+) {
+  const timestamp = now()
+  const existing = loadStore().dashboard_configs.find((entry) => entry.user_id === userId && entry.tenant_id === tenantId)
+
+  const next = updateStore((current) => ({
+    ...current,
+    dashboard_configs: existing
+      ? current.dashboard_configs.map((entry) => (
+          entry.user_id === userId && entry.tenant_id === tenantId
+            ? { ...entry, widgets: payload.widgets, layout: payload.layout, updated_at: timestamp }
+            : entry
+        ))
+      : [
+          ...current.dashboard_configs,
+          {
+            id: uid('dashboard'),
+            user_id: userId,
+            tenant_id: tenantId,
+            widgets: payload.widgets,
+            layout: payload.layout,
+            created_at: timestamp,
+            updated_at: timestamp,
+          },
+        ],
+  }))
+
+  return next.dashboard_configs.find((entry) => entry.user_id === userId && entry.tenant_id === tenantId)!
+}
+
+export function getDemoSalesChart(period: 'month' | 'last_month' | 'year' = 'month') {
+  const projects = loadStore().projects
+  const points = new Map<string, { value_net: number; quotes: number }>()
+
+  for (const project of projects) {
+    const date = new Date(project.created_at)
+    const key = period === 'year'
+      ? `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
+      : `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+
+    const current = points.get(key) ?? { value_net: 0, quotes: 0 }
+    current.value_net += project.quote_value ?? 0
+    current.quotes += project.quote_value ? 1 : 0
+    points.set(key, current)
+  }
+
+  const normalizedPoints = [...points.entries()].map(([date, value]) => ({
+    date,
+    value_net: value.value_net,
+    quotes: value.quotes,
+  }))
+
+  return {
+    tenant_id: '00000000-0000-0000-0000-000000000001',
+    period,
+    from: projects[0]?.created_at ?? now(),
+    to: now(),
+    points: normalizedPoints,
+    total_net: normalizedPoints.reduce((sum, point) => sum + point.value_net, 0),
+  }
+}
+
+export function listCatalogIndices(projectId: string) {
+  return loadStore().catalog_indices
+    .filter((entry) => entry.project_id === projectId)
+    .sort((left, right) => right.applied_at.localeCompare(left.applied_at))
+}
+
+export function createCatalogIndex(
+  projectId: string,
+  payload: {
+    catalog_id: string
+    purchase_index: number
+    sales_index: number
+    applied_by: string
+  },
+) {
+  const record = {
+    id: uid('catalog-index'),
+    project_id: projectId,
+    catalog_id: payload.catalog_id,
+    purchase_index: payload.purchase_index,
+    sales_index: payload.sales_index,
+    applied_at: now(),
+    applied_by: payload.applied_by,
+  }
+
+  updateStore((current) => ({
+    ...current,
+    catalog_indices: [record, ...current.catalog_indices],
+  }))
+
+  return record
+}
+
+export function searchGlobal(query: string, type?: 'project' | 'contact' | 'document') {
+  const normalized = query.trim().toLowerCase()
+  if (!normalized) {
+    return { query, results: [] }
+  }
+
+  const store = loadStore()
+  const results: Array<{
+    type: 'project' | 'contact' | 'document'
+    id: string
+    title: string
+    subtitle: string | null
+    meta: string | null
+    href: string
+    updated_at: string
+  }> = []
+
+  if (!type || type === 'project') {
+    for (const project of store.projects) {
+      const haystack = `${project.name} ${project.description ?? ''}`.toLowerCase()
+      if (haystack.includes(normalized)) {
+        results.push({
+          type: 'project',
+          id: project.id,
+          title: project.name,
+          subtitle: project.description ?? null,
+          meta: project.project_status,
+          href: `/projects/${project.id}`,
+          updated_at: project.updated_at,
+        })
+      }
+    }
+  }
+
+  if (!type || type === 'contact') {
+    for (const contact of store.contacts) {
+      const haystack = [contact.first_name, contact.last_name, contact.company, contact.email]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (haystack.includes(normalized)) {
+        results.push({
+          type: 'contact',
+          id: contact.id,
+          title: [contact.first_name, contact.last_name].filter(Boolean).join(' ') || contact.last_name,
+          subtitle: contact.company ?? contact.email,
+          meta: contact.email,
+          href: '/contacts',
+          updated_at: contact.updated_at,
+        })
+      }
+    }
+  }
+
+  if (!type || type === 'document') {
+    for (const document of store.documents) {
+      const haystack = [document.filename, document.original_filename, ...document.tags]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (haystack.includes(normalized)) {
+        results.push({
+          type: 'document',
+          id: document.id,
+          title: document.filename,
+          subtitle: document.tags.join(', ') || null,
+          meta: document.type,
+          href: `/documents?project=${document.project_id}`,
+          updated_at: document.uploaded_at,
+        })
+      }
+    }
+  }
+
+  return {
+    query,
+    results: results
+      .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
+      .slice(0, 20),
+  }
 }
 
 export function createRoom(data: {

@@ -107,9 +107,56 @@
   min-width: 15rem;
 }
 
+.filterFieldSearch {
+  display: grid;
+  gap: 0.35rem;
+  min-width: min(32rem, 100%);
+  flex: 1;
+}
+
 .filterField span {
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+.searchRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+}
+
+.searchRow input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  background: var(--surface-default);
+}
+
+.searchResults {
+  max-width: 1600px;
+  margin: 0 auto 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.searchResultCard {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-default) 94%, white);
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  cursor: pointer;
+}
+
+.searchResultCard span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
 }
 
 .empty {

@@ -39,8 +39,10 @@ export interface Room {
 }
 
 const USER_ID_PLACEHOLDER = 'dev-user-id' // wird durch Auth ersetzt
+const TENANT_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001'
 
 export interface ProjectBoardFilters {
+  user_id?: string
   branch_id?: string
   status_filter?: Project['project_status']
 }
@@ -53,16 +55,16 @@ export interface ProjectAssignmentUpdate {
 }
 
 export const projectsApi = {
-  list: async () => {
+  list: async (userId = USER_ID_PLACEHOLDER) => {
     try {
-      return await api.get<Project[]>(`/projects?user_id=${USER_ID_PLACEHOLDER}`)
+      return await api.get<Project[]>(`/projects?user_id=${userId}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) return listDemoProjects()
       throw error
     }
   },
   board: async (filters: ProjectBoardFilters = {}) => {
-    const query = new URLSearchParams({ user_id: USER_ID_PLACEHOLDER })
+    const query = new URLSearchParams({ user_id: filters.user_id ?? USER_ID_PLACEHOLDER })
     if (filters.branch_id) {
       query.set('branch_id', filters.branch_id)
     }
@@ -70,7 +72,7 @@ export const projectsApi = {
       query.set('status_filter', filters.status_filter)
     }
     try {
-      return await api.get<Project[]>(`/projects/board?${query.toString()}`)
+      return await api.get<Project[]>(`/projects/board?${query.toString()}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) {
         const projects = listDemoProjects()
@@ -81,13 +83,13 @@ export const projectsApi = {
       throw error
     }
   },
-  gantt: async (branch_id?: string) => {
-    const query = new URLSearchParams({ user_id: USER_ID_PLACEHOLDER })
+  gantt: async (branch_id?: string, userId = USER_ID_PLACEHOLDER) => {
+    const query = new URLSearchParams({ user_id: userId })
     if (branch_id) {
       query.set('branch_id', branch_id)
     }
     try {
-      return await api.get<Array<Project & { start_at: string; end_at: string | null }>>(`/projects/gantt?${query.toString()}`)
+      return await api.get<Array<Project & { start_at: string; end_at: string | null }>>(`/projects/gantt?${query.toString()}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) {
         const projects = listDemoProjects()
@@ -106,7 +108,7 @@ export const projectsApi = {
   },
   get: async (id: string) => {
     try {
-      return await api.get<ProjectDetail>(`/projects/${id}`)
+      return await api.get<ProjectDetail>(`/projects/${id}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) return getDemoProject(id)
       throw error
@@ -114,7 +116,7 @@ export const projectsApi = {
   },
   create: async (data: { name: string; description?: string }) => {
     try {
-      return await api.post<Project>('/projects', { ...data, user_id: USER_ID_PLACEHOLDER })
+      return await api.post<Project>('/projects', { ...data, user_id: USER_ID_PLACEHOLDER }, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) return createDemoProject(data)
       throw error
@@ -122,7 +124,7 @@ export const projectsApi = {
   },
   update: async (id: string, data: { name?: string; description?: string; status?: string }) => {
     try {
-      return await api.put<Project>(`/projects/${id}`, data)
+      return await api.put<Project>(`/projects/${id}`, data, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) return updateDemoProject(id, data)
       throw error
@@ -130,7 +132,7 @@ export const projectsApi = {
   },
   updateStatus: async (id: string, data: { project_status: Project['project_status']; progress_pct?: number }) => {
     try {
-      return await api.patch<Project>(`/projects/${id}/status`, data)
+      return await api.patch<Project>(`/projects/${id}/status`, data, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) return updateDemoProject(id, data)
       throw error
@@ -138,7 +140,7 @@ export const projectsApi = {
   },
   assign: async (id: string, data: ProjectAssignmentUpdate) => {
     try {
-      return await api.patch<Project>(`/projects/${id}/assign`, data)
+      return await api.patch<Project>(`/projects/${id}/assign`, data, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) return updateDemoProject(id, data)
       throw error
@@ -146,7 +148,7 @@ export const projectsApi = {
   },
   delete: async (id: string) => {
     try {
-      return await api.delete(`/projects/${id}`)
+      return await api.delete(`/projects/${id}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) return deleteDemoProject(id)
       throw error

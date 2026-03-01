@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { platformApi, type GlobalSearchResult } from '../api/platform.js'
 import { projectsApi, type Project } from '../api/projects.js'
 import styles from './ProjectList.module.css'
 
@@ -56,6 +57,9 @@ export function ProjectList() {
   const [newName, setNewName] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | Project['project_status']>('all')
   const [savingProjectId, setSavingProjectId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchResults, setSearchResults] = useState<GlobalSearchResult[]>([])
+  const [searching, setSearching] = useState(false)
 
   async function loadProjects(filter: 'all' | Project['project_status']) {
     setLoading(true)
@@ -136,6 +140,24 @@ export function ProjectList() {
     }))
   }
 
+  async function handleGlobalSearch() {
+    if (searchTerm.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    setSearching(true)
+    setError(null)
+    try {
+      const response = await platformApi.search(searchTerm.trim())
+      setSearchResults(response.results)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Suche fehlgeschlagen')
+    } finally {
+      setSearching(false)
+    }
+  }
+
   const groupedProjects = useMemo(() => {
     const groups = Object.fromEntries(BOARD_COLUMNS.map((column) => [column.id, [] as Project[]])) as Record<Project['project_status'], Project[]>
     for (const project of projects) {
@@ -175,6 +197,9 @@ export function ProjectList() {
           <button className={styles.btnSecondary} onClick={() => navigate('/catalog')}>
             Katalog
           </button>
+          <button className={styles.btnSecondary} onClick={() => void platformApi.exportProjectsCsv()}>
+            CSV Export
+          </button>
           <button className={styles.btnPrimary} onClick={() => setCreating(true)}>
             + Neues Projekt
           </button>
@@ -207,7 +232,38 @@ export function ProjectList() {
             ))}
           </select>
         </label>
+        <label className={styles.filterFieldSearch}>
+          <span>Globale Suche</span>
+          <div className={styles.searchRow}>
+            <input
+              type="search"
+              value={searchTerm}
+              placeholder="Projekt, Kontakt oder Dokument"
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+            <button type="button" className={styles.btnSecondary} onClick={() => void handleGlobalSearch()}>
+              {searching ? 'Suche…' : 'Suchen'}
+            </button>
+          </div>
+        </label>
       </section>
+
+      {searchResults.length > 0 && (
+        <section className={styles.searchResults}>
+          {searchResults.map((result) => (
+            <button
+              key={`${result.type}-${result.id}`}
+              type="button"
+              className={styles.searchResultCard}
+              onClick={() => navigate(result.href)}
+            >
+              <strong>{result.title}</strong>
+              <span>{result.type}</span>
+              <span>{result.subtitle ?? result.meta ?? 'Ohne Zusatzinfo'}</span>
+            </button>
+          ))}
+        </section>
+      )}
 
       {projects.length === 0 ? (
         <p className={styles.empty}>Noch keine Projekte. Lege dein erstes Projekt an.</p>
