@@ -9,7 +9,7 @@ import { Prisma } from '@prisma/client'
 import multipart from '@fastify/multipart'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'
-import { parseIdmArticles } from '../services/idmParser.js'
+import { parseIdmArticles, parseIdmZip } from '../services/idmParser.js'
 
 // ─── Zod Schemas ───────────────────────────────────────────────
 
@@ -194,7 +194,7 @@ export async function manufacturerRoutes(app: FastifyInstance) {
 
     /**
      * POST /import/idm
-     * Accepts a multifile/multipart upload with .ART files (IDM standard)
+     * Accepts a multifile/multipart upload with .ART/.PRE files or a .ZIP container (IDM standard)
      */
     app.post('/import/idm', async (request, reply) => {
         const upload = await request.file()
@@ -202,7 +202,8 @@ export async function manufacturerRoutes(app: FastifyInstance) {
 
         try {
             const buffer = await upload.toBuffer()
-            const raw = await parseIdmArticles(buffer)
+            const isZip = upload.filename.toLowerCase().endsWith('.zip') || upload.mimetype === 'application/zip'
+            const raw = isZip ? await parseIdmZip(buffer) : await parseIdmArticles(buffer)
 
             if (raw.length === 0) {
                 return reply.send({ message: 'No articles found in IDM file', created: 0 })
