@@ -169,6 +169,9 @@ export function ProjectList() {
           <button className={styles.btnSecondary} onClick={() => navigate('/contacts')}>
             Kontakte
           </button>
+          <button className={styles.btnSecondary} onClick={() => navigate('/documents')}>
+            Dokumente
+          </button>
           <button className={styles.btnSecondary} onClick={() => navigate('/catalog')}>
             Katalog
           </button>
@@ -267,6 +270,12 @@ export function ProjectList() {
                         <span>Fällig: {formatDate(project.deadline)}</span>
                         <span>Verantwortlich: {project.assigned_to ?? 'Nicht gesetzt'}</span>
                         <span>{project._count?.rooms ?? 0} Räume · {project._count?.quotes ?? 0} Angebote</span>
+                      </div>
+
+                      <div className={styles.cardQuickActions}>
+                        <button type="button" className={styles.btnSecondary} onClick={() => navigate(`/documents?project=${project.id}`)}>
+                          Dokumente
+                        </button>
                       </div>
 
                       <div className={styles.cardControls}>

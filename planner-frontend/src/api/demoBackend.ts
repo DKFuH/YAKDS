@@ -477,6 +477,81 @@ export function attachContactToProject(projectId: string, contactId: string) {
   return { project_id: projectId, contact_id: contactId }
 }
 
+export function listDocuments(projectId: string, params?: {
+  type?: 'quote_pdf' | 'render_image' | 'cad_import' | 'email' | 'contract' | 'other'
+  tag?: string
+}) {
+  let documents = loadStore().documents.filter((document) => document.project_id === projectId)
+
+  if (params?.type) {
+    documents = documents.filter((document) => document.type === params.type)
+  }
+
+  if (params?.tag?.trim()) {
+    const tag = params.tag.trim().toLowerCase()
+    documents = documents.filter((document) => document.tags.some((entry) => entry.toLowerCase() === tag))
+  }
+
+  return documents.sort((left, right) => right.uploaded_at.localeCompare(left.uploaded_at))
+}
+
+export function createDocument(
+  projectId: string,
+  tenantId: string,
+  data: {
+    filename: string
+    mime_type: string
+    file_base64: string
+    uploaded_by: string
+    type: 'quote_pdf' | 'render_image' | 'cad_import' | 'email' | 'contract' | 'other'
+    tags?: string[]
+    is_public?: boolean
+  },
+) {
+  const timestamp = now()
+  const documentId = uid('doc')
+  const previewUrl = `data:${data.mime_type};base64,${data.file_base64}`
+
+  const store = updateStore((current) => ({
+    ...current,
+    documents: [
+      {
+        id: documentId,
+        project_id: projectId,
+        tenant_id: tenantId,
+        filename: data.filename,
+        original_filename: data.filename,
+        mime_type: data.mime_type,
+        size_bytes: Math.round((data.file_base64.length * 3) / 4),
+        uploaded_by: data.uploaded_by,
+        uploaded_at: timestamp,
+        type: data.type,
+        source_kind: 'manual_upload',
+        source_id: null,
+        storage_provider: 'demo_memory',
+        storage_bucket: null,
+        storage_key: uid('storage'),
+        storage_version: 1,
+        external_url: null,
+        tags: data.tags ?? [],
+        is_public: data.is_public ?? false,
+        download_url: previewUrl,
+        preview_url: previewUrl
+      },
+      ...current.documents
+    ]
+  }))
+
+  return store.documents.find((document) => document.id === documentId)!
+}
+
+export function deleteDocument(projectId: string, documentId: string): void {
+  updateStore((current) => ({
+    ...current,
+    documents: current.documents.filter((document) => !(document.project_id === projectId && document.id === documentId))
+  }))
+}
+
 export function createRoom(data: {
   project_id: string
   name: string

@@ -1,0 +1,334 @@
+.page {
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: var(--font-sans);
+  background:
+    linear-gradient(135deg, var(--primary-light), transparent 35%),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--primary-color) 12%, transparent), transparent 28%),
+    var(--bg-light);
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  padding: 4rem;
+  color: var(--text-muted);
+}
+
+.header,
+.controls,
+.uploadPanel,
+.workspace,
+.error {
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--primary-color);
+}
+
+.subtitle {
+  margin: 0.45rem 0 0;
+  color: var(--text-muted);
+  max-width: 42rem;
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(3, minmax(0, 0.8fr)) auto;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  align-items: end;
+}
+
+.field,
+.filePicker {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.field span,
+.filePicker span {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.field input,
+.field select,
+.filePicker input {
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--surface-default) 92%, white);
+}
+
+.uploadPanel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.1rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-card);
+}
+
+.uploadFields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.uploadSummary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1.3fr);
+  gap: 1rem;
+}
+
+.listPanel,
+.previewPanel {
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.1rem;
+  background: var(--surface-default);
+  box-shadow: var(--shadow-card);
+  min-height: 560px;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1rem 0.75rem;
+}
+
+.panelHeader h2 {
+  margin: 0;
+}
+
+.documentList {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0 1rem 1rem;
+}
+
+.documentCard {
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: var(--surface-default);
+  overflow: hidden;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.documentCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.documentCardActive {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 16%, transparent);
+}
+
+.documentSelect {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0.95rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.documentSelect:focus-visible,
+.field input:focus-visible,
+.field select:focus-visible,
+.filePicker input:focus-visible,
+.btnPrimary:focus-visible,
+.btnSecondary:focus-visible,
+.btnDanger:focus-visible {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.documentSelect strong {
+  font-size: 1rem;
+}
+
+.documentSelect span {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.tagRow span,
+.tagRow em {
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-style: normal;
+}
+
+.documentActions {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0 0.95rem 0.95rem;
+}
+
+.previewPanel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.previewFrame,
+.imagePreview {
+  width: calc(100% - 2rem);
+  margin: 0 1rem 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.9rem;
+  background: var(--surface-default);
+}
+
+.previewFrame {
+  min-height: 460px;
+}
+
+.imagePreview {
+  min-height: 320px;
+  object-fit: contain;
+  background:
+    linear-gradient(45deg, var(--surface-muted) 25%, transparent 25%) -10px 0/20px 20px,
+    linear-gradient(-45deg, var(--surface-muted) 25%, transparent 25%) -10px 0/20px 20px,
+    linear-gradient(45deg, transparent 75%, var(--surface-muted) 75%) -10px 0/20px 20px,
+    linear-gradient(-45deg, transparent 75%, var(--surface-muted) 75%) -10px 0/20px 20px,
+    var(--surface-default);
+}
+
+.previewFallback,
+.empty {
+  margin: 0 1rem 1rem;
+  padding: 1rem;
+  border-radius: 0.9rem;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.previewFallback strong {
+  color: var(--text-primary);
+}
+
+.btnPrimary,
+.btnSecondary,
+.btnDanger {
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnPrimary {
+  background: var(--primary-color);
+  color: var(--text-inverse);
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.btnPrimary:hover {
+  background: var(--primary-hover);
+}
+
+.btnSecondary {
+  background: var(--surface-default);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btnSecondary:hover {
+  background: var(--surface-muted);
+  border-color: color-mix(in srgb, var(--primary-color) 24%, var(--border-subtle));
+}
+
+.btnDanger {
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+  border: 1px solid var(--status-danger-border);
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btnDanger:hover {
+  background: color-mix(in srgb, var(--status-danger-bg) 65%, var(--surface-default));
+}
+
+.error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+  border: 1px solid var(--status-danger-border);
+}
+
+@media (max-width: 1100px) {
+  .controls,
+  .uploadFields,
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .uploadSummary,
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 1rem;
+  }
+}

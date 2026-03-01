@@ -242,6 +242,11 @@
   gap: 0.6rem;
 }
 
+.cardQuickActions {
+  display: flex;
+  gap: 0.6rem;
+}
+
 .cardControls label {
   display: grid;
   gap: 0.3rem;
