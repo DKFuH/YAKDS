@@ -379,6 +379,7 @@ export function Editor() {
         )}
 
         <RightSidebar
+          projectId={id ?? ''}
           room={selectedRoom}
           selectedVertexIndex={state.selectedIndex}
           selectedVertex={selectedVertex}
@@ -401,6 +402,8 @@ export function Editor() {
           validationResult={validationResult}
           validationLoading={validationLoading}
           onRunValidation={handleRunValidation}
+          placements={placements}
+          selectedRoomId={selectedRoomId}
         />
       </div>
 

@@ -5,6 +5,7 @@ import type { Placement } from '../../api/placements.js'
 import type { Room } from '../../api/projects.js'
 import type { CatalogItem } from '../../api/catalog.js'
 import type { ValidateResponse } from '../../api/validate.js'
+import { ProtectPanel } from './ProtectPanel.js'
 import styles from './RightSidebar.module.css'
 
 export interface CeilingConstraint {
@@ -24,6 +25,7 @@ export interface ConfiguredDimensions {
 }
 
 interface Props {
+  projectId: string
   room: Room | null
   selectedVertexIndex: number | null
   selectedVertex: Vertex | null
@@ -46,9 +48,12 @@ interface Props {
   validationResult: ValidateResponse | null
   validationLoading: boolean
   onRunValidation: () => void
+  placements: Placement[]
+  selectedRoomId: string | null
 }
 
 export function RightSidebar({
+  projectId,
   room,
   selectedVertexIndex, selectedVertex,
   selectedEdgeIndex, edgeLengthMm,
@@ -64,6 +69,8 @@ export function RightSidebar({
   onUpdatePlacement, onDeletePlacement,
   onSaveCeilingConstraints,
   validationResult, validationLoading, onRunValidation,
+  placements,
+  selectedRoomId,
 }: Props) {
   return (
     <aside className={styles.sidebar}>
@@ -132,6 +139,13 @@ export function RightSidebar({
         constraints={ceilingConstraints}
         wallGeom={selectedWallGeom}
         onSave={onSaveCeilingConstraints}
+      />
+
+      <ProtectPanel
+        projectId={projectId}
+        roomId={selectedRoomId}
+        placements={placements}
+        ceilingHeightMm={room?.ceiling_height_mm ?? 2500}
       />
     </aside>
   )
