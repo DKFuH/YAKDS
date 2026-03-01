@@ -77,7 +77,7 @@ GET   /projects/gantt
 
 - **Priorität:** Muss (P1)
 - **Zuständig:** Claude Code (parallel zu Codex auf Sprint 25)
-- **Status:** In Arbeit
+- **Status:** MVP weit umgesetzt (Härtung offen)
 - **Ziel:** Alle Projektdokumente zentral ablegen, suchen und anzeigen.
 
 **Neue Entity (`Document`)**
@@ -131,6 +131,7 @@ DELETE /projects/:id/documents/:id
 ### Sprint 27 - Kontakte / CRM-Light
 
 - **Priorität:** Muss (P1)
+- **Status:** MVP weit umgesetzt (Härtung offen)
 - **Ziel:** Kontaktstammdaten und Projektverknüpfungen für Vertrieb und Nachverfolgung.
 
 **Neue Entity (`Contact`)**
@@ -174,7 +175,7 @@ POST /projects/:id/contacts/:contactId
 
 - **Priorität:** Soll (P1)
 - **Zuständig:** Claude Code
-- **Status:** In Arbeit
+- **Status:** MVP weit umgesetzt (Härtung offen)
 - **Ziel:** Rollen-/nutzerspezifische Steuerungsansichten mit KPI-Widgets.
 
 **Neue Entity (`DashboardConfig`)**
@@ -230,6 +231,7 @@ GET /kpis/sales-chart?period=month
 ### Sprint 29 - Katalogindexierung & Preisanpassung
 
 - **Priorität:** Muss (P1)
+- **Status:** MVP weit umgesetzt (Härtung offen)
 - **Ziel:** Projektbezogene EK/VK-Indexe ohne Katalogmutation unterstützen.
 
 **Neue Entity (`CatalogIndex`)**
@@ -264,6 +266,7 @@ GET  /projects/:id/catalog-indices
 ### Sprint 30 - Cloud-Sync & Plattform-Features
 
 - **Priorität:** Muss (P1)
+- **Status:** In Umsetzung (Kern-Endpoints integriert)
 - **Ziel:** Plattformweite Cloud-Funktionalität inkl. Suche, Export und Notifications.
 
 **Scope**

@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Sprints 25-30).
+Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Sprints 25-30) inkl. aktuellem Fortschritt.
 
 ---
 
@@ -150,6 +150,17 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 **Ausgangslage (nach Sprint 24):** Kern-Planung, Preis/BOM, Angebote, Multi-Tenant, BI-Light und Lead-Handover sind vorhanden.
 
 **Ziel:** Entwicklung zur vollwertigen Studio-Plattform mit Projektsteuerung, Dokumentenmanagement, CRM-Light, personalisierten Dashboards, Katalogindexierung und Cloud-Workflow.
+
+### Fortschrittssnapshot (Stand 2026-03-01)
+
+| Sprint | Status | Hinweis |
+|--------|--------|---------|
+| 25 | In Arbeit | Projektboard/Gantt und Status-/Assign-Pfade bereits vorhanden, weitere Härtung offen |
+| 26 | Weit umgesetzt | Dokumentrouten und Kern-Integration inkl. Auto-Attach/Download aktiv |
+| 27 | Weit umgesetzt | Kontakt-API + Projektverknüpfung + CRM-Ansicht mit KPIs aktiv |
+| 28 | Weit umgesetzt | DashboardConfig + KPI-Endpunkte + Dashboard-UI integriert |
+| 29 | Weit umgesetzt | CatalogIndex-API + Pricing-Einfluss + Batch-UI integriert |
+| 30 | In Umsetzung | Suche/Export/Notifications/Backup-Endpunkte und Frontend-Anbindung vorhanden |
 
 ### Sprint-Übersicht
 

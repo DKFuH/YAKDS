@@ -11,10 +11,23 @@ Polygonale Grundrisse, Dachschrägen, CAD-Interop, externe Render-Worker und vol
 - **Küchenkonfigurator** – Korpus, Front, Griff, Arbeitsplatte, Zubehör
 - **Stückliste & Preise** – automatische BOM-Berechnung mit Rabattstaffeln
 - **Angebotsgenerator** – PDF-Export mit Positionspreisen
+- **Dokumentenmanagement** – Upload, Download, Filter/Tags, automatische Quote-PDF-Ablage
+- **CRM-Light** – Kontakte, Projektverknüpfungen, Lead-Herkunft, Conversion-/Umsatzkennzahlen
+- **Dashboards/KPIs** – speicherbare Widget-Layouts pro User mit KPI-Endpunkten
+- **Katalogindexierung** – projektbezogene EK/VK-Indexe mit Pricing-Integration
+- **Plattform-Features** – globale Suche, CSV-Export, Notification-Webhooks, Tenant-Backups
 - **DXF-Import / -Export** – Grundriss aus CAD einlesen und zurückschreiben
 - **SketchUp-Import** – `.skp`-Referenzmodell als 3D-Kontext
+- **IDM/Herstellerimport** – XML/IDM/ZIP-Importpfad für Herstellerkataloge
 - **Render-Worker** – externe Renderer registrieren sich per REST-API
 - **3D-Vorschau** – Three.js im Browser, Raytracing über Worker-Queue
+
+## Aktueller Entwicklungsstand (2026-03-01)
+
+- **MVP (Sprints 0-19):** abgeschlossen
+- **Phase 2 (Sprints 20-24):** abgeschlossen
+- **Phase 3:** technische Umsetzung für Sprints 26-30 ist weit fortgeschritten (Dokumente, Kontakte, Dashboards, Katalogindexierung, Plattform-Routen)
+- **Fokus aktuell:** Härtung, End-to-End-Abnahme und Feinschliff der Cloud-/Ops-Aspekte
 
 ## Tech-Stack
 
@@ -62,7 +75,8 @@ cd planner-api && npm run dev
 - [Interop](Docs/INTEROP.md) – DXF/DWG, SketchUp, Render-Worker-Protokoll
 - [Styling Guide (YAKDS)](Docs/STYLING_GUIDE_YAKDS.md) – Tokens, Komponentenmuster, Rollout
 - [Roadmap](Docs/ROADMAP.md) – Sprints 0–19 (MVP) + Phase 2 (20–24)
-- [Status](Docs/STATUS.md) – MVP-Abschluss, Review-Ergebnisse, offene Punkte
+- [Phase-3 DoD & Ausführungsplan](Docs/PHASE_3_DOD_AND_EXECUTION_PLAN.md)
+- [Status](Docs/STATUS.md) – aktueller Umsetzungsstand inkl. Phase 3
 
 ## Mitmachen
 
