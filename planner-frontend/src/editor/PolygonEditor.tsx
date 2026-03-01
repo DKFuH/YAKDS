@@ -2,6 +2,7 @@ import { useRef, useCallback } from 'react'
 import { Stage, Layer, Line, Circle, Group } from 'react-konva'
 import type Konva from 'konva'
 import type { Point2D } from '@shared/types'
+import type { Opening } from '../api/openings.js'
 import type { EditorState, EditorTool } from './usePolygonEditor.js'
 import styles from './PolygonEditor.module.css'
 
@@ -24,7 +25,18 @@ const COLOR = {
   vertexSelected: '#f59e0b',
   edgeSelected: '#f59e0b',
   error: '#ef4444',
+  openingDoor: '#3b82f6',
+  openingWindow: '#06b6d4',
+  openingPassThrough: '#10b981',
+  openingSelected: '#f97316',
 } as const
+
+function openingColor(type: Opening['type'], selected: boolean) {
+  if (selected) return COLOR.openingSelected
+  if (type === 'window') return COLOR.openingWindow
+  if (type === 'pass-through') return COLOR.openingPassThrough
+  return COLOR.openingDoor
+}
 
 // ─── Komponente ───────────────────────────────────────────────────────────────
 
@@ -43,6 +55,10 @@ interface Props {
   onSetTool: (t: EditorTool) => void
   onReset: () => void
   onSave: () => void
+  openings?: Opening[]
+  selectedOpeningId?: string | null
+  onSelectOpening?: (id: string | null) => void
+  onAddOpening?: (wallId: string, wallLengthMm: number) => void
 }
 
 export function PolygonEditor({
@@ -50,6 +66,7 @@ export function PolygonEditor({
   onAddVertex, onClosePolygon, onMoveVertex,
   onSelectVertex, onSelectEdge, onHoverVertex, onDeleteVertex,
   onSetTool, onReset, onSave,
+  openings = [], selectedOpeningId, onSelectOpening, onAddOpening,
 }: Props) {
   const stageRef = useRef<Konva.Stage>(null)
 
@@ -76,6 +93,39 @@ export function PolygonEditor({
 
   const hasErrors = state.validationErrors.length > 0
 
+  // Öffnungs-Hilfsfunktion: Canvas-Koordinaten berechnen
+  function openingCanvasCoords(opening: Opening) {
+    const wallIdx = state.wallIds.indexOf(opening.wall_id)
+    if (wallIdx < 0 || wallIdx >= pts.length) return null
+    const p0 = pts[wallIdx]
+    const p1 = pts[(wallIdx + 1) % pts.length]
+    const dx = p1.x - p0.x
+    const dy = p1.y - p0.y
+    const len = Math.hypot(dx, dy)
+    if (len === 0) return null
+    const dirX = dx / len
+    const dirY = dy / len
+    const scaledOffset = worldToCanvas(opening.offset_mm)
+    const scaledWidth = worldToCanvas(opening.width_mm)
+    return {
+      x1: p0.x + dirX * scaledOffset,
+      y1: p0.y + dirY * scaledOffset,
+      x2: p0.x + dirX * (scaledOffset + scaledWidth),
+      y2: p0.y + dirY * (scaledOffset + scaledWidth),
+    }
+  }
+
+  // Öffnung hinzufügen für ausgewählte Wand
+  function handleAddOpeningForSelectedEdge() {
+    if (state.selectedEdgeIndex === null || !onAddOpening) return
+    const i = state.selectedEdgeIndex
+    const wallId = state.wallIds[i]
+    const vI = state.vertices[i]
+    const vNext = state.vertices[(i + 1) % state.vertices.length]
+    const wallLen = Math.hypot(vNext.x_mm - vI.x_mm, vNext.y_mm - vI.y_mm)
+    onAddOpening(wallId, wallLen)
+  }
+
   return (
     <div className={styles.container}>
       {/* ── Toolbar ── */}
@@ -84,6 +134,11 @@ export function PolygonEditor({
         <ToolBtn active={state.tool === 'select'} onClick={() => onSetTool('select')}>Auswählen</ToolBtn>
         {!state.closed && state.vertices.length >= 3 && (
           <button type="button" className={styles.closeBtn} onClick={onClosePolygon}>Polygon schließen</button>
+        )}
+        {state.tool === 'select' && state.selectedEdgeIndex !== null && onAddOpening && (
+          <button type="button" className={styles.toolBtn} onClick={handleAddOpeningForSelectedEdge}>
+            + Öffnung
+          </button>
         )}
         <button type="button" className={styles.resetBtn} onClick={onReset}>Zurücksetzen</button>
         <div className={styles.spacer} />
@@ -144,6 +199,31 @@ export function PolygonEditor({
             </Group>
           )}
 
+          {/* Öffnungen an Wänden */}
+          {state.closed && (
+            <Group>
+              {openings.map(opening => {
+                const coords = openingCanvasCoords(opening)
+                if (!coords) return null
+                const isSelected = opening.id === selectedOpeningId
+                return (
+                  <Line
+                    key={opening.id}
+                    points={[coords.x1, coords.y1, coords.x2, coords.y2]}
+                    stroke={openingColor(opening.type, isSelected)}
+                    strokeWidth={isSelected ? 6 : 4}
+                    hitStrokeWidth={10}
+                    lineCap="round"
+                    onClick={(e) => {
+                      e.cancelBubble = true
+                      onSelectOpening?.(isSelected ? null : opening.id)
+                    }}
+                  />
+                )
+              })}
+            </Group>
+          )}
+
           {/* Vertices */}
           <Group>
             {pts.map((p, i) => {
@@ -196,9 +276,9 @@ export function PolygonEditor({
           <span>Klick: Punkt setzen · Doppelklick oder erster Punkt: Polygon schließen</span>
         )}
         {state.tool === 'select' && (
-          <span>Ziehen: Punkt verschieben · Doppelklick auf Punkt: löschen · Kante klicken: auswählen</span>
+          <span>Ziehen: Punkt verschieben · Doppelklick: löschen · Kante/Öffnung klicken: auswählen</span>
         )}
-        <span className={styles.vertexCount}>{state.vertices.length} Punkte</span>
+        <span className={styles.vertexCount}>{state.vertices.length} Punkte · {openings.length} Öffnungen</span>
       </div>
     </div>
   )

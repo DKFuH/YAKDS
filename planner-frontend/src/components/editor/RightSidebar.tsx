@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Vertex, Point2D } from '@shared/types'
+import type { Opening } from '../../api/openings.js'
 import type { Room } from '../../api/projects.js'
 import styles from './RightSidebar.module.css'
 
@@ -9,20 +10,31 @@ interface Props {
   selectedVertex: Vertex | null
   selectedEdgeIndex: number | null
   edgeLengthMm: number | null
+  selectedOpening: Opening | null
   onMoveVertex: (index: number, pos: Point2D) => void
   onSetEdgeLength: (edgeIndex: number, lengthMm: number) => void
+  onUpdateOpening: (opening: Opening) => void
+  onDeleteOpening: (openingId: string) => void
 }
 
 export function RightSidebar({
   room,
   selectedVertexIndex, selectedVertex,
   selectedEdgeIndex, edgeLengthMm,
+  selectedOpening,
   onMoveVertex, onSetEdgeLength,
+  onUpdateOpening, onDeleteOpening,
 }: Props) {
   return (
     <aside className={styles.sidebar}>
-      {/* ── Punkt-Eigenschaften ── */}
-      {selectedVertex !== null && selectedVertexIndex !== null ? (
+      {selectedOpening ? (
+        <OpeningPanel
+          key={selectedOpening.id}
+          opening={selectedOpening}
+          onUpdate={onUpdateOpening}
+          onDelete={onDeleteOpening}
+        />
+      ) : selectedVertex !== null && selectedVertexIndex !== null ? (
         <VertexPanel
           key={selectedVertex.id}
           index={selectedVertexIndex}
@@ -62,6 +74,127 @@ export function RightSidebar({
         <p className={styles.empty}>Sprint 6 – folgt</p>
       </div>
     </aside>
+  )
+}
+
+// ─── Öffnungs-Panel ───────────────────────────────────────────────────────────
+
+const OPENING_LABELS: Record<string, string> = {
+  door: 'Tür',
+  window: 'Fenster',
+  'pass-through': 'Durchgang',
+}
+
+function OpeningPanel({ opening, onUpdate, onDelete }: {
+  opening: Opening
+  onUpdate: (o: Opening) => void
+  onDelete: (id: string) => void
+}) {
+  const [offset, setOffset] = useState(String(Math.round(opening.offset_mm)))
+  const [width, setWidth] = useState(String(Math.round(opening.width_mm)))
+  const [height, setHeight] = useState(String(opening.height_mm ? Math.round(opening.height_mm) : ''))
+  const [sill, setSill] = useState(String(opening.sill_height_mm ? Math.round(opening.sill_height_mm) : '0'))
+
+  useEffect(() => {
+    setOffset(String(Math.round(opening.offset_mm)))
+    setWidth(String(Math.round(opening.width_mm)))
+    setHeight(String(opening.height_mm ? Math.round(opening.height_mm) : ''))
+    setSill(String(opening.sill_height_mm ? Math.round(opening.sill_height_mm) : '0'))
+  }, [opening.id])
+
+  function commitField(field: keyof Opening, raw: string, min = 0) {
+    const n = parseFloat(raw)
+    if (!Number.isFinite(n) || n < min) return
+    onUpdate({ ...opening, [field]: n })
+  }
+
+  return (
+    <div className={styles.section}>
+      <h3 className={styles.sectionTitle}>
+        {OPENING_LABELS[opening.type ?? 'door'] ?? 'Öffnung'}
+      </h3>
+
+      {/* Typ-Auswahl */}
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Typ</label>
+        <select
+          aria-label="Öffnungstyp"
+          className={styles.fieldInput}
+          value={opening.type ?? 'door'}
+          onChange={e => onUpdate({ ...opening, type: e.target.value as Opening['type'] })}
+        >
+          <option value="door">Tür</option>
+          <option value="window">Fenster</option>
+          <option value="pass-through">Durchgang</option>
+        </select>
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Abstand (mm)</label>
+        <input
+          aria-label="Abstand vom Wandstart in mm"
+          className={styles.fieldInput}
+          type="number"
+          min={0}
+          value={offset}
+          onChange={e => setOffset(e.target.value)}
+          onBlur={() => commitField('offset_mm', offset)}
+          onKeyDown={e => { if (e.key === 'Enter') commitField('offset_mm', offset) }}
+        />
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Breite (mm)</label>
+        <input
+          aria-label="Öffnungsbreite in mm"
+          className={styles.fieldInput}
+          type="number"
+          min={1}
+          value={width}
+          onChange={e => setWidth(e.target.value)}
+          onBlur={() => commitField('width_mm', width, 1)}
+          onKeyDown={e => { if (e.key === 'Enter') commitField('width_mm', width, 1) }}
+        />
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Höhe (mm)</label>
+        <input
+          aria-label="Öffnungshöhe in mm"
+          className={styles.fieldInput}
+          type="number"
+          min={1}
+          value={height}
+          onChange={e => setHeight(e.target.value)}
+          onBlur={() => commitField('height_mm', height, 1)}
+          onKeyDown={e => { if (e.key === 'Enter') commitField('height_mm', height, 1) }}
+        />
+      </div>
+
+      {opening.type === 'window' && (
+        <div className={styles.field}>
+          <label className={styles.fieldLabel}>Brüstung (mm)</label>
+          <input
+            aria-label="Brüstungshöhe in mm"
+            className={styles.fieldInput}
+            type="number"
+            min={0}
+            value={sill}
+            onChange={e => setSill(e.target.value)}
+            onBlur={() => commitField('sill_height_mm', sill)}
+            onKeyDown={e => { if (e.key === 'Enter') commitField('sill_height_mm', sill) }}
+          />
+        </div>
+      )}
+
+      <button
+        type="button"
+        className={styles.deleteBtn}
+        onClick={() => onDelete(opening.id)}
+      >
+        Öffnung löschen
+      </button>
+    </div>
   )
 }
 

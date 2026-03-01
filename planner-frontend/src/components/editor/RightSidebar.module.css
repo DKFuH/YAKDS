@@ -69,3 +69,16 @@
   color: #9ca3af;
   margin: 0.1rem 0 0;
 }
+
+.deleteBtn {
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid #fca5a5;
+  border-radius: 5px;
+  background: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.8rem;
+  width: 100%;
+}
+.deleteBtn:hover { background: #fee2e2; }
