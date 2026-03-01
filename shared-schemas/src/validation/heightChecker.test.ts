@@ -63,4 +63,58 @@ describe('heightChecker', () => {
     expect(violations).toHaveLength(1);
     expect(violations[0].affected_ids).toContain('bad');
   });
+
+  it('does not set labor_surcharge for small non-wall exceedance', () => {
+    const obj: HeightPlacedObject = {
+      id: 'o4',
+      type: 'base',
+      height_mm: 2520,
+      worldPos: { x_mm: 0, y_mm: 0 }
+    };
+
+    const violation = checkObjectHeight(obj, [], 2500);
+    expect(violation?.flags.requires_customization).toBe(false);
+    expect(violation?.flags.height_variant).toBe('low_version');
+    expect(violation?.flags.labor_surcharge).toBe(false);
+  });
+
+  it('keeps labor_surcharge false exactly at customization threshold for non-wall objects', () => {
+    const obj: HeightPlacedObject = {
+      id: 'o5',
+      type: 'tall',
+      height_mm: 2550,
+      worldPos: { x_mm: 0, y_mm: 0 }
+    };
+
+    const violation = checkObjectHeight(obj, [], 2500);
+    expect(violation?.flags.requires_customization).toBe(false);
+    expect(violation?.flags.labor_surcharge).toBe(false);
+  });
+
+  it('sets labor_surcharge above customization threshold for non-wall objects', () => {
+    const obj: HeightPlacedObject = {
+      id: 'o6',
+      type: 'appliance',
+      height_mm: 2551,
+      worldPos: { x_mm: 0, y_mm: 0 }
+    };
+
+    const violation = checkObjectHeight(obj, [], 2500);
+    expect(violation?.flags.requires_customization).toBe(true);
+    expect(violation?.flags.labor_surcharge).toBe(true);
+  });
+
+  it('sets labor_surcharge for wall objects even on small exceedance', () => {
+    const obj: HeightPlacedObject = {
+      id: 'o7',
+      type: 'wall',
+      height_mm: 2510,
+      worldPos: { x_mm: 0, y_mm: 0 }
+    };
+
+    const violation = checkObjectHeight(obj, [], 2500);
+    expect(violation?.code).toBe('HANGING_CABINET_SLOPE_COLLISION');
+    expect(violation?.flags.requires_customization).toBe(false);
+    expect(violation?.flags.labor_surcharge).toBe(true);
+  });
 });

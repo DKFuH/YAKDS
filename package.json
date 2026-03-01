@@ -1,0 +1,19 @@
+{
+  "name": "yakds",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8"
+  },
+  "dependencies": {
+    "dxf-parser": "^1.1.2",
+    "dxf-writer": "^1.18.4"
+  }
+}

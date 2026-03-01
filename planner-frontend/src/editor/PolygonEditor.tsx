@@ -1,8 +1,8 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback } from 'react'
 import { Stage, Layer, Line, Circle, Group } from 'react-konva'
 import type Konva from 'konva'
-import type { Vertex } from '@shared/types'
-import { usePolygonEditor, type EditorTool } from './usePolygonEditor.js'
+import type { Point2D } from '@shared/types'
+import type { EditorState, EditorTool } from './usePolygonEditor.js'
 import styles from './PolygonEditor.module.css'
 
 // ─── Koordinaten-Umrechnung ───────────────────────────────────────────────────
@@ -22,8 +22,8 @@ const COLOR = {
   vertex: '#6366f1',
   vertexHover: '#ef4444',
   vertexSelected: '#f59e0b',
+  edgeSelected: '#f59e0b',
   error: '#ef4444',
-  grid: '#e5e7eb',
 } as const
 
 // ─── Komponente ───────────────────────────────────────────────────────────────
@@ -31,53 +31,47 @@ const COLOR = {
 interface Props {
   width: number
   height: number
-  initialVertices?: Vertex[]
-  onSave: (vertices: Vertex[]) => void
+  state: EditorState
+  isValid: boolean
+  onAddVertex: (p: Point2D) => void
+  onClosePolygon: () => void
+  onMoveVertex: (i: number, p: Point2D) => void
+  onSelectVertex: (i: number | null) => void
+  onSelectEdge: (i: number | null) => void
+  onHoverVertex: (i: number | null) => void
+  onDeleteVertex: (i: number) => void
+  onSetTool: (t: EditorTool) => void
+  onReset: () => void
+  onSave: () => void
 }
 
-export function PolygonEditor({ width, height, initialVertices, onSave }: Props) {
+export function PolygonEditor({
+  width, height, state, isValid,
+  onAddVertex, onClosePolygon, onMoveVertex,
+  onSelectVertex, onSelectEdge, onHoverVertex, onDeleteVertex,
+  onSetTool, onReset, onSave,
+}: Props) {
   const stageRef = useRef<Konva.Stage>(null)
-  const {
-    state, isValid,
-    addVertex, closePolygon, moveVertex,
-    selectVertex, hoverVertex, deleteVertex,
-    setTool, loadVertices, reset,
-  } = usePolygonEditor(initialVertices)
 
-  // initialVertices nachladen wenn Raum wechselt
-  useEffect(() => {
-    if (initialVertices && initialVertices.length >= 3) {
-      loadVertices(initialVertices)
-    } else {
-      reset()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialVertices?.map(v => v.id).join(',')])
-
-  // Mausklick auf Stage → Punkt setzen
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (state.tool !== 'draw') return
-    if (e.target !== stageRef.current) return // Klick auf Vertex ignorieren
-
+    if (e.target !== stageRef.current) return
     const pos = stageRef.current!.getPointerPosition()!
-    addVertex({ x_mm: canvasToWorld(pos.x), y_mm: canvasToWorld(pos.y) })
-  }, [state.tool, addVertex])
+    onAddVertex({ x_mm: canvasToWorld(pos.x), y_mm: canvasToWorld(pos.y) })
+  }, [state.tool, onAddVertex])
 
-  // Doppelklick → Polygon schließen
   const handleStageDblClick = useCallback(() => {
-    if (state.tool === 'draw' && state.vertices.length >= 3) closePolygon()
-  }, [state.tool, state.vertices.length, closePolygon])
+    if (state.tool === 'draw' && state.vertices.length >= 3) onClosePolygon()
+  }, [state.tool, state.vertices.length, onClosePolygon])
 
-  // Vertices als Konva-Koordinaten
   const pts = state.vertices.map(v => ({
     x: worldToCanvas(v.x_mm),
     y: worldToCanvas(v.y_mm),
   }))
 
-  // Polygon-Punkte als flaches Array für <Line>
   const linePoints = pts.flatMap(p => [p.x, p.y])
   const closedLinePoints = state.closed
-    ? [...linePoints, pts[0]?.x, pts[0]?.y].filter(Boolean) as number[]
+    ? [...linePoints, pts[0]?.x, pts[0]?.y].filter(n => n !== undefined) as number[]
     : linePoints
 
   const hasErrors = state.validationErrors.length > 0
@@ -86,20 +80,18 @@ export function PolygonEditor({ width, height, initialVertices, onSave }: Props)
     <div className={styles.container}>
       {/* ── Toolbar ── */}
       <div className={styles.toolbar}>
-        <ToolBtn active={state.tool === 'draw'} onClick={() => setTool('draw')}>Zeichnen</ToolBtn>
-        <ToolBtn active={state.tool === 'select'} onClick={() => setTool('select')}>Auswählen</ToolBtn>
+        <ToolBtn active={state.tool === 'draw'} onClick={() => onSetTool('draw')}>Zeichnen</ToolBtn>
+        <ToolBtn active={state.tool === 'select'} onClick={() => onSetTool('select')}>Auswählen</ToolBtn>
         {!state.closed && state.vertices.length >= 3 && (
-          <button className={styles.closeBtn} onClick={closePolygon}>Polygon schließen</button>
+          <button type="button" className={styles.closeBtn} onClick={onClosePolygon}>Polygon schließen</button>
         )}
-        <button className={styles.resetBtn} onClick={reset}>Zurücksetzen</button>
+        <button type="button" className={styles.resetBtn} onClick={onReset}>Zurücksetzen</button>
         <div className={styles.spacer} />
         {state.validationErrors.length > 0 && (
           <span className={styles.errorBadge}>{state.validationErrors[0]}</span>
         )}
         {isValid && (
-          <button className={styles.saveBtn} onClick={() => onSave(state.vertices)}>
-            Speichern
-          </button>
+          <button type="button" className={styles.saveBtn} onClick={onSave}>Speichern</button>
         )}
       </div>
 
@@ -113,7 +105,7 @@ export function PolygonEditor({ width, height, initialVertices, onSave }: Props)
         style={{ cursor: state.tool === 'draw' ? 'crosshair' : 'default' }}
       >
         <Layer>
-          {/* Polygon-Fläche (nur wenn geschlossen) */}
+          {/* Polygon-Fläche */}
           {state.closed && pts.length >= 3 && (
             <Line
               points={closedLinePoints}
@@ -126,12 +118,30 @@ export function PolygonEditor({ width, height, initialVertices, onSave }: Props)
 
           {/* Offene Linien */}
           {!state.closed && pts.length >= 2 && (
-            <Line
-              points={linePoints}
-              stroke={COLOR.preview}
-              strokeWidth={2}
-              dash={[8, 4]}
-            />
+            <Line points={linePoints} stroke={COLOR.preview} strokeWidth={2} dash={[8, 4]} />
+          )}
+
+          {/* Klickbare Kantensegmente (select-Modus) */}
+          {state.closed && state.tool === 'select' && (
+            <Group>
+              {pts.map((p, i) => {
+                const next = pts[(i + 1) % pts.length]
+                const isEdgeSelected = state.selectedEdgeIndex === i
+                return (
+                  <Line
+                    key={state.wallIds[i] ?? i}
+                    points={[p.x, p.y, next.x, next.y]}
+                    stroke={isEdgeSelected ? COLOR.edgeSelected : 'transparent'}
+                    strokeWidth={isEdgeSelected ? 4 : 12}
+                    hitStrokeWidth={12}
+                    onClick={(e) => {
+                      e.cancelBubble = true
+                      onSelectEdge(isEdgeSelected ? null : i)
+                    }}
+                  />
+                )
+              })}
+            </Group>
           )}
 
           {/* Vertices */}
@@ -153,22 +163,22 @@ export function PolygonEditor({ width, height, initialVertices, onSave }: Props)
                   stroke="#fff"
                   strokeWidth={2}
                   draggable={state.tool === 'select'}
-                  onMouseEnter={() => hoverVertex(i)}
-                  onMouseLeave={() => hoverVertex(null)}
+                  onMouseEnter={() => onHoverVertex(i)}
+                  onMouseLeave={() => onHoverVertex(null)}
                   onClick={(e) => {
                     e.cancelBubble = true
                     if (state.tool === 'draw' && i === 0 && state.vertices.length >= 3) {
-                      closePolygon()
+                      onClosePolygon()
                     } else {
-                      selectVertex(isSelected ? null : i)
+                      onSelectVertex(isSelected ? null : i)
                     }
                   }}
                   onDblClick={(e) => {
                     e.cancelBubble = true
-                    if (state.tool === 'select') deleteVertex(i)
+                    if (state.tool === 'select') onDeleteVertex(i)
                   }}
                   onDragEnd={(e) => {
-                    moveVertex(i, {
+                    onMoveVertex(i, {
                       x_mm: canvasToWorld(e.target.x()),
                       y_mm: canvasToWorld(e.target.y()),
                     })
@@ -186,7 +196,7 @@ export function PolygonEditor({ width, height, initialVertices, onSave }: Props)
           <span>Klick: Punkt setzen · Doppelklick oder erster Punkt: Polygon schließen</span>
         )}
         {state.tool === 'select' && (
-          <span>Ziehen: Punkt verschieben · Doppelklick auf Punkt: löschen</span>
+          <span>Ziehen: Punkt verschieben · Doppelklick auf Punkt: löschen · Kante klicken: auswählen</span>
         )}
         <span className={styles.vertexCount}>{state.vertices.length} Punkte</span>
       </div>
@@ -199,6 +209,7 @@ function ToolBtn({ active, onClick, children }: {
 }) {
   return (
     <button
+      type="button"
       className={`${styles.toolBtn} ${active ? styles.toolBtnActive : ''}`}
       onClick={onClick}
     >

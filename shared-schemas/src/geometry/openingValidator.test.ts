@@ -65,4 +65,54 @@ describe('openingValidator', () => {
       }
     ]);
   });
+
+  it('clamps out-of-range CAD segments to wall boundaries', () => {
+    const entities: CadEntity[] = [
+      {
+        id: 'line-out-1',
+        layer_id: 'layer-1',
+        type: 'line',
+        geometry: {
+          type: 'line',
+          start: { x_mm: -500, y_mm: 0 },
+          end: { x_mm: 500, y_mm: 0 }
+        }
+      },
+      {
+        id: 'line-out-2',
+        layer_id: 'layer-1',
+        type: 'line',
+        geometry: {
+          type: 'line',
+          start: { x_mm: 2500, y_mm: 0 },
+          end: { x_mm: 4500, y_mm: 0 }
+        }
+      }
+    ];
+
+    expect(detectOpeningsFromCad(entities, 3000)).toEqual([
+      {
+        offset_mm: 500,
+        width_mm: 2000,
+        confidence: 'high'
+      }
+    ]);
+  });
+
+  it('returns empty list for non-positive wall length', () => {
+    const entities: CadEntity[] = [
+      {
+        id: 'line-1',
+        layer_id: 'layer-1',
+        type: 'line',
+        geometry: {
+          type: 'line',
+          start: { x_mm: 0, y_mm: 0 },
+          end: { x_mm: 1000, y_mm: 0 }
+        }
+      }
+    ];
+
+    expect(detectOpeningsFromCad(entities, 0)).toEqual([]);
+  });
 });

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import type { Vertex } from '@shared/types'
 import { projectsApi, type ProjectDetail } from '../api/projects.js'
 import { roomsApi, type RoomPayload } from '../api/rooms.js'
+import { usePolygonEditor, edgeLengthMm } from '../editor/usePolygonEditor.js'
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
 import { RightSidebar } from '../components/editor/RightSidebar.js'
@@ -16,6 +18,9 @@ export function Editor() {
   const [error, setError] = useState<string | null>(null)
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
 
+  // Editor-State nach oben gehoben, damit RightSidebar darauf zugreifen kann
+  const editor = usePolygonEditor()
+
   useEffect(() => {
     if (!id) return
     projectsApi.get(id)
@@ -26,6 +31,22 @@ export function Editor() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
+
+  // Editor-Vertices neu laden wenn Raum wechselt
+  useEffect(() => {
+    if (!project || !selectedRoomId) {
+      editor.reset()
+      return
+    }
+    const room = project.rooms.find(r => r.id === selectedRoomId)
+    const verts = (room?.boundary?.vertices ?? []) as Vertex[]
+    if (verts.length >= 3) {
+      editor.loadVertices(verts)
+    } else {
+      editor.reset()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoomId])
 
   // Raum anlegen
   const handleAddRoom = useCallback(async () => {
@@ -58,6 +79,13 @@ export function Editor() {
 
   const selectedRoom = project.rooms.find(r => r.id === selectedRoomId) ?? null
 
+  // Auswahl-Info für RightSidebar
+  const { state } = editor
+  const selectedVertex = state.selectedIndex !== null ? (state.vertices[state.selectedIndex] ?? null) : null
+  const selEdgeLen = state.selectedEdgeIndex !== null
+    ? edgeLengthMm(state.vertices, state.selectedEdgeIndex)
+    : null
+
   return (
     <div className={styles.shell}>
       <header className={styles.topbar}>
@@ -76,9 +104,21 @@ export function Editor() {
           onAddRoom={handleAddRoom}
         />
 
-        <CanvasArea room={selectedRoom as unknown as RoomPayload | null} onRoomUpdated={handleRoomUpdated} />
+        <CanvasArea
+          room={selectedRoom as unknown as RoomPayload | null}
+          onRoomUpdated={handleRoomUpdated}
+          editor={editor}
+        />
 
-        <RightSidebar room={selectedRoom} />
+        <RightSidebar
+          room={selectedRoom}
+          selectedVertexIndex={state.selectedIndex}
+          selectedVertex={selectedVertex}
+          selectedEdgeIndex={state.selectedEdgeIndex}
+          edgeLengthMm={selEdgeLen}
+          onMoveVertex={editor.moveVertex}
+          onSetEdgeLength={editor.setEdgeLength}
+        />
       </div>
 
       <StatusBar project={project} selectedRoom={selectedRoom} />

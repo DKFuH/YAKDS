@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { BlockDefinition, PriceSummary } from '../../../../shared-schemas/src/types';
-import { evaluateBlock, findBestBlock } from './blockEvaluator';
+import type { BlockDefinition, PriceSummary } from '../../../shared-schemas/src/types.js';
+import { evaluateBlock, findBestBlock } from './blockEvaluator.js';
 
 const priceSummary: PriceSummary = {
   project_id: 'project-17',

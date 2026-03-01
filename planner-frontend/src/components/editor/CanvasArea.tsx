@@ -1,22 +1,26 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
-import type { Vertex } from '@shared/types'
 import type { RoomPayload } from '../../api/rooms.js'
 import { roomsApi } from '../../api/rooms.js'
 import { PolygonEditor } from '../../editor/PolygonEditor.js'
+import type { EditorAPI } from '../../editor/usePolygonEditor.js'
 import styles from './CanvasArea.module.css'
 
 interface Props {
   room: RoomPayload | null
   onRoomUpdated: (room: RoomPayload) => void
+  editor: EditorAPI
 }
 
-export function CanvasArea({ room, onRoomUpdated }: Props) {
+export function CanvasArea({ room, onRoomUpdated, editor }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Canvas-Größe beim Resize anpassen
+  // Ref-Trick: stabile handleSave ohne stale closure auf editor.state
+  const editorRef = useRef(editor)
+  editorRef.current = editor
+
   useEffect(() => {
     if (!containerRef.current) return
     const observer = new ResizeObserver(entries => {
@@ -27,19 +31,18 @@ export function CanvasArea({ room, onRoomUpdated }: Props) {
     return () => observer.disconnect()
   }, [])
 
-  const handleSave = useCallback(async (vertices: Vertex[]) => {
+  const handleSave = useCallback(async () => {
     if (!room) return
+    const { vertices, wallIds } = editorRef.current.state
     setSaving(true)
     setSaveError(null)
     try {
-      // wall_segments aus Vertices ableiten
       const wallSegments = vertices.map((v, i) => ({
-        id: crypto.randomUUID(),
+        id: wallIds[i] ?? crypto.randomUUID(),
         index: i,
         start_vertex_id: v.id,
         end_vertex_id: vertices[(i + 1) % vertices.length].id,
       }))
-
       const updated = await roomsApi.update(room.id, {
         boundary: { vertices, wall_segments: wallSegments },
       })
@@ -51,8 +54,6 @@ export function CanvasArea({ room, onRoomUpdated }: Props) {
     }
   }, [room, onRoomUpdated])
 
-  const existingVertices = room?.boundary?.vertices as Vertex[] | undefined
-
   return (
     <main className={styles.canvas} ref={containerRef}>
       {saving && <div className={styles.overlay}>Speichere…</div>}
@@ -62,7 +63,17 @@ export function CanvasArea({ room, onRoomUpdated }: Props) {
         <PolygonEditor
           width={dimensions.width}
           height={dimensions.height}
-          initialVertices={existingVertices}
+          state={editor.state}
+          isValid={editor.isValid}
+          onAddVertex={editor.addVertex}
+          onClosePolygon={editor.closePolygon}
+          onMoveVertex={editor.moveVertex}
+          onSelectVertex={editor.selectVertex}
+          onSelectEdge={editor.selectEdge}
+          onHoverVertex={editor.hoverVertex}
+          onDeleteVertex={editor.deleteVertex}
+          onSetTool={editor.setTool}
+          onReset={editor.reset}
           onSave={handleSave}
         />
       ) : (

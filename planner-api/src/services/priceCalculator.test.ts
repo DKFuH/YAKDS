@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { BOMLine, GlobalDiscountSettings } from '../../../../shared-schemas/src/types';
-import { applyDiscount, calcLineNet, calculatePriceSummary } from './priceCalculator';
+import type { BOMLine } from '../../../shared-schemas/src/types.js';
+import { applyDiscount, calcLineNet, calculatePriceSummary } from './priceCalculator.js';
 
 function createLine(overrides: Partial<BOMLine> = {}): BOMLine {
   return {

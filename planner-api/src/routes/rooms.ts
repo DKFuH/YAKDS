@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../db.js'
@@ -101,6 +102,48 @@ export async function roomRoutes(app: FastifyInstance) {
         ...(openings ? { openings: openings as object[] } : {}),
         ...(placements ? { placements: placements as object[] } : {}),
       },
+    })
+
+    return reply.send(room)
+  })
+
+  // POST /rooms/:id/adopt-cad-boundary
+  // Konvertiert eine CAD-Polylinie in eine Raum-Boundary und speichert sie
+  app.post<{ Params: { id: string } }>('/rooms/:id/adopt-cad-boundary', async (request, reply) => {
+    const { id } = request.params
+
+    const PointSchema = z.object({ x_mm: z.number(), y_mm: z.number() })
+    const parsed = z.object({ points: z.array(PointSchema).min(3) }).safeParse(request.body)
+    if (!parsed.success) return sendBadRequest(reply, parsed.error.errors[0].message)
+
+    const existing = await prisma.room.findUnique({ where: { id } })
+    if (!existing) return sendNotFound(reply, 'Room not found')
+
+    // Doppelten Schlusspunkt entfernen (wenn erster == letzter Punkt)
+    let pts = parsed.data.points
+    const first = pts[0]
+    const last = pts[pts.length - 1]
+    if (first.x_mm === last.x_mm && first.y_mm === last.y_mm) {
+      pts = pts.slice(0, -1)
+    }
+    if (pts.length < 3) return sendBadRequest(reply, 'At least 3 distinct points required')
+
+    const vertices = pts.map((p, i) => ({
+      id: randomUUID(),
+      x_mm: p.x_mm,
+      y_mm: p.y_mm,
+      index: i,
+    }))
+    const wall_segments = vertices.map((v, i) => ({
+      id: randomUUID(),
+      index: i,
+      start_vertex_id: v.id,
+      end_vertex_id: vertices[(i + 1) % vertices.length].id,
+    }))
+
+    const room = await prisma.room.update({
+      where: { id },
+      data: { boundary: { vertices, wall_segments } as object },
     })
 
     return reply.send(room)

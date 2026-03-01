@@ -1,5 +1,5 @@
-import type { ValidationResult, Vertex } from '../types';
-import { distanceBetween, ensureClosedRing, segmentsIntersect, withoutDuplicateClosure } from './geometryUtils';
+import type { ValidationResult, Vertex } from '../types.js';
+import { distanceBetween, ensureClosedRing, segmentsIntersect, withoutDuplicateClosure } from './geometryUtils.js';
 
 function isAdjacentSegment(firstIndex: number, secondIndex: number, segmentCount: number): boolean {
   if (firstIndex === secondIndex) {

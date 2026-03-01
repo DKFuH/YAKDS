@@ -266,7 +266,7 @@ export interface CadEntity {
   id: string;
   layer_id: string;
   type: CadEntityType | string;
-  geometry: CadGeometry | Record<string, unknown>;
+  geometry: CadGeometry;
 }
 
 export interface ImportProtocolEntry {

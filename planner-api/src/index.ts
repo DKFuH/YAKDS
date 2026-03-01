@@ -2,6 +2,11 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import { projectRoutes } from './routes/projects.js'
 import { roomRoutes } from './routes/rooms.js'
+import { validateRoutes } from './routes/validate.js'
+import { importRoutes } from './routes/imports.js'
+import { openingRoutes } from './routes/openings.js'
+import { placementRoutes } from './routes/placements.js'
+import { bomRoutes } from './routes/bom.js'
 import { prisma } from './db.js'
 
 const app = Fastify({ logger: true })
@@ -13,6 +18,11 @@ await app.register(cors, {
 // Routes
 await app.register(projectRoutes, { prefix: '/api/v1' })
 await app.register(roomRoutes, { prefix: '/api/v1' })
+await app.register(validateRoutes, { prefix: '/api/v1' })
+await app.register(importRoutes, { prefix: '/api/v1' })
+await app.register(openingRoutes, { prefix: '/api/v1' })
+await app.register(placementRoutes, { prefix: '/api/v1' })
+await app.register(bomRoutes, { prefix: '/api/v1' })
 
 // Health check
 app.get('/health', async () => ({ status: 'ok' }))

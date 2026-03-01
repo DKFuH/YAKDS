@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
-import type { Point2D, Vertex } from '../types';
-import { cloneVertices, distanceBetween, normalizeVector, toVector, withoutDuplicateClosure } from './geometryUtils';
+import type { Point2D, Vertex } from '../types.js';
+import { cloneVertices, distanceBetween, normalizeVector, toVector, withoutDuplicateClosure } from './geometryUtils.js';
 
 function updateVertex(vertices: Vertex[], index: number, nextPoint: Point2D): Vertex[] {
   if (index < 0 || index >= vertices.length) {
@@ -24,7 +24,7 @@ export function moveVertex(vertices: Vertex[], index: number, newPos: Point2D): 
 }
 
 export function setEdgeLength(vertices: Vertex[], edgeIndex: number, newLengthMm: number): Vertex[] {
-  if (vertices.length < 2 || edgeIndex < 0 || edgeIndex >= vertices.length) {
+  if (vertices.length < 2 || edgeIndex < 0 || edgeIndex >= vertices.length || newLengthMm <= 0) {
     return cloneVertices(vertices);
   }
 

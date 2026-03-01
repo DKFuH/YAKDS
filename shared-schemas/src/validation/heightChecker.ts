@@ -1,5 +1,5 @@
-import { getAvailableHeight } from '../geometry/ceilingHeight';
-import type { CeilingConstraint, Point2D, RuleViolation } from '../types';
+import { getAvailableHeight } from '../geometry/ceilingHeight.js';
+import type { CeilingConstraint, Point2D, RuleViolation } from '../types.js';
 
 export interface HeightPlacedObject {
   id: string;
@@ -29,6 +29,9 @@ export function checkObjectHeight(
   }
 
   const exceeded = obj.height_mm - available;
+  const requiresCustomization = exceeded > 50;
+  const hasLowHeightVariant = exceeded > 0 && exceeded < 200;
+  const laborSurcharge = requiresCustomization || obj.type === 'wall';
   const code = obj.type === 'wall' ? 'HANGING_CABINET_SLOPE_COLLISION' : 'HEIGHT_EXCEEDED';
 
   return {
@@ -39,9 +42,9 @@ export function checkObjectHeight(
     available_mm: available,
     required_mm: obj.height_mm,
     flags: {
-      requires_customization: exceeded > 50,
-      height_variant: exceeded < 200 ? 'low_version' : null,
-      labor_surcharge: true
+      requires_customization: requiresCustomization,
+      height_variant: hasLowHeightVariant ? 'low_version' : null,
+      labor_surcharge: laborSurcharge
     }
   };
 }

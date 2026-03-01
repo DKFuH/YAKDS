@@ -2,7 +2,7 @@ import type {
   BlockDefinition,
   BlockEvaluation,
   PriceSummary
-} from '../../../../shared-schemas/src/types';
+} from '../../../shared-schemas/src/types.js';
 
 function getBasisValue(priceSummary: PriceSummary, basis: BlockDefinition['basis']): number {
   switch (basis) {
@@ -12,6 +12,8 @@ function getBasisValue(priceSummary: PriceSummary, basis: BlockDefinition['basis
       return priceSummary.total_sell_price_net ?? priceSummary.subtotal_net;
     case 'points':
       return priceSummary.total_points ?? 0;
+    default:
+      return 0;
   }
 }
 

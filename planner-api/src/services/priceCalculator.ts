@@ -3,7 +3,7 @@ import type {
   GlobalDiscountSettings,
   PriceComponent,
   PriceSummary
-} from '../../../../shared-schemas/src/types';
+} from '../../../shared-schemas/src/types.js';
 
 function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, value));
@@ -57,7 +57,10 @@ export function calculatePriceSummary(
     ...item,
     afterGlobal: item.afterGroup * globalFactor
   }));
-  const totalExtraCosts = settings.extra_costs.reduce((sum, item) => sum + item.amount_net, 0);
+  const totalExtraCosts = settings.extra_costs.reduce(
+    (sum: number, item: GlobalDiscountSettings['extra_costs'][number]) => sum + item.amount_net,
+    0
+  );
 
   const taxBases = new Map<string, { rate: number; base: number }>();
 
@@ -67,7 +70,7 @@ export function calculatePriceSummary(
     taxBases.set(line.tax_group_id, entry);
   });
 
-  settings.extra_costs.forEach((extraCost) => {
+  settings.extra_costs.forEach((extraCost: GlobalDiscountSettings['extra_costs'][number]) => {
     const matchingLine = lines.find((line) => line.tax_group_id === extraCost.tax_group_id);
     const rate = matchingLine?.tax_rate ?? 0;
     const entry = taxBases.get(extraCost.tax_group_id) ?? { rate, base: 0 };

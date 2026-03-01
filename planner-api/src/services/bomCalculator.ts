@@ -6,7 +6,7 @@ import type {
   PriceListItem,
   ProjectSnapshot,
   TaxGroup
-} from '../../../../shared-schemas/src/types';
+} from '../../../shared-schemas/src/types.js';
 
 function findPrice(itemId: string, priceListItems: PriceListItem[]): PriceListItem | null {
   return priceListItems.find((item) => item.catalog_item_id === itemId) ?? null;
@@ -91,9 +91,14 @@ function defaultTaxGroup(taxGroups: TaxGroup[]): TaxGroup {
   return taxGroups[0] ?? { id: 'default-tax', name: 'Default Tax', tax_rate: 0 };
 }
 
-export function calculateBOM(project: ProjectSnapshot): BOMLine[] {
+export interface CalculateBOMOptions {
+  specialTrimSurchargeNet?: number;
+}
+
+export function calculateBOM(project: ProjectSnapshot, options: CalculateBOMOptions = {}): BOMLine[] {
   const lines: BOMLine[] = [];
   const defaultTax = defaultTaxGroup(project.taxGroups);
+  const specialTrimSurchargeNet = options.specialTrimSurchargeNet ?? 0;
 
   const cabinets: PlacedCabinet[] = project.cabinets ?? [];
   const appliances: PlacedAppliance[] = project.appliances ?? [];
@@ -108,7 +113,7 @@ export function calculateBOM(project: ProjectSnapshot): BOMLine[] {
           project.id,
           'surcharge',
           `Sonderblende für ${cabinet.catalog_item_id}`,
-          0,
+          specialTrimSurchargeNet,
           cabinet.tax_group_id,
           findTaxRate(cabinet.tax_group_id, project.taxGroups)
         )

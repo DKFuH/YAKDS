@@ -1,4 +1,4 @@
-import type { Point2D, Vector2D, Vertex } from '../types';
+import type { Point2D, Vector2D, Vertex } from '../types.js';
 
 export const EPSILON = 1e-6;
 

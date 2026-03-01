@@ -1,4 +1,4 @@
-import type { PlacedItem, Point2D, Vector2D, WallSegment2D } from '../types';
+import type { PlacedItem, Point2D, Vector2D, WallSegment2D } from '../types.js';
 
 function wallLength(wall: WallSegment2D): number {
   const dx = wall.end.x_mm - wall.start.x_mm;

@@ -1,5 +1,5 @@
-import type { CeilingConstraint, Point2D } from '../types';
-import { distancePointToSegment } from './geometryUtils';
+import type { CeilingConstraint, Point2D } from '../types.js';
+import { distancePointToSegment } from './geometryUtils.js';
 
 export function getHeightAtPoint(
   constraint: CeilingConstraint,

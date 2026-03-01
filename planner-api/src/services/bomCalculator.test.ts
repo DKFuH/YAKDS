@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ProjectSnapshot } from '../../../../shared-schemas/src/types';
-import { calculateBOM, sumBOMLines } from './bomCalculator';
+import type { BOMLine, ProjectSnapshot } from '../../../shared-schemas/src/types.js';
+import { calculateBOM, sumBOMLines } from './bomCalculator.js';
 
 function baseProject(): ProjectSnapshot {
   return {
@@ -82,12 +82,12 @@ describe('bomCalculator', () => {
     ];
 
     const lines = calculateBOM(project);
-    const cabinetLines = lines.filter((line) => line.type === 'cabinet');
-    const applianceLines = lines.filter((line) => line.type === 'appliance');
+    const cabinetLines = lines.filter((line: BOMLine) => line.type === 'cabinet');
+    const applianceLines = lines.filter((line: BOMLine) => line.type === 'appliance');
 
     expect(cabinetLines).toHaveLength(3);
     expect(applianceLines).toHaveLength(1);
-    expect(lines.some((line) => line.type === 'freight')).toBe(true);
+    expect(lines.some((line: BOMLine) => line.type === 'freight')).toBe(true);
   });
 
   it('adds surcharge line when special trim flag is set', () => {
@@ -107,10 +107,38 @@ describe('bomCalculator', () => {
     ];
 
     const lines = calculateBOM(project);
-    expect(lines.some((line) => line.type === 'surcharge')).toBe(true);
+    expect(lines.some((line: BOMLine) => line.type === 'surcharge')).toBe(true);
 
     const totals = sumBOMLines(lines);
     expect(totals.total_list_net).toBeGreaterThan(0);
     expect(totals.total_net_after_discounts).toBeGreaterThan(0);
+  });
+
+  it('uses configurable special trim surcharge amount', () => {
+    const project = baseProject();
+    project.cabinets = [
+      {
+        id: 'c1',
+        catalog_item_id: 'cab-60',
+        tax_group_id: 'tax-de',
+        flags: {
+          requires_customization: false,
+          height_variant: null,
+          labor_surcharge: false,
+          special_trim_needed: true
+        }
+      }
+    ];
+
+    const lines = calculateBOM(project, { specialTrimSurchargeNet: 75 });
+    const surchargeLine = lines.find((line: BOMLine) => line.type === 'surcharge');
+
+    expect(surchargeLine).toBeDefined();
+    expect(surchargeLine?.list_price_net).toBe(75);
+    expect(surchargeLine?.line_net_after_discounts).toBe(75);
+
+    const totals = sumBOMLines(lines);
+    expect(totals.total_list_net).toBe(664);
+    expect(totals.total_net_after_discounts).toBe(664);
   });
 });

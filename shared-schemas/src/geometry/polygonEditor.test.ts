@@ -26,6 +26,18 @@ describe('polygonEditor', () => {
     expect(updated[2]).toEqual(vertices[2]);
   });
 
+  it('keeps vertices unchanged for non-positive edge length', () => {
+    const vertices = [vertex('v1', 0, 0, 0), vertex('v2', 1000, 0, 1), vertex('v3', 1000, 1000, 2)];
+
+    const zeroLength = setEdgeLength(vertices, 0, 0);
+    const negativeLength = setEdgeLength(vertices, 0, -50);
+
+    expect(zeroLength).toEqual(vertices);
+    expect(negativeLength).toEqual(vertices);
+    expect(zeroLength).not.toBe(vertices);
+    expect(negativeLength).not.toBe(vertices);
+  });
+
   it('wraps the last edge to the first vertex', () => {
     const vertices = [vertex('v1', 0, 0, 0), vertex('v2', 1000, 0, 1), vertex('v3', 1000, 1000, 2)];
 

@@ -1,4 +1,4 @@
-import type { CadEntity, Opening, OpeningCandidate, ValidationResult, WallSegment } from '../types';
+import type { CadEntity, Opening, OpeningCandidate, ValidationResult, WallSegment } from '../types.js';
 
 function intervalsOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
   return startA < endB && startB < endA;
@@ -55,6 +55,13 @@ function getEntityIntervals(entities: CadEntity[]): Array<{ start: number; end: 
     .sort((left, right) => left.start - right.start);
 }
 
+function clampIntervalToWall(interval: { start: number; end: number }, wallLength_mm: number): { start: number; end: number } {
+  return {
+    start: Math.max(0, Math.min(interval.start, wallLength_mm)),
+    end: Math.max(0, Math.min(interval.end, wallLength_mm))
+  };
+}
+
 export function validateOpening(
   wall: WallSegment,
   opening: Opening,
@@ -96,7 +103,13 @@ export function validateOpening(
 }
 
 export function detectOpeningsFromCad(entities: CadEntity[], wallLength_mm: number): OpeningCandidate[] {
-  const intervals = getEntityIntervals(entities);
+  if (wallLength_mm <= 0) {
+    return [];
+  }
+
+  const intervals = getEntityIntervals(entities)
+    .map((interval) => clampIntervalToWall(interval, wallLength_mm))
+    .filter((interval) => interval.end > interval.start);
 
   if (intervals.length === 0) {
     return [];

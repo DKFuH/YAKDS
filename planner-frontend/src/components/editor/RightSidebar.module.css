@@ -36,3 +36,36 @@
 
 .props dt { color: #6b7280; }
 .props dd { margin: 0; font-weight: 500; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.fieldLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.fieldInput {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px #6366f120;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0.1rem 0 0;
+}

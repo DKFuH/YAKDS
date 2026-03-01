@@ -4,7 +4,7 @@ import type {
   Point2D,
   RuleViolation,
   WallSegment2D
-} from '../types';
+} from '../types.js';
 
 function interval(obj: Pick<PlacedObject, 'offset_mm' | 'width_mm'>): { start: number; end: number } {
   return {
