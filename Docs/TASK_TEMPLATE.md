@@ -196,7 +196,7 @@ Projekte mit Status, Fristen, Prioritäten und Verantwortlichen teamfähig steue
 **Zuständig:** Claude Code
 **Abhängigkeiten:** TASK-25-P01
 **Priorität:** Muss
-**Status:** Offen
+**Status:** In Arbeit
 
 ### Ziel
 Projektbezogene Dokumente zentral speichern, filtern, vorschauen und sicher teilen.

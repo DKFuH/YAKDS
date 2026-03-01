@@ -76,6 +76,8 @@ GET   /projects/gantt
 ### Sprint 26 - Dokumentenmanagement
 
 - **Priorität:** Muss (P1)
+- **Zuständig:** Claude Code (parallel zu Codex auf Sprint 25)
+- **Status:** In Arbeit
 - **Ziel:** Alle Projektdokumente zentral ablegen, suchen und anzeigen.
 
 **Neue Entity (`Document`)**
@@ -108,6 +110,21 @@ DELETE /projects/:id/documents/:id
 - Quote-PDFs, Renderings und Import-Jobs werden automatisch als Dokumente angehängt.
 - Frontend bietet Stapel-Upload, Vorschau (PDF/Bild), Download, Suche und Tag-Filter.
 - Speicherung erfolgt tenant-sicher in S3-kompatiblem Object Storage.
+
+**Umsetzungsreihenfolge (Startpaket)**
+
+1. `Document`-Schema + Migration inkl. Tenant-Scoping und Projekt-Relation.
+2. Upload-/List-/Delete-Routen mit Typ-/Tag-Filter und Rechteprüfung.
+3. Storage-Adapter (S3-kompatibel) mit Signatur/Downloadpfad.
+4. Auto-Attach-Hooks für Quote-PDF, Render-Output und Import-Job.
+5. Frontend-Modul mit Batch-Upload, Vorschau, Suche und Tag-Filter.
+
+**How to verify (Sprint 26)**
+
+- Mehrfach-Upload in ein Projekt erzeugt konsistente `Document`-Einträge.
+- Typ-/Tag-Filter liefert erwartete Teilmengen ohne Cross-Tenant-Leaks.
+- Löschen entfernt Metadaten und sperrt Downloadzugriff auf die Datei.
+- Automatisch erzeugte Quote-/Render-/Import-Artefakte erscheinen ohne manuellen Upload.
 
 ---
 
