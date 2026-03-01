@@ -1,21 +1,11 @@
 import { getAvailableHeight } from '../geometry/ceilingHeight.js';
-import type { CeilingConstraint, Point2D, RuleViolation } from '../types.js';
+import type { CeilingConstraint, HeightViolation, Point2D } from '../types.js';
 
 export interface HeightPlacedObject {
   id: string;
   type: 'base' | 'wall' | 'tall' | 'appliance';
   height_mm: number;
   worldPos: Point2D;
-}
-
-export interface HeightViolation extends RuleViolation {
-  available_mm: number;
-  required_mm: number;
-  flags: {
-    requires_customization: boolean;
-    height_variant: string | null;
-    labor_surcharge: boolean;
-  };
 }
 
 export function checkObjectHeight(

@@ -4,6 +4,16 @@ import type { Opening } from '../../api/openings.js'
 import type { Room } from '../../api/projects.js'
 import styles from './RightSidebar.module.css'
 
+export interface CeilingConstraint {
+  id?: string
+  wall_id: string
+  wall_start: Point2D
+  wall_end: Point2D
+  kniestock_height_mm: number
+  slope_angle_deg: number
+  depth_into_room_mm: number
+}
+
 interface Props {
   room: Room | null
   selectedVertexIndex: number | null
@@ -11,10 +21,13 @@ interface Props {
   selectedEdgeIndex: number | null
   edgeLengthMm: number | null
   selectedOpening: Opening | null
+  ceilingConstraints: CeilingConstraint[]
+  selectedWallGeom: { id: string; start: Point2D; end: Point2D } | null
   onMoveVertex: (index: number, pos: Point2D) => void
   onSetEdgeLength: (edgeIndex: number, lengthMm: number) => void
   onUpdateOpening: (opening: Opening) => void
   onDeleteOpening: (openingId: string) => void
+  onSaveCeilingConstraints: (constraints: CeilingConstraint[]) => void
 }
 
 export function RightSidebar({
@@ -22,8 +35,11 @@ export function RightSidebar({
   selectedVertexIndex, selectedVertex,
   selectedEdgeIndex, edgeLengthMm,
   selectedOpening,
+  ceilingConstraints,
+  selectedWallGeom,
   onMoveVertex, onSetEdgeLength,
   onUpdateOpening, onDeleteOpening,
+  onSaveCeilingConstraints,
 }: Props) {
   return (
     <aside className={styles.sidebar}>
@@ -69,10 +85,11 @@ export function RightSidebar({
         <p className={styles.empty}>Sprint 9 – folgt</p>
       </div>
 
-      <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>Dachschrägen</h3>
-        <p className={styles.empty}>Sprint 6 – folgt</p>
-      </div>
+      <CeilingConstraintPanel
+        constraints={ceilingConstraints}
+        wallGeom={selectedWallGeom}
+        onSave={onSaveCeilingConstraints}
+      />
     </aside>
   )
 }
@@ -292,6 +309,132 @@ function EdgePanel({ edgeIndex, lengthMm, onSetLength }: {
         />
       </div>
       <p className={styles.hint}>{(lengthMm / 1000).toFixed(3)} m</p>
+    </div>
+  )
+}
+
+// ─── Dachschrägen-Panel ───────────────────────────────────────────────────────
+
+function CeilingConstraintPanel({ constraints, wallGeom, onSave }: {
+  constraints: CeilingConstraint[]
+  wallGeom: { id: string; start: Point2D; end: Point2D } | null
+  onSave: (constraints: CeilingConstraint[]) => void
+}) {
+  const wallConstraints = wallGeom
+    ? constraints.filter(c => c.wall_id === wallGeom.id)
+    : []
+
+  function addConstraint() {
+    if (!wallGeom) return
+    const newC: CeilingConstraint = {
+      id: crypto.randomUUID(),
+      wall_id: wallGeom.id,
+      wall_start: wallGeom.start,
+      wall_end: wallGeom.end,
+      kniestock_height_mm: 1200,
+      slope_angle_deg: 45,
+      depth_into_room_mm: 600,
+    }
+    onSave([...constraints, newC])
+  }
+
+  function updateConstraint(updated: CeilingConstraint) {
+    onSave(constraints.map(c => c.id === updated.id ? updated : c))
+  }
+
+  function deleteConstraint(id: string) {
+    onSave(constraints.filter(c => c.id !== id))
+  }
+
+  return (
+    <div className={styles.section}>
+      <h3 className={styles.sectionTitle}>Dachschrägen</h3>
+
+      {!wallGeom ? (
+        <p className={styles.empty}>Wand auswählen</p>
+      ) : (
+        <>
+          {wallConstraints.length === 0 && (
+            <p className={styles.empty}>Keine Dachschräge an dieser Wand</p>
+          )}
+          {wallConstraints.map(c => (
+            <ConstraintRow
+              key={c.id}
+              constraint={c}
+              onUpdate={updateConstraint}
+              onDelete={() => deleteConstraint(c.id!)}
+            />
+          ))}
+          <button type="button" className={styles.addConstraintBtn} onClick={addConstraint}>
+            + Dachschräge hinzufügen
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+function ConstraintRow({ constraint, onUpdate, onDelete }: {
+  constraint: CeilingConstraint
+  onUpdate: (c: CeilingConstraint) => void
+  onDelete: () => void
+}) {
+  const [kniestock, setKniestock] = useState(String(Math.round(constraint.kniestock_height_mm)))
+  const [angle, setAngle] = useState(String(constraint.slope_angle_deg))
+  const [depth, setDepth] = useState(String(Math.round(constraint.depth_into_room_mm)))
+
+  function commit(field: keyof CeilingConstraint, raw: string, min = 0) {
+    const n = parseFloat(raw)
+    if (!Number.isFinite(n) || n < min) return
+    onUpdate({ ...constraint, [field]: n })
+  }
+
+  return (
+    <div className={styles.constraintRow}>
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Kniestock (mm)</label>
+        <input
+          aria-label="Kniestockhöhe in mm"
+          className={styles.fieldInput}
+          type="number"
+          min={0}
+          value={kniestock}
+          onChange={e => setKniestock(e.target.value)}
+          onBlur={() => commit('kniestock_height_mm', kniestock)}
+          onKeyDown={e => { if (e.key === 'Enter') commit('kniestock_height_mm', kniestock) }}
+        />
+      </div>
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Neigung (°)</label>
+        <input
+          aria-label="Dachneigung in Grad"
+          className={styles.fieldInput}
+          type="number"
+          min={0}
+          max={90}
+          step={0.5}
+          value={angle}
+          onChange={e => setAngle(e.target.value)}
+          onBlur={() => commit('slope_angle_deg', angle)}
+          onKeyDown={e => { if (e.key === 'Enter') commit('slope_angle_deg', angle) }}
+        />
+      </div>
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Tiefe ins Zimmer (mm)</label>
+        <input
+          aria-label="Tiefe der Dachschräge ins Zimmer in mm"
+          className={styles.fieldInput}
+          type="number"
+          min={0}
+          value={depth}
+          onChange={e => setDepth(e.target.value)}
+          onBlur={() => commit('depth_into_room_mm', depth)}
+          onKeyDown={e => { if (e.key === 'Enter') commit('depth_into_room_mm', depth) }}
+        />
+      </div>
+      <button type="button" className={styles.deleteBtn} onClick={onDelete}>
+        Dachschräge löschen
+      </button>
     </div>
   )
 }

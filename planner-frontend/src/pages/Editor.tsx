@@ -6,8 +6,9 @@ import { roomsApi, type RoomBoundaryPayload, type RoomPayload } from '../api/roo
 import { openingsApi, type Opening } from '../api/openings.js'
 import { usePolygonEditor, edgeLengthMm } from '../editor/usePolygonEditor.js'
 import { CanvasArea } from '../components/editor/CanvasArea.js'
+import { Preview3D } from '../components/editor/Preview3D.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
-import { RightSidebar } from '../components/editor/RightSidebar.js'
+import { RightSidebar, type CeilingConstraint } from '../components/editor/RightSidebar.js'
 import { StatusBar } from '../components/editor/StatusBar.js'
 import styles from './Editor.module.css'
 
@@ -18,6 +19,7 @@ export function Editor() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d')
   const [openings, setOpenings] = useState<Opening[]>([])
   const [selectedOpeningId, setSelectedOpeningId] = useState<string | null>(null)
 
@@ -132,6 +134,16 @@ export function Editor() {
     handleSaveOpenings(newOpenings)
   }, [handleSaveOpenings])
 
+  // Dachschrägen speichern
+  const handleSaveCeilingConstraints = useCallback((constraints: CeilingConstraint[]) => {
+    if (!selectedRoomRef.current) return
+    roomsApi.update(selectedRoomRef.current.id, {
+      ceiling_constraints: constraints as unknown[],
+    }).then(updated => {
+      handleRoomUpdated(updated)
+    }).catch((e: Error) => console.error('Dachschrägen speichern fehlgeschlagen:', e))
+  }, [handleRoomUpdated])
+
   if (loading) return <div className={styles.center}>Lade Projekt…</div>
   if (error) return <div className={styles.center}>{error}</div>
   if (!project) return null
@@ -147,12 +159,31 @@ export function Editor() {
     : null
   const selectedOpening = openings.find(o => o.id === selectedOpeningId) ?? null
 
+  // Wandgeometrie für Dachschrägen-Panel
+  const selectedWallGeom = (() => {
+    const i = state.selectedEdgeIndex
+    if (i === null || !state.wallIds[i]) return null
+    const v0 = state.vertices[i]
+    const v1 = state.vertices[(i + 1) % state.vertices.length]
+    if (!v0 || !v1) return null
+    return { id: state.wallIds[i], start: { x_mm: v0.x_mm, y_mm: v0.y_mm }, end: { x_mm: v1.x_mm, y_mm: v1.y_mm } }
+  })()
+
+  const ceilingConstraints = ((selectedRoom as unknown as RoomPayload | null)?.ceiling_constraints as CeilingConstraint[] | undefined) ?? []
+
   return (
     <div className={styles.shell}>
       <header className={styles.topbar}>
         <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>← Projekte</button>
         <span className={styles.projectName}>{project.name}</span>
         <div className={styles.topbarActions}>
+          <button
+            type="button"
+            className={styles.btnSecondary}
+            onClick={() => setViewMode((prev) => (prev === '2d' ? '3d' : '2d'))}
+          >
+            {viewMode === '2d' ? '3D Preview' : '2D Editor'}
+          </button>
           <button type="button" className={styles.btnSecondary}>Angebot</button>
         </div>
       </header>
@@ -165,15 +196,19 @@ export function Editor() {
           onAddRoom={handleAddRoom}
         />
 
-        <CanvasArea
-          room={selectedRoom as unknown as RoomPayload | null}
-          onRoomUpdated={handleRoomUpdated}
-          editor={editor}
-          openings={openings}
-          selectedOpeningId={selectedOpeningId}
-          onSelectOpening={setSelectedOpeningId}
-          onAddOpening={handleAddOpening}
-        />
+        {viewMode === '2d' ? (
+          <CanvasArea
+            room={selectedRoom as unknown as RoomPayload | null}
+            onRoomUpdated={handleRoomUpdated}
+            editor={editor}
+            openings={openings}
+            selectedOpeningId={selectedOpeningId}
+            onSelectOpening={setSelectedOpeningId}
+            onAddOpening={handleAddOpening}
+          />
+        ) : (
+          <Preview3D room={selectedRoom as unknown as RoomPayload | null} />
+        )}
 
         <RightSidebar
           room={selectedRoom}
@@ -182,10 +217,13 @@ export function Editor() {
           selectedEdgeIndex={state.selectedEdgeIndex}
           edgeLengthMm={selEdgeLen}
           selectedOpening={selectedOpening}
+          ceilingConstraints={ceilingConstraints}
+          selectedWallGeom={selectedWallGeom}
           onMoveVertex={editor.moveVertex}
           onSetEdgeLength={editor.setEdgeLength}
           onUpdateOpening={handleUpdateOpening}
           onDeleteOpening={handleDeleteOpening}
+          onSaveCeilingConstraints={handleSaveCeilingConstraints}
         />
       </div>
 

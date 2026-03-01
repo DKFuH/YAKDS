@@ -6,7 +6,7 @@ import type {
   PriceListItem,
   ProjectSnapshot,
   TaxGroup
-} from '../../../shared-schemas/src/types.js';
+} from '@yakds/shared-schemas';
 
 function findPrice(itemId: string, priceListItems: PriceListItem[]): PriceListItem | null {
   return priceListItems.find((item) => item.catalog_item_id === itemId) ?? null;

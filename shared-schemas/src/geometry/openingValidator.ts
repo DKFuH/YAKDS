@@ -34,17 +34,19 @@ function getEntityIntervals(entities: CadEntity[]): Array<{ start: number; end: 
 
   return entities
     .flatMap((entity) => {
-      if (entity.geometry.type === 'line') {
+      const geometry = entity.geometry;
+
+      if (geometry.type === 'line') {
         const values = useX
-          ? [entity.geometry.start.x_mm, entity.geometry.end.x_mm]
-          : [entity.geometry.start.y_mm, entity.geometry.end.y_mm];
+          ? [geometry.start.x_mm, geometry.end.x_mm]
+          : [geometry.start.y_mm, geometry.end.y_mm];
 
         return [{ start: Math.min(...values), end: Math.max(...values) }];
       }
 
-      if (entity.geometry.type === 'polyline' && entity.geometry.points.length >= 2) {
-        return entity.geometry.points.slice(0, -1).map((point, index) => {
-          const nextPoint = entity.geometry.points[index + 1];
+      if (geometry.type === 'polyline' && geometry.points.length >= 2) {
+        return geometry.points.slice(0, -1).map((point, index) => {
+          const nextPoint = geometry.points[index + 1];
           const values = useX ? [point.x_mm, nextPoint.x_mm] : [point.y_mm, nextPoint.y_mm];
           return { start: Math.min(...values), end: Math.max(...values) };
         });

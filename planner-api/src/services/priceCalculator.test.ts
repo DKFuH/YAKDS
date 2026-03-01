@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { BOMLine } from '../../../shared-schemas/src/types.js';
+import type { BOMLine } from '@yakds/shared-schemas';
 import { applyDiscount, calcLineNet, calculatePriceSummary } from './priceCalculator.js';
 
 function createLine(overrides: Partial<BOMLine> = {}): BOMLine {

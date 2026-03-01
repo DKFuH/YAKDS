@@ -82,3 +82,24 @@
   width: 100%;
 }
 .deleteBtn:hover { background: #fee2e2; }
+
+.constraintRow {
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.addConstraintBtn {
+  width: 100%;
+  background: none;
+  border: 1px dashed #d1d5db;
+  border-radius: 5px;
+  padding: 0.3rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  cursor: pointer;
+  margin-top: 0.25rem;
+}
+
+.addConstraintBtn:hover { border-color: #6366f1; color: #6366f1; }

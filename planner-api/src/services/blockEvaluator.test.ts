@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { BlockDefinition, PriceSummary } from '../../../shared-schemas/src/types.js';
+import type { BlockDefinition, PriceSummary } from '@yakds/shared-schemas';
 import { evaluateBlock, findBestBlock } from './blockEvaluator.js';
 
 const priceSummary: PriceSummary = {

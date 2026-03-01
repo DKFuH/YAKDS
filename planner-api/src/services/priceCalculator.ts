@@ -3,7 +3,7 @@ import type {
   GlobalDiscountSettings,
   PriceComponent,
   PriceSummary
-} from '../../../shared-schemas/src/types.js';
+} from '@yakds/shared-schemas';
 
 function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, value));

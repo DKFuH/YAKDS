@@ -20,6 +20,17 @@ const OpeningSchema = z.object({
 type Opening = z.infer<typeof OpeningSchema>
 type BoundaryJson = { wall_segments?: Array<{ id: string; length_mm?: number }> }
 
+const OpeningDraftSchema = z.object({
+  id: z.string().min(1).default(() => randomUUID()),
+  wall_id: z.string().min(1),
+  type: z.enum(['door', 'window', 'pass-through']).optional(),
+  offset_mm: z.number().min(0),
+  width_mm: z.number().positive(),
+  height_mm: z.number().positive().optional(),
+  sill_height_mm: z.number().min(0).optional(),
+  source: z.enum(['manual', 'cad_import']).default('manual'),
+})
+
 const WallSegmentSchema = z.object({
   id: z.string().min(1),
   length_mm: z.number().positive(),
@@ -50,8 +61,8 @@ const CadEntitySchema = z.union([
 
 const ValidateOpeningRequestSchema = z.object({
   wall: WallSegmentSchema,
-  opening: OpeningSchema,
-  existing_openings: z.array(OpeningSchema).default([]),
+  opening: OpeningDraftSchema,
+  existing_openings: z.array(OpeningDraftSchema).default([]),
 })
 
 const DetectOpeningsRequestSchema = z.object({

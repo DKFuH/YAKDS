@@ -2,14 +2,23 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'
-import type { Opening, PlacedObject, Point2D, RuleViolation, WallSegment2D } from '../../../shared-schemas/src/types.js'
+import type {
+  CeilingConstraint,
+  HeightPlacedObject,
+  Opening,
+  PlacedObject,
+  Point2D,
+  RuleViolation,
+  WallSegment2D,
+} from '@yakds/shared-schemas'
 import {
+  checkObjectHeight,
   checkMinClearance,
   checkObjectInRoom,
   checkObjectOverlap,
   checkObjectVsOpening,
   detectCostHints,
-} from '../../../shared-schemas/src/validation/collisionDetector.js'
+} from '@yakds/shared-schemas'
 
 const PointSchema = z.object({
   x_mm: z.number(),
@@ -18,6 +27,7 @@ const PointSchema = z.object({
 
 const ObjectSchema = z.object({
   id: z.string().min(1),
+  type: z.enum(['base', 'wall', 'tall', 'appliance']).default('base'),
   wall_id: z.string().min(1),
   offset_mm: z.number(),
   width_mm: z.number().positive(),
@@ -25,6 +35,7 @@ const ObjectSchema = z.object({
   height_mm: z.number(),
   worldPos: PointSchema.optional(),
 })
+type ValidateObject = z.infer<typeof ObjectSchema>
 
 const OpeningSchema = z.object({
   id: z.string().min(1),
@@ -40,6 +51,15 @@ const WallSchema = z.object({
   length_mm: z.number().positive(),
 })
 
+const CeilingConstraintSchema = z.object({
+  wall_id: z.string().min(1),
+  wall_start: PointSchema,
+  wall_end: PointSchema,
+  kniestock_height_mm: z.number().nonnegative(),
+  slope_angle_deg: z.number().positive(),
+  depth_into_room_mm: z.number().positive(),
+})
+
 const ValidateRequestSchema = z.object({
   project_id: z.string().uuid(),
   user_id: z.string().uuid(),
@@ -47,6 +67,8 @@ const ValidateRequestSchema = z.object({
   objects: z.array(ObjectSchema).max(200),
   openings: z.array(OpeningSchema).max(200).default([]),
   walls: z.array(WallSchema).max(256).default([]),
+  ceilingConstraints: z.array(CeilingConstraintSchema).max(64).default([]),
+  nominalCeilingMm: z.number().positive().max(10000).default(2500),
   minClearanceMm: z.number().min(0).max(5000).default(50),
 })
 
@@ -57,7 +79,17 @@ export async function validateRoutes(app: FastifyInstance) {
       return sendBadRequest(reply, parsed.error.errors[0].message)
     }
 
-    const { project_id, user_id, roomPolygon, objects, openings, walls, minClearanceMm } = parsed.data
+    const {
+      project_id,
+      user_id,
+      roomPolygon,
+      objects,
+      openings,
+      walls,
+      ceilingConstraints,
+      nominalCeilingMm,
+      minClearanceMm,
+    } = parsed.data
 
     const project = await prisma.project.findFirst({
       where: {
@@ -70,33 +102,51 @@ export async function validateRoutes(app: FastifyInstance) {
       return sendNotFound(reply, 'Project not found for user')
     }
 
-    const typedObjects = objects as PlacedObject[]
+    const typedObjects = objects as ValidateObject[]
+    const placementObjects = typedObjects as PlacedObject[]
     const typedOpenings = openings as Opening[]
     const typedPolygon = roomPolygon as Point2D[]
     const typedWalls = walls as WallSegment2D[]
+    const typedConstraints = ceilingConstraints as CeilingConstraint[]
 
     const violations: RuleViolation[] = []
 
     for (let i = 0; i < typedObjects.length; i += 1) {
       const obj = typedObjects[i]
+      const placementObject = obj as PlacedObject
 
-      const outside = checkObjectInRoom(obj, typedPolygon)
+      const outside = checkObjectInRoom(placementObject, typedPolygon)
       if (outside) violations.push(outside)
 
-      const openingViolation = checkObjectVsOpening(obj, typedOpenings)
+      const openingViolation = checkObjectVsOpening(placementObject, typedOpenings)
       if (openingViolation) violations.push(openingViolation)
 
-      const clearanceViolation = checkMinClearance(obj, typedObjects, minClearanceMm)
+      const clearanceViolation = checkMinClearance(placementObject, placementObjects, minClearanceMm)
       if (clearanceViolation) violations.push(clearanceViolation)
 
       for (let j = i + 1; j < typedObjects.length; j += 1) {
-        const overlapViolation = checkObjectOverlap(obj, typedObjects[j])
+        const overlapViolation = checkObjectOverlap(placementObject, placementObjects[j])
         if (overlapViolation) violations.push(overlapViolation)
       }
 
-      const wall = typedWalls.find((candidate) => candidate.id === obj.wall_id)
+      const wall = typedWalls.find((candidate) => candidate.id === placementObject.wall_id)
       if (wall) {
-        violations.push(...detectCostHints(obj, wall, typedOpenings))
+        violations.push(...detectCostHints(placementObject, wall, typedOpenings))
+      }
+
+      if (obj.worldPos) {
+        const heightObject: HeightPlacedObject = {
+          id: obj.id,
+          type: obj.type,
+          height_mm: obj.height_mm,
+          worldPos: obj.worldPos,
+        }
+        const heightViolation = checkObjectHeight(
+          heightObject,
+          typedConstraints,
+          nominalCeilingMm,
+        )
+        if (heightViolation) violations.push(heightViolation)
       }
     }
 
