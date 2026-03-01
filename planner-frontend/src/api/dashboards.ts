@@ -62,7 +62,7 @@ export const dashboardsApi = {
       return await api.get<DashboardConfigResponse>(`/dashboards/${userId}`, tenantHeaders(tenantId))
     } catch (error) {
       if (shouldUseDemoFallback(error)) {
-        return getDemoDashboardConfig(userId, tenantId)
+        return getDemoDashboardConfig(userId, tenantId) as DashboardConfigResponse
       }
       throw error
     }
@@ -75,7 +75,7 @@ export const dashboardsApi = {
   ): Promise<DashboardConfigResponse> =>
     api.put<DashboardConfigResponse>(`/dashboards/${userId}`, payload, tenantHeaders(tenantId)).catch((error) => {
       if (shouldUseDemoFallback(error)) {
-        return saveDemoDashboardConfig(userId, tenantId, payload)
+        return saveDemoDashboardConfig(userId, tenantId, payload) as DashboardConfigResponse
       }
       throw error
     }),

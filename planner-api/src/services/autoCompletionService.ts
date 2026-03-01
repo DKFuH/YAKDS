@@ -15,6 +15,7 @@ import {
     type WorktopParams,
     type PlinthParams,
 } from '@yakds/shared-schemas'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../db.js'
 
 // ─── Typen (vereinfacht, analog zu shared-schemas) ───────────────
@@ -266,7 +267,7 @@ export const AutoCompletionService = {
                     qty: desired.qty,
                     unit: desired.unit,
                     build_number: desired.build_number,
-                    params_json: desired.params_json,
+                    params_json: desired.params_json as Prisma.InputJsonValue,
                     source_links: {
                         create: desired.source_placement_ids.map((sourcePlacementId) => ({ source_placement_id: sourcePlacementId })),
                     },
@@ -298,9 +299,6 @@ export const AutoCompletionService = {
         }
     },
 
-    /**
-     * Gibt alle generierten Elemente für einen Raum zurück.
-     */
     async list(project_id: string, room_id: string) {
         return prisma.generatedItem.findMany({
             where: { project_id, room_id },
@@ -308,4 +306,108 @@ export const AutoCompletionService = {
             orderBy: [{ item_type: 'asc' }, { created_at: 'asc' }],
         })
     },
+
+    /**
+     * Schlägt Zubehör für einen Raum vor, basierend auf den IDM-Warengruppen (GRP)
+     * der platzierten Artikel.
+     */
+    async suggestAccessories(project_id: string, room_id: string) {
+        const room = await prisma.room.findUnique({
+            where: { id: room_id },
+            select: { placements: true },
+        })
+
+        if (!room || !Array.isArray(room.placements)) {
+            return []
+        }
+
+        const placements = room.placements as any[]
+        const articleIds = Array.from(
+            new Set(placements.map((p) => p.catalog_article_id).filter(Boolean)),
+        )
+
+        // Hole Artikel-Metadaten
+        const placedArticles = await prisma.catalogArticle.findMany({
+            where: { id: { in: articleIds as string[] } },
+            select: { id: true, name: true, meta_json: true },
+        })
+
+        const suggestions: Array<{
+            trigger_article_id: string
+            trigger_article_name: string
+            category: string
+            recommendation_label: string
+            candidates: any[]
+        }> = []
+
+        for (const article of placedArticles) {
+            const meta = article.meta_json as any
+            const grp = meta?.idm_raw?.GRP || meta?.idm_raw?.['@_GRP']
+
+            if (!grp) continue
+
+            const matchingRules = ACCESSORY_SUGGESTION_RULES.filter((r) => r.triggerGrp === grp)
+
+            for (const rule of matchingRules) {
+                // Suche passende Zubehörartikel im Gesamtkatalog
+                const candidates = await prisma.catalogArticle.findMany({
+                    where: {
+                        article_type: 'accessory',
+                        OR: rule.keywords.map((kw) => ({
+                            name: { contains: kw, mode: 'insensitive' },
+                        })),
+                    },
+                    take: 3,
+                    select: { id: true, sku: true, name: true, base_dims_json: true },
+                })
+
+                if (candidates.length > 0) {
+                    suggestions.push({
+                        trigger_article_id: article.id,
+                        trigger_article_name: article.name,
+                        category: rule.category,
+                        recommendation_label: rule.label,
+                        candidates,
+                    })
+                }
+            }
+        }
+
+        return suggestions
+    },
 }
+
+// ─── Hilfsdaten (MVP-Regeln) ──────────────────────────────────────
+
+const ACCESSORY_SUGGESTION_RULES = [
+    {
+        triggerGrp: 'SPL', // Spüle
+        category: 'Armaturen',
+        label: 'Passende Mischbatterie wählen',
+        keywords: ['Armatur', 'Wasserhahn', 'Mischbatterie'],
+    },
+    {
+        triggerGrp: 'SPL',
+        category: 'Siphons',
+        label: 'Geruchsverschluss / Siphon',
+        keywords: ['Siphon', 'Raumsparsiphon', 'Ablaufgarnitur'],
+    },
+    {
+        triggerGrp: 'HER', // Herd
+        category: 'Elektro',
+        label: 'Anschlusskabel 3x1.5mm / 5x2.5mm',
+        keywords: ['Kabel', 'Anschlusskabel', 'Stecker'],
+    },
+    {
+        triggerGrp: 'GSP', // Geschirrspüler
+        category: 'Installation',
+        label: 'Schlauchverlängerung',
+        keywords: ['Verlängerung', 'Schlauch'],
+    },
+    {
+        triggerGrp: 'LUE', // Lüfter
+        category: 'Filter',
+        label: 'Aktivkohlefilter für Umluft',
+        keywords: ['Filter', 'Aktivkohle'],
+    },
+]

@@ -59,10 +59,6 @@ export async function autoCompletionRoutes(app: FastifyInstance) {
         },
     )
 
-    /**
-     * GET /projects/:project_id/rooms/:room_id/auto-complete
-     * Listet alle generierten Elemente für den Raum auf.
-     */
     app.get<{ Params: { project_id: string; room_id: string } }>(
         '/projects/:project_id/rooms/:room_id/auto-complete',
         async (request, reply) => {
@@ -75,6 +71,25 @@ export async function autoCompletionRoutes(app: FastifyInstance) {
             )
 
             return reply.send(items)
+        },
+    )
+
+    /**
+     * GET /projects/:project_id/rooms/:room_id/suggestions
+     * Schlägt Zubehör basierend auf dem aktuellen Planungsstand vor.
+     */
+    app.get<{ Params: { project_id: string; room_id: string } }>(
+        '/projects/:project_id/rooms/:room_id/suggestions',
+        async (request, reply) => {
+            const params = ProjectRoomParamsSchema.safeParse(request.params)
+            if (!params.success) return sendBadRequest(reply, params.error.errors[0].message)
+
+            const suggestions = await AutoCompletionService.suggestAccessories(
+                params.data.project_id,
+                params.data.room_id,
+            )
+
+            return reply.send(suggestions)
         },
     )
 }
