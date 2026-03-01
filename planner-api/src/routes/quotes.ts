@@ -80,12 +80,6 @@ export async function quoteRoutes(app: FastifyInstance) {
       return sendNotFound(reply, 'Project not found')
     }
 
-    const latestQuote = await prisma.quote.findFirst({
-      where: { project_id: projectId },
-      orderBy: { version: 'desc' },
-      select: { version: true },
-    })
-
     const settings = await prisma.quoteSettings.findUnique({
       where: { project_id: projectId },
       select: {
@@ -96,33 +90,44 @@ export async function quoteRoutes(app: FastifyInstance) {
       },
     })
 
-    const nextVersion = (latestQuote?.version ?? 0) + 1
     const prefix = settings?.quote_number_prefix ?? 'ANG'
-    const quoteNumber = buildQuoteNumber(prefix, nextVersion)
     const validUntil = parsedBody.data.valid_until ?? plusDaysIso(settings?.default_validity_days ?? 30)
     const freeText = parsedBody.data.free_text ?? settings?.default_free_text ?? null
     const footerText = parsedBody.data.footer_text ?? settings?.default_footer_text ?? null
 
-    const quote = await prisma.quote.create({
-      data: {
-        project_id: projectId,
-        version: nextVersion,
-        quote_number: quoteNumber,
-        valid_until: new Date(validUntil),
-        free_text: freeText,
-        footer_text: footerText,
-        ...(parsedBody.data.price_summary !== undefined
-          ? { price_snapshot: parsedBody.data.price_summary as Prisma.InputJsonValue }
-          : {}),
-        items: {
-          create: toQuoteItems(parsedBody.data.bom_lines),
+    // Wrap version-number allocation and quote creation in a transaction to
+    // prevent concurrent requests from producing duplicate quote numbers.
+    const quote = await prisma.$transaction(async (tx) => {
+      const latestQuote = await tx.quote.findFirst({
+        where: { project_id: projectId },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      })
+
+      const nextVersion = (latestQuote?.version ?? 0) + 1
+      const quoteNumber = buildQuoteNumber(prefix, nextVersion)
+
+      return tx.quote.create({
+        data: {
+          project_id: projectId,
+          version: nextVersion,
+          quote_number: quoteNumber,
+          valid_until: new Date(validUntil),
+          free_text: freeText,
+          footer_text: footerText,
+          ...(parsedBody.data.price_summary !== undefined
+            ? { price_snapshot: parsedBody.data.price_summary as Prisma.InputJsonValue }
+            : {}),
+          items: {
+            create: toQuoteItems(parsedBody.data.bom_lines),
+          },
         },
-      },
-      include: {
-        items: {
-          orderBy: { position: 'asc' },
+        include: {
+          items: {
+            orderBy: { position: 'asc' },
+          },
         },
-      },
+      })
     })
 
     return reply.status(201).send(quote)

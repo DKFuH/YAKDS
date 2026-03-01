@@ -38,9 +38,39 @@ const BusinessSummaryBodySchema = z.object({
 })
 
 const WebhookBodySchema = z.object({
-  target_url: z.string().url(),
+  target_url: z.string().url().refine((url) => !isPrivateOrBlockedUrl(url), {
+    message: 'Webhook target_url must not point to private or internal network addresses',
+  }),
   event: z.string().min(1).max(120).default('project.business.exported'),
 })
+
+/** Block SSRF: rejects localhost, RFC-1918 / link-local addresses and non-http(s) schemes. */
+function isPrivateOrBlockedUrl(url: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return true
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) return true
+  const hostname = parsed.hostname
+  if (hostname === 'localhost') return true
+  // IPv6 loopback / link-local
+  if (hostname === '[::1]' || hostname === '::1') return true
+  if (hostname.startsWith('[fe80:') || hostname.startsWith('[fc') || hostname.startsWith('[fd')) return true
+  // IPv4 private / link-local ranges
+  const privateRanges = [
+    /^127\./,           // loopback
+    /^10\./,            // RFC-1918
+    /^172\.(1[6-9]|2\d|3[01])\./,  // RFC-1918
+    /^192\.168\./,      // RFC-1918
+    /^169\.254\./,      // link-local / cloud metadata (AWS, GCP, Azure)
+    /^0\./,             // this-network
+    /^100\.(6[4-9]|[7-9]\d|1[0-1]\d|12[0-7])\./,  // CGNAT RFC-6598
+  ]
+  if (privateRanges.some((r) => r.test(hostname))) return true
+  return false
+}
 
 type BusinessProject = Awaited<ReturnType<typeof loadBusinessProject>>
 
@@ -200,56 +230,58 @@ export async function businessRoutes(app: FastifyInstance) {
       return sendNotFound(reply, 'Project not found')
     }
 
-    await prisma.project.update({
-      where: { id: parsedParams.data.id },
-      data: {
-        ...(parsedBody.data.lead_status !== undefined ? { lead_status: parsedBody.data.lead_status } : {}),
-        ...(parsedBody.data.quote_value !== undefined ? { quote_value: parsedBody.data.quote_value } : {}),
-        ...(parsedBody.data.close_probability !== undefined
-          ? { close_probability: parsedBody.data.close_probability }
-          : {}),
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.project.update({
+        where: { id: parsedParams.data.id },
+        data: {
+          ...(parsedBody.data.lead_status !== undefined ? { lead_status: parsedBody.data.lead_status } : {}),
+          ...(parsedBody.data.quote_value !== undefined ? { quote_value: parsedBody.data.quote_value } : {}),
+          ...(parsedBody.data.close_probability !== undefined
+            ? { close_probability: parsedBody.data.close_probability }
+            : {}),
+        },
+      })
+
+      await tx.customerPriceList.deleteMany({ where: { project_id: parsedParams.data.id } })
+      if (parsedBody.data.customer_price_lists.length > 0) {
+        await tx.customerPriceList.createMany({
+          data: parsedBody.data.customer_price_lists.map((item) => ({
+            project_id: parsedParams.data.id,
+            name: item.name,
+            price_adjustment_pct: item.price_adjustment_pct,
+            notes: item.notes ?? null,
+          })),
+        })
+      }
+
+      await tx.customerDiscount.deleteMany({ where: { project_id: parsedParams.data.id } })
+      if (parsedBody.data.customer_discounts.length > 0) {
+        await tx.customerDiscount.createMany({
+          data: parsedBody.data.customer_discounts.map((item) => ({
+            project_id: parsedParams.data.id,
+            label: item.label,
+            discount_pct: item.discount_pct,
+            scope: item.scope,
+          })),
+        })
+      }
+
+      await tx.projectLineItem.deleteMany({ where: { project_id: parsedParams.data.id } })
+      if (parsedBody.data.project_line_items.length > 0) {
+        await tx.projectLineItem.createMany({
+          data: parsedBody.data.project_line_items.map((item) => ({
+            project_id: parsedParams.data.id,
+            source_type: item.source_type,
+            description: item.description,
+            qty: item.qty,
+            unit: item.unit,
+            unit_price_net: item.unit_price_net,
+            tax_rate: item.tax_rate,
+            line_net: toLineNet(item.qty, item.unit_price_net),
+          })),
+        })
+      }
     })
-
-    await prisma.customerPriceList.deleteMany({ where: { project_id: parsedParams.data.id } })
-    if (parsedBody.data.customer_price_lists.length > 0) {
-      await prisma.customerPriceList.createMany({
-        data: parsedBody.data.customer_price_lists.map((item) => ({
-          project_id: parsedParams.data.id,
-          name: item.name,
-          price_adjustment_pct: item.price_adjustment_pct,
-          notes: item.notes ?? null,
-        })),
-      })
-    }
-
-    await prisma.customerDiscount.deleteMany({ where: { project_id: parsedParams.data.id } })
-    if (parsedBody.data.customer_discounts.length > 0) {
-      await prisma.customerDiscount.createMany({
-        data: parsedBody.data.customer_discounts.map((item) => ({
-          project_id: parsedParams.data.id,
-          label: item.label,
-          discount_pct: item.discount_pct,
-          scope: item.scope,
-        })),
-      })
-    }
-
-    await prisma.projectLineItem.deleteMany({ where: { project_id: parsedParams.data.id } })
-    if (parsedBody.data.project_line_items.length > 0) {
-      await prisma.projectLineItem.createMany({
-        data: parsedBody.data.project_line_items.map((item) => ({
-          project_id: parsedParams.data.id,
-          source_type: item.source_type,
-          description: item.description,
-          qty: item.qty,
-          unit: item.unit,
-          unit_price_net: item.unit_price_net,
-          tax_rate: item.tax_rate,
-          line_net: toLineNet(item.qty, item.unit_price_net),
-        })),
-      })
-    }
 
     const project = await loadBusinessProject(parsedParams.data.id)
     if (!project) {

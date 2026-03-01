@@ -15,7 +15,11 @@ const UpdateProjectSchema = z.object({
   status: z.enum(['active', 'archived']).optional(),
 })
 
-export async function projectRoutes(app: FastifyInstance) {
+const CreateVersionBodySchema = z.object({
+  label: z.string().min(1).max(200).optional().nullable(),
+})
+
+
   // GET /projects – alle Projekte eines Users
   app.get<{ Querystring: { user_id: string } }>('/projects', async (request, reply) => {
     const { user_id } = request.query
@@ -127,6 +131,11 @@ export async function projectRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string } }>('/projects/:id/versions', async (request, reply) => {
     const { id } = request.params
 
+    const parsedBody = CreateVersionBodySchema.safeParse(request.body)
+    if (!parsedBody.success) {
+      return sendBadRequest(reply, parsedBody.error.errors[0].message)
+    }
+
     const project = await prisma.project.findUnique({
       where: { id },
       include: { rooms: true },
@@ -136,18 +145,22 @@ export async function projectRoutes(app: FastifyInstance) {
       return sendNotFound(reply, 'Project not found')
     }
 
-    const lastVersion = await prisma.projectVersion.findFirst({
-      where: { project_id: id },
-      orderBy: { version: 'desc' },
-    })
+    // Wrap version-number allocation and snapshot creation in a transaction to
+    // prevent concurrent requests from producing a duplicate (project_id, version).
+    const version = await prisma.$transaction(async (tx) => {
+      const lastVersion = await tx.projectVersion.findFirst({
+        where: { project_id: id },
+        orderBy: { version: 'desc' },
+      })
 
-    const version = await prisma.projectVersion.create({
-      data: {
-        project_id: id,
-        version: (lastVersion?.version ?? 0) + 1,
-        snapshot: project as object,
-        label: (request.body as { label?: string })?.label ?? null,
-      },
+      return tx.projectVersion.create({
+        data: {
+          project_id: id,
+          version: (lastVersion?.version ?? 0) + 1,
+          snapshot: project as object,
+          label: parsedBody.data.label ?? null,
+        },
+      })
     })
 
     return reply.status(201).send(version)

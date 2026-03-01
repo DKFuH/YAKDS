@@ -250,59 +250,68 @@ export async function leadRoutes(app: FastifyInstance) {
         const body = LeadPromoteSchema.safeParse(request.body)
         if (!body.success) return sendBadRequest(reply, body.error.errors[0].message)
 
-        const lead = await prisma.lead.findFirst({ where: { id: params.data.id, tenant_id: tenantId } })
-        if (!lead) return sendNotFound(reply, 'Lead not found')
-        if (lead.promoted_to_project_id) {
-            return sendBadRequest(reply, `Lead wurde bereits zu Projekt ${lead.promoted_to_project_id} konvertiert.`)
+        const leadCheck = await prisma.lead.findFirst({ where: { id: params.data.id, tenant_id: tenantId } })
+        if (!leadCheck) return sendNotFound(reply, 'Lead not found')
+        if (leadCheck.promoted_to_project_id) {
+            return sendBadRequest(reply, `Lead wurde bereits zu Projekt ${leadCheck.promoted_to_project_id} konvertiert.`)
         }
 
-        const contact = lead.contact_json as { name: string; email: string; phone?: string; address?: string }
-        const room = lead.room_json as z.infer<typeof SimpleRoomSchema>
-        const cabinets = (lead.cabinets_json ?? []) as z.infer<typeof SimpleCabinetSchema>[]
+        const contact = leadCheck.contact_json as { name: string; email: string; phone?: string; address?: string }
+        const room = leadCheck.room_json as z.infer<typeof SimpleRoomSchema>
+        const cabinets = (leadCheck.cabinets_json ?? []) as z.infer<typeof SimpleCabinetSchema>[]
 
-        // 1. Raumgeometrie aufbauen
         const boundary = buildRoomBoundary(room)
         const placements = buildPlacements(cabinets)
-
-        // 2. Projekt anlegen
         const projectName = sanitizeOptionalText(body.data.project_name) ?? `Lead: ${sanitizeText(contact.name)}`
 
-        const project = await prisma.project.create({
-            data: {
-                user_id: body.data.user_id,
-                name: projectName,
-                description: `Aus Webplaner-Lead konvertiert (Lead-ID: ${lead.id}).`,
-                status: 'active',
-                lead_status: 'qualified',
-                tenant_id: tenantId,
-                branch_id: body.data.branch_id ?? null,
-            },
+        // Wrap all mutations in a transaction to prevent race-condition double-promotion.
+        // The updateMany with promoted_to_project_id:null acts as an optimistic lock.
+        const result = await prisma.$transaction(async (tx) => {
+            // Claim the lead atomically – only succeeds if still un-promoted
+            const claimed = await tx.lead.updateMany({
+                where: { id: params.data.id, tenant_id: tenantId, promoted_to_project_id: null },
+                data: { status: 'qualified' },
+            })
+            if (claimed.count === 0) return null
+
+            const project = await tx.project.create({
+                data: {
+                    user_id: body.data.user_id,
+                    name: projectName,
+                    description: `Aus Webplaner-Lead konvertiert (Lead-ID: ${params.data.id}).`,
+                    status: 'active',
+                    lead_status: 'qualified',
+                    tenant_id: tenantId,
+                    branch_id: body.data.branch_id ?? null,
+                },
+            })
+
+            await tx.room.create({
+                data: {
+                    project_id: project.id,
+                    name: 'Raum (Webplaner)',
+                    ceiling_height_mm: room.ceiling_height_mm,
+                    boundary,
+                    placements,
+                },
+            })
+
+            await tx.lead.update({
+                where: { id: params.data.id },
+                data: { promoted_to_project_id: project.id },
+            })
+
+            return project
         })
 
-        // 3. Raum anlegen
-        await prisma.room.create({
-            data: {
-                project_id: project.id,
-                name: 'Raum (Webplaner)',
-                ceiling_height_mm: room.ceiling_height_mm,
-                boundary,
-                placements,
-            },
-        })
-
-        // 4. Lead aktualisieren
-        await prisma.lead.update({
-            where: { id: lead.id },
-            data: {
-                status: 'qualified',
-                promoted_to_project_id: project.id,
-            },
-        })
+        if (!result) {
+            return sendBadRequest(reply, 'Lead wurde bereits konvertiert.')
+        }
 
         return reply.status(201).send({
-            lead_id: lead.id,
-            project_id: project.id,
-            project_name: project.name,
+            lead_id: params.data.id,
+            project_id: result.id,
+            project_name: result.name,
             room_mapped: true,
             placements_count: placements.length,
         })
@@ -327,37 +336,48 @@ export async function leadRoutes(app: FastifyInstance) {
 
         // Delegiere an den :id/promote Handler-Logik
         const { lead_id, ...rest } = parsed.data
-        const lead = await prisma.lead.findFirst({ where: { id: lead_id, tenant_id: tenantId } })
-        if (!lead) return sendNotFound(reply, 'Lead not found')
-        if (lead.promoted_to_project_id) return sendBadRequest(reply, `Bereits zu Projekt ${lead.promoted_to_project_id} konvertiert.`)
+        const leadCheck = await prisma.lead.findFirst({ where: { id: lead_id, tenant_id: tenantId } })
+        if (!leadCheck) return sendNotFound(reply, 'Lead not found')
+        if (leadCheck.promoted_to_project_id) return sendBadRequest(reply, `Bereits zu Projekt ${leadCheck.promoted_to_project_id} konvertiert.`)
 
-        const contact = lead.contact_json as { name: string; email: string; phone?: string }
-        const room = lead.room_json as z.infer<typeof SimpleRoomSchema>
-        const cabinets = (lead.cabinets_json ?? []) as z.infer<typeof SimpleCabinetSchema>[]
+        const contact = leadCheck.contact_json as { name: string; email: string; phone?: string }
+        const room = leadCheck.room_json as z.infer<typeof SimpleRoomSchema>
+        const cabinets = (leadCheck.cabinets_json ?? []) as z.infer<typeof SimpleCabinetSchema>[]
 
         const boundary = buildRoomBoundary(room)
         const placements = buildPlacements(cabinets)
-
         const projectName = sanitizeOptionalText(rest.project_name) ?? `Lead: ${sanitizeText(contact.name)}`
 
-        const project = await prisma.project.create({
-            data: {
-                user_id: rest.user_id,
-                name: projectName,
-                description: `Aus Webplaner-Lead konvertiert (Lead-ID: ${lead.id}).`,
-                status: 'active',
-                lead_status: 'qualified',
-                tenant_id: tenantId,
-                branch_id: rest.branch_id ?? null,
-            },
+        const txResult = await prisma.$transaction(async (tx) => {
+            const claimed = await tx.lead.updateMany({
+                where: { id: lead_id, tenant_id: tenantId, promoted_to_project_id: null },
+                data: { status: 'qualified' },
+            })
+            if (claimed.count === 0) return null
+
+            const project = await tx.project.create({
+                data: {
+                    user_id: rest.user_id,
+                    name: projectName,
+                    description: `Aus Webplaner-Lead konvertiert (Lead-ID: ${lead_id}).`,
+                    status: 'active',
+                    lead_status: 'qualified',
+                    tenant_id: tenantId,
+                    branch_id: rest.branch_id ?? null,
+                },
+            })
+
+            await tx.room.create({
+                data: { project_id: project.id, name: 'Raum (Webplaner)', ceiling_height_mm: room.ceiling_height_mm, boundary, placements },
+            })
+
+            await tx.lead.update({ where: { id: lead_id }, data: { promoted_to_project_id: project.id } })
+
+            return project
         })
 
-        await prisma.room.create({
-            data: { project_id: project.id, name: 'Raum (Webplaner)', ceiling_height_mm: room.ceiling_height_mm, boundary, placements },
-        })
+        if (!txResult) return sendBadRequest(reply, 'Lead wurde bereits konvertiert.')
 
-        await prisma.lead.update({ where: { id: lead_id }, data: { status: 'qualified', promoted_to_project_id: project.id } })
-
-        return reply.status(201).send({ lead_id, project_id: project.id, project_name: project.name, placements_count: placements.length })
+        return reply.status(201).send({ lead_id, project_id: txResult.id, project_name: txResult.name, placements_count: placements.length })
     })
 }

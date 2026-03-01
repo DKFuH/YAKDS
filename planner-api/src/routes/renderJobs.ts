@@ -149,8 +149,10 @@ export async function renderJobRoutes(app: FastifyInstance) {
       return reply.send({ job: null })
     }
 
-    const updated = await prisma.renderJob.update({
-      where: { id: job.id },
+    // Atomic assignment: only update if the job is still 'queued'.
+    // This prevents two workers from picking up the same job concurrently.
+    const assignResult = await prisma.renderJob.updateMany({
+      where: { id: job.id, status: 'queued' },
       data: {
         status: 'assigned',
         worker_id: parsedParams.data.workerId,
@@ -158,6 +160,12 @@ export async function renderJobRoutes(app: FastifyInstance) {
       },
     })
 
+    if (assignResult.count === 0) {
+      // Another worker grabbed it first
+      return reply.send({ job: null })
+    }
+
+    const updated = await prisma.renderJob.findUnique({ where: { id: job.id } })
     return reply.send({ job: updated })
   })
 
