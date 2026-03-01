@@ -1983,3 +1983,33 @@ Upgrade des Frontends zur Unterstützung der in Phase 2 eingeführten Hersteller
 ### Ergebnis
 Der Editor ist nun technisch bereit, herstellerspezifische Artikel mit individuellen Optionen (z.B. Fronten, Griffe, Maße) zu verarbeiten und anzuzeigen. Der Build (TSC + Vite) wurde erfolgreich verifiziert.
 
+---
+
+## TASK-26-P01 – Phase-2 P0/P1 Execution Checklist (Bridge zu DoD)
+**Sprint:** 26 | **Zuständig:** Core Team (Claude + Codex) | **Priorität:** Kritisch | **Status:** In Arbeit
+
+### Ziel
+Die offenen P0/P1-Lücken aus Phase 2 in eine verbindliche, sprintfähige Abarbeitungsreihenfolge überführen.
+
+### Priorisierte Checkliste
+
+- [ ] **TASK-23-S01 (P1 Security):** Tenant-Scoping für `exports.ts` und `imports.ts` vollständig erzwingen.
+- [ ] **TASK-22-L01 (P0 Logic):** Kollision über Eck mit World-Polygon + SAT stabil lösen (`COLL-001`).
+- [ ] **TASK-20-C01 (P0 Price):** `CatalogArticle`/`article_variant_id` in BOM + Preisfindung > 0 EUR integrieren.
+- [ ] **TASK-21-A01 (P1 Auto-Completion):** Deterministischer Rebuild + Preisintegration für `GeneratedItem` absichern.
+- [ ] **TASK-20-F01 (P1 Frontend):** Varianten-Selector mit dynamischem Options-Mapping + Preis-Preview finalisieren.
+
+### Definition of Ready (DoR)
+
+- [ ] Testdaten für mindestens einen Hersteller inkl. Varianten-/Preisstruktur sind fixiert.
+- [ ] Security-Testfälle (Tenant A/B) sind als reproduzierbare Integrationstests vorbereitet.
+- [ ] Entscheidung zur PDF-Darstellung von `is_generated` (Einzelposition vs. Pauschale) ist dokumentiert.
+
+### Definition of Done (DoD)
+
+- [ ] Alle fünf Tasks liefern grüne Unit-/Integrationstests.
+- [ ] Keine Cross-Tenant-Lesepfade in Import/Export nachweisbar.
+- [ ] BOM für Herstellerartikel enthält valide Preise und korrekte MwSt.
+- [ ] Rule-Engine erkennt 90°-Eckkollisionen reproduzierbar.
+- [ ] Auto-Completion aktualisiert Langteile ohne verwaiste Altsegmente.
+
