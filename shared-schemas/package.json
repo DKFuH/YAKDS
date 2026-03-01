@@ -8,6 +8,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./validation/*": {
+      "types": "./dist/validation/*.d.ts",
+      "import": "./dist/validation/*.js"
+    },
+    "./geometry/*": {
+      "types": "./dist/geometry/*.d.ts",
+      "import": "./dist/geometry/*.js"
     }
   },
   "scripts": {

@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import type { Opening, Placement, WallSegment } from '@yakds/shared-schemas'
 import { validatePlacement } from '@yakds/shared-schemas'
+import type { Opening, Placement, WallSegment } from '@yakds/shared-schemas'
 
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'
@@ -118,11 +118,11 @@ export async function placementRoutes(app: FastifyInstance) {
   })
 
   app.post<{ Params: { id: string } }>('/rooms/:id/placements', async (request, reply) => {
-    const parsed = PlacementSchema.safeParse(request.body)
-    if (!parsed.success) return sendBadRequest(reply, parsed.error.errors[0].message)
-
     const room = await prisma.room.findUnique({ where: { id: request.params.id } })
     if (!room) return sendNotFound(reply, 'Room not found')
+
+    const parsed = PlacementSchema.safeParse(request.body)
+    if (!parsed.success) return sendBadRequest(reply, parsed.error.errors[0].message)
 
     const boundary = room.boundary as BoundaryJson
     const wall = getWallSegment(boundary, parsed.data.wall_id)
@@ -140,10 +140,14 @@ export async function placementRoutes(app: FastifyInstance) {
     if (!result.valid) return sendBadRequest(reply, result.errors[0])
 
     const placements = [...existingPlacements, parsed.data]
-    await prisma.room.update({
-      where: { id: request.params.id },
-      data: { placements: placements as object[] },
-    })
+    try {
+      await prisma.room.update({
+        where: { id: request.params.id },
+        data: { placements: placements as object[] },
+      })
+    } catch (e: any) {
+      return reply.status(500).send({ error: 'DB_UPDATE_FAIL', message: e.message })
+    }
 
     return reply.status(201).send(parsed.data)
   })

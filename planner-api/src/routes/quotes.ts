@@ -2,7 +2,8 @@ import { FastifyInstance } from 'fastify'
 import type { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../db.js'
-import { sendBadRequest, sendNotFound } from '../errors.js'
+import { sendBadRequest, sendNotFound, sendServerError } from '../errors.js'
+import { registerProjectDocument } from '../services/documentRegistry.js'
 import { buildQuotePdf } from '../services/pdfGenerator.js'
 
 const QuoteParamsSchema = z.object({
@@ -145,6 +146,12 @@ export async function quoteRoutes(app: FastifyInstance) {
         items: {
           orderBy: { position: 'asc' },
         },
+        project: {
+          select: {
+            id: true,
+            tenant_id: true,
+          },
+        },
       },
     })
 
@@ -167,6 +174,12 @@ export async function quoteRoutes(app: FastifyInstance) {
         items: {
           orderBy: { position: 'asc' },
         },
+        project: {
+          select: {
+            id: true,
+            tenant_id: true,
+          },
+        },
       },
     })
 
@@ -184,8 +197,27 @@ export async function quoteRoutes(app: FastifyInstance) {
       price_snapshot: (quote.price_snapshot as { subtotal_net?: number; vat_amount?: number; total_gross?: number } | null | undefined),
     })
     const safeQuoteNumber = quote.quote_number.toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+    const filename = `${safeQuoteNumber || `quote-v${quote.version}`}.pdf`
 
-    reply.header('content-disposition', `attachment; filename="${safeQuoteNumber || `quote-v${quote.version}`}.pdf"`)
+    if (!quote.project.tenant_id) {
+      return sendServerError(reply, 'Quote project is missing tenant scope')
+    }
+
+    const document = await registerProjectDocument({
+      projectId: quote.project.id,
+      tenantId: quote.project.tenant_id,
+      filename,
+      mimeType: 'application/pdf',
+      uploadedBy: 'system:quote-export',
+      type: 'quote_pdf',
+      tags: ['quote', `quote:${quote.quote_number}`],
+      sourceKind: 'quote_export',
+      sourceId: quote.id,
+      buffer: pdf,
+    })
+
+    reply.header('content-disposition', `attachment; filename="${filename}"`)
+    reply.header('x-document-id', document.id)
     reply.type('application/pdf')
     return reply.send(pdf)
   })

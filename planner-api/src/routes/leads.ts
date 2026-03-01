@@ -80,6 +80,18 @@ function sanitizeContact(contact: z.infer<typeof ContactSchema>) {
     }
 }
 
+function splitLeadName(name: string) {
+    const sanitized = sanitizeText(name)
+    const parts = sanitized.split(' ').filter(Boolean)
+    if (parts.length <= 1) {
+        return { first_name: null, last_name: sanitized }
+    }
+    return {
+        first_name: parts.slice(0, -1).join(' '),
+        last_name: parts[parts.length - 1] ?? sanitized,
+    }
+}
+
 function getTenantId(request: unknown): string | null {
     const tenantId = (request as { tenantId?: string | null }).tenantId
     return tenantId ?? null
@@ -168,15 +180,37 @@ export async function leadRoutes(app: FastifyInstance) {
 
         const sanitizedContact = sanitizeContact(contact)
 
-        const lead = await prisma.lead.create({
-            data: {
-                tenant_id: tenantId,
-                status: 'new',
-                contact_json: sanitizedContact,
-                consent_json: { ...consent, timestamp: consent.timestamp ?? new Date().toISOString() },
-                room_json: room,
-                cabinets_json: cabinets,
-            },
+        const lead = await prisma.$transaction(async (tx) => {
+            const existingContact = await tx.contact.findFirst({
+                where: {
+                    tenant_id: tenantId,
+                    email: sanitizedContact.email,
+                },
+            })
+
+            const contact = existingContact ?? await tx.contact.create({
+                data: {
+                    tenant_id: tenantId,
+                    type: 'end_customer',
+                    ...splitLeadName(sanitizedContact.name),
+                    email: sanitizedContact.email,
+                    phone: sanitizedContact.phone ?? null,
+                    address_json: sanitizedContact.address ? { label: sanitizedContact.address } : {},
+                    lead_source: 'web_planner',
+                },
+            })
+
+            return tx.lead.create({
+                data: {
+                    tenant_id: tenantId,
+                    contact_id: contact.id,
+                    status: 'new',
+                    contact_json: sanitizedContact,
+                    consent_json: { ...consent, timestamp: consent.timestamp ?? new Date().toISOString() },
+                    room_json: room,
+                    cabinets_json: cabinets,
+                },
+            })
         })
 
         return reply.status(201).send(lead)
@@ -296,6 +330,23 @@ export async function leadRoutes(app: FastifyInstance) {
                 },
             })
 
+            if (leadCheck.contact_id) {
+                await tx.projectContact.upsert({
+                    where: {
+                        project_id_contact_id: {
+                            project_id: project.id,
+                            contact_id: leadCheck.contact_id,
+                        },
+                    },
+                    update: { is_primary: true },
+                    create: {
+                        project_id: project.id,
+                        contact_id: leadCheck.contact_id,
+                        is_primary: true,
+                    },
+                })
+            }
+
             await tx.lead.update({
                 where: { id: params.data.id },
                 data: { promoted_to_project_id: project.id },
@@ -370,6 +421,23 @@ export async function leadRoutes(app: FastifyInstance) {
             await tx.room.create({
                 data: { project_id: project.id, name: 'Raum (Webplaner)', ceiling_height_mm: room.ceiling_height_mm, boundary, placements },
             })
+
+            if (leadCheck.contact_id) {
+                await tx.projectContact.upsert({
+                    where: {
+                        project_id_contact_id: {
+                            project_id: project.id,
+                            contact_id: leadCheck.contact_id,
+                        },
+                    },
+                    update: { is_primary: true },
+                    create: {
+                        project_id: project.id,
+                        contact_id: leadCheck.contact_id,
+                        is_primary: true,
+                    },
+                })
+            }
 
             await tx.lead.update({ where: { id: lead_id }, data: { promoted_to_project_id: project.id } })
 

@@ -16,7 +16,12 @@ const { prismaMock } = vi.hoisted(() => {
       updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
+    contact: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+    },
     project: { create: vi.fn() },
+    projectContact: { upsert: vi.fn() },
     room: { create: vi.fn() },
     $transaction: vi.fn(),
   }
@@ -51,6 +56,7 @@ function makeStoredLead() {
   return {
     id: LEAD_ID,
     tenant_id: TENANT_ID,
+    contact_id: 'contact-1',
     status: 'new',
     contact_json: { name: 'Max Mustermann', email: 'max@example.de' },
     consent_json: { marketing: false, data_processing: true, timestamp: '2026-01-01T00:00:00.000Z' },
@@ -92,6 +98,8 @@ describe('leadRoutes', () => {
 
   it('POST /leads/create creates a lead and returns 201', async () => {
     prismaMock.lead.deleteMany.mockResolvedValue({ count: 0 })
+    prismaMock.contact.findFirst.mockResolvedValue(null)
+    prismaMock.contact.create.mockResolvedValue({ id: 'contact-1' })
     prismaMock.lead.create.mockResolvedValue(makeStoredLead())
 
     const app = makeApp()
@@ -143,6 +151,7 @@ describe('leadRoutes', () => {
       lead_status: 'qualified',
     })
     prismaMock.room.create.mockResolvedValue({ id: 'room-1' })
+    prismaMock.projectContact.upsert.mockResolvedValue({ project_id: PROJECT_ID, contact_id: 'contact-1', is_primary: true })
     prismaMock.lead.update.mockResolvedValue({ id: LEAD_ID, status: 'qualified', promoted_to_project_id: PROJECT_ID })
 
     const app = makeApp()

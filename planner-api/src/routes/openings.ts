@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import type { CadEntity, Opening as SharedOpening, WallSegment } from '@yakds/shared-schemas'
 import { detectOpeningsFromCad, validateOpening as validateOpeningRule } from '@yakds/shared-schemas'
+import type { CadEntity, Opening as SharedOpening, WallSegment } from '@yakds/shared-schemas'
 import { prisma } from '../db.js'
 import { sendNotFound, sendBadRequest } from '../errors.js'
 
@@ -78,7 +78,7 @@ function validateOpening(opening: Opening, wallLengthMm: number, siblings: Openi
   for (const other of siblings) {
     if (other.id === opening.id || other.wall_id !== opening.wall_id) continue
     if (opening.offset_mm < other.offset_mm + other.width_mm &&
-        other.offset_mm < opening.offset_mm + opening.width_mm) {
+      other.offset_mm < opening.offset_mm + opening.width_mm) {
       errors.push(`Öffnung überschneidet sich mit ${other.id}`)
     }
   }

@@ -8,6 +8,46 @@ import type { ValidatePayload, ValidateResponse } from './validate.js'
 interface DemoStore {
   projects: ProjectDetail[]
   catalog: CatalogItem[]
+  documents: Array<{
+    id: string
+    project_id: string
+    tenant_id: string
+    filename: string
+    original_filename: string | null
+    mime_type: string
+    size_bytes: number
+    uploaded_by: string
+    uploaded_at: string
+    type: 'quote_pdf' | 'render_image' | 'cad_import' | 'email' | 'contract' | 'other'
+    source_kind: 'manual_upload' | 'quote_export' | 'render_job' | 'import_job'
+    source_id: string | null
+    storage_provider: 'demo_memory'
+    storage_bucket: null
+    storage_key: string
+    storage_version: number
+    external_url: string | null
+    tags: string[]
+    is_public: boolean
+    download_url: string
+    preview_url: string
+  }>
+  contacts: Array<{
+    id: string
+    tenant_id: string
+    type: 'end_customer' | 'architect' | 'contractor'
+    company: string | null
+    first_name: string | null
+    last_name: string
+    email: string | null
+    phone: string | null
+    address_json: Record<string, unknown>
+    lead_source: 'web_planner' | 'showroom' | 'referral' | 'other'
+    budget_estimate: number | null
+    notes: string | null
+    created_at: string
+    updated_at: string
+    project_ids: string[]
+  }>
 }
 
 const STORAGE_KEY = 'yakds-demo-store-v1'
@@ -98,6 +138,14 @@ function seedStore(): DemoStore {
         name: 'Demo Küche',
         description: 'Lokaler Demo-Modus ohne Datenbank',
         status: 'active',
+        project_status: 'planning',
+        deadline: null,
+        priority: 'medium',
+        assigned_to: 'Studio Team',
+        progress_pct: 35,
+        lead_status: 'qualified',
+        quote_value: 12990,
+        close_probability: 55,
         created_at: timestamp,
         updated_at: timestamp,
         _count: { rooms: 1 },
@@ -105,7 +153,51 @@ function seedStore(): DemoStore {
         quotes: []
       }
     ],
-    catalog: seedCatalog()
+    catalog: seedCatalog(),
+    documents: [
+      {
+        id: uid('doc'),
+        project_id: projectId,
+        tenant_id: '00000000-0000-0000-0000-000000000001',
+        filename: 'angebot-demo.pdf',
+        original_filename: 'angebot-demo.pdf',
+        mime_type: 'application/pdf',
+        size_bytes: 24,
+        uploaded_by: 'system:quote-export',
+        uploaded_at: timestamp,
+        type: 'quote_pdf',
+        source_kind: 'quote_export',
+        source_id: 'quote-demo-1',
+        storage_provider: 'demo_memory',
+        storage_bucket: null,
+        storage_key: uid('storage'),
+        storage_version: 1,
+        external_url: null,
+        tags: ['quote', 'demo'],
+        is_public: false,
+        download_url: 'data:application/pdf;base64,JVBERi0xLjQKJURlbW8gUERGCg==',
+        preview_url: 'data:application/pdf;base64,JVBERi0xLjQKJURlbW8gUERGCg=='
+      }
+    ],
+    contacts: [
+      {
+        id: uid('contact'),
+        tenant_id: '00000000-0000-0000-0000-000000000001',
+        type: 'end_customer',
+        company: null,
+        first_name: 'Max',
+        last_name: 'Mustermann',
+        email: 'max@example.de',
+        phone: '+49 151 000000',
+        address_json: { city: 'Hamburg' },
+        lead_source: 'web_planner',
+        budget_estimate: 15000,
+        notes: 'Demo-Kontakt',
+        created_at: timestamp,
+        updated_at: timestamp,
+        project_ids: [projectId]
+      }
+    ]
   }
 }
 
@@ -175,6 +267,14 @@ export function createProject(data: { name: string; description?: string }): Pro
         name: data.name,
         description: data.description ?? null,
         status: 'active',
+        project_status: 'lead',
+        deadline: null,
+        priority: 'medium',
+        assigned_to: null,
+        progress_pct: 0,
+        lead_status: 'new',
+        quote_value: null,
+        close_probability: null,
         created_at: timestamp,
         updated_at: timestamp,
         _count: { rooms: 1 },
@@ -195,13 +295,33 @@ export function createProject(data: { name: string; description?: string }): Pro
     name: project.name,
     description: project.description,
     status: project.status,
+    project_status: project.project_status,
+    deadline: project.deadline,
+    priority: project.priority,
+    assigned_to: project.assigned_to,
+    progress_pct: project.progress_pct,
+    lead_status: project.lead_status,
+    quote_value: project.quote_value,
+    close_probability: project.close_probability,
     created_at: project.created_at,
     updated_at: project.updated_at,
     _count: { rooms: project.rooms.length }
   }
 }
 
-export function updateProject(id: string, data: { name?: string; description?: string; status?: string }): Project {
+export function updateProject(
+  id: string,
+  data: {
+    name?: string
+    description?: string | null
+    status?: string
+    project_status?: Project['project_status']
+    deadline?: string | null
+    priority?: Project['priority']
+    assigned_to?: string | null
+    progress_pct?: number
+  }
+): Project {
   const store = updateStore((current) => ({
     ...current,
     projects: current.projects.map((project) =>
@@ -211,6 +331,11 @@ export function updateProject(id: string, data: { name?: string; description?: s
             name: data.name ?? project.name,
             description: data.description ?? project.description,
             status: (data.status as Project['status'] | undefined) ?? project.status,
+            project_status: data.project_status ?? project.project_status,
+            deadline: data.deadline !== undefined ? data.deadline : project.deadline,
+            priority: data.priority ?? project.priority,
+            assigned_to: data.assigned_to !== undefined ? data.assigned_to : project.assigned_to,
+            progress_pct: data.progress_pct ?? project.progress_pct,
             updated_at: now()
           }
         : project
@@ -227,6 +352,14 @@ export function updateProject(id: string, data: { name?: string; description?: s
     name: project.name,
     description: project.description,
     status: project.status,
+    project_status: project.project_status,
+    deadline: project.deadline,
+    priority: project.priority,
+    assigned_to: project.assigned_to,
+    progress_pct: project.progress_pct,
+    lead_status: project.lead_status,
+    quote_value: project.quote_value,
+    close_probability: project.close_probability,
     created_at: project.created_at,
     updated_at: project.updated_at,
     _count: { rooms: project.rooms.length }
@@ -236,8 +369,112 @@ export function updateProject(id: string, data: { name?: string; description?: s
 export function deleteProject(id: string): void {
   updateStore((current) => ({
     ...current,
-    projects: current.projects.filter((project) => project.id !== id)
+    projects: current.projects.filter((project) => project.id !== id),
+    documents: current.documents.filter((document) => document.project_id !== id),
+    contacts: current.contacts.map((contact) => ({
+      ...contact,
+      project_ids: contact.project_ids.filter((projectId) => projectId !== id)
+    }))
   }))
+}
+
+export function listContacts(search?: string) {
+  const store = loadStore()
+  let contacts = [...store.contacts]
+  if (search?.trim()) {
+    const query = search.trim().toLowerCase()
+    contacts = contacts.filter((contact) =>
+      [contact.first_name, contact.last_name, contact.company, contact.email, contact.phone]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    )
+  }
+
+  return contacts.map((contact) => {
+    const projects = store.projects.filter((project) => contact.project_ids.includes(project.id))
+    const revenueTotal = projects.reduce((sum, project) => sum + (project.quote_value ?? 0), 0)
+    const conversionPct = projects.length > 0
+      ? Math.round((projects.filter((project) => project.lead_status === 'won').length / projects.length) * 100)
+      : 0
+
+    return {
+      ...contact,
+      project_count: projects.length,
+      revenue_total: revenueTotal,
+      conversion_pct: conversionPct,
+      projects: projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        quote_value: project.quote_value ?? null,
+        lead_status: project.lead_status ?? null,
+        project_status: project.project_status,
+        is_primary: true
+      }))
+    }
+  })
+}
+
+export function createContact(
+  tenantId: string,
+  data: {
+    type?: 'end_customer' | 'architect' | 'contractor'
+    company?: string | null
+    first_name?: string | null
+    last_name: string
+    email?: string | null
+    phone?: string | null
+    address?: Record<string, unknown>
+    lead_source?: 'web_planner' | 'showroom' | 'referral' | 'other'
+    budget_estimate?: number | null
+    notes?: string | null
+  },
+) {
+  const timestamp = now()
+  const contactId = uid('contact')
+
+  const store = updateStore((current) => ({
+    ...current,
+    contacts: [
+      {
+        id: contactId,
+        tenant_id: tenantId,
+        type: data.type ?? 'end_customer',
+        company: data.company ?? null,
+        first_name: data.first_name ?? null,
+        last_name: data.last_name,
+        email: data.email?.toLowerCase() ?? null,
+        phone: data.phone ?? null,
+        address_json: data.address ?? {},
+        lead_source: data.lead_source ?? 'other',
+        budget_estimate: data.budget_estimate ?? null,
+        notes: data.notes ?? null,
+        created_at: timestamp,
+        updated_at: timestamp,
+        project_ids: []
+      },
+      ...current.contacts
+    ]
+  }))
+
+  const created = store.contacts.find((contact) => contact.id === contactId)
+  if (!created) {
+    throw new Error('Kontakt konnte nicht erstellt werden.')
+  }
+
+  return listContacts().find((contact) => contact.id === created.id)!
+}
+
+export function attachContactToProject(projectId: string, contactId: string) {
+  updateStore((current) => ({
+    ...current,
+    contacts: current.contacts.map((contact) => (
+      contact.id === contactId && !contact.project_ids.includes(projectId)
+        ? { ...contact, project_ids: [...contact.project_ids, projectId], updated_at: now() }
+        : contact
+    ))
+  }))
+
+  return { project_id: projectId, contact_id: contactId }
 }
 
 export function createRoom(data: {

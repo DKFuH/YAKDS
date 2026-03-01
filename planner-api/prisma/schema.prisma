@@ -22,6 +22,7 @@ model User {
   updated_at    DateTime  @updatedAt
 
   projects   Project[]
+  dashboard_configs DashboardConfig[]
   tenant     Tenant?   @relation(fields: [tenant_id], references: [id], onDelete: SetNull)
   branch     Branch?   @relation(fields: [branch_id], references: [id], onDelete: SetNull)
 
@@ -60,6 +61,7 @@ model Project {
   render_jobs       RenderJob[]
   import_jobs       ImportJob[]
   documents         Document[]
+  project_contacts  ProjectContact[]
   customer_price_lists CustomerPriceList[]
   customer_discounts CustomerDiscount[]
   project_line_items ProjectLineItem[]
@@ -549,11 +551,19 @@ model Document {
   project_id  String
   tenant_id   String
   filename    String
+  original_filename String?
   mime_type   String
   size_bytes  Int
   uploaded_by String
   uploaded_at DateTime     @default(now())
   type        DocumentType
+  source_kind DocumentSourceKind @default(manual_upload)
+  source_id   String?
+  storage_provider String   @default("local_fs")
+  storage_bucket String?
+  storage_key String
+  storage_version Int       @default(1)
+  external_url String?
   tags        String[]     @default([])
   is_public   Boolean      @default(false)
 
@@ -561,6 +571,7 @@ model Document {
 
   @@index([tenant_id, project_id])
   @@index([project_id, type])
+  @@index([tenant_id, source_kind, source_id])
   @@map("documents")
 }
 
@@ -571,6 +582,33 @@ enum DocumentType {
   email
   contract
   other
+}
+
+enum DocumentSourceKind {
+  manual_upload
+  quote_export
+  render_job
+  import_job
+}
+
+// ─────────────────────────────────────────
+// PHASE 3 – Sprint 28: Dashboards / KPIs
+// ─────────────────────────────────────────
+
+model DashboardConfig {
+  id         String   @id @default(uuid())
+  user_id    String
+  tenant_id  String
+  widgets    Json     @default("[]")
+  layout     Json     @default("{}")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id])
+  @@index([tenant_id, user_id])
+  @@map("dashboard_configs")
 }
 
 // ─────────────────────────────────────────
@@ -586,6 +624,7 @@ model Tenant {
   branches   Branch[]
   users      User[]
   projects   Project[]
+  contacts   Contact[]
 
   @@map("tenants")
 }
@@ -818,6 +857,7 @@ model RuleViolation {
 model Lead {
   id              String      @id @default(uuid())
   tenant_id       String?
+  contact_id      String?
   status          LeadStatus  @default(new)
   contact_json    Json        // { name, email, phone, … }
   consent_json    Json        @default("{}")
@@ -826,6 +866,63 @@ model Lead {
   promoted_to_project_id String? @unique
   created_at      DateTime    @default(now())
   updated_at      DateTime    @updatedAt
+  contact         Contact?    @relation(fields: [contact_id], references: [id], onDelete: SetNull)
 
   @@map("leads")
+}
+
+// €€€€€€€€€€€€€€€€€€€€€€€€€€€€€
+// PHASE 3 – Sprint 27: Kontakte / CRM-Light
+// €€€€€€€€€€€€€€€€€€€€€€€€€€€€€
+
+model Contact {
+  id              String          @id @default(uuid())
+  tenant_id       String
+  type            ContactType     @default(end_customer)
+  company         String?
+  first_name      String?
+  last_name       String
+  email           String?
+  phone           String?
+  address_json    Json            @default("{}")
+  lead_source     ContactLeadSource @default(other)
+  budget_estimate Float?
+  notes           String?
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+
+  tenant          Tenant          @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  projects        ProjectContact[]
+  leads           Lead[]
+
+  @@index([tenant_id, last_name])
+  @@index([tenant_id, email])
+  @@map("contacts")
+}
+
+model ProjectContact {
+  project_id   String
+  contact_id   String
+  is_primary   Boolean   @default(false)
+  created_at   DateTime  @default(now())
+
+  project      Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  contact      Contact   @relation(fields: [contact_id], references: [id], onDelete: Cascade)
+
+  @@id([project_id, contact_id])
+  @@index([contact_id])
+  @@map("project_contacts")
+}
+
+enum ContactType {
+  end_customer
+  architect
+  contractor
+}
+
+enum ContactLeadSource {
+  web_planner
+  showroom
+  referral
+  other
 }

@@ -1,0 +1,177 @@
+﻿
+ RUN  v2.1.9 C:/Users/DanielKlas/OneDrive - Tischlermeister Daniel Klas/2_AREAS/AREA_IT_Infrastruktur/Entwicklung/YAKDS/planner-api
+
+ Ô£ô src/routes/placements.test.ts > placementRoutes > lists all placements for a room
+ ├ù src/routes/placements.test.ts > placementRoutes > creates a placement when wall, openings and siblings allow it
+   ÔåÆ expected 500 to be 201 // Object.is equality
+ ├ù src/routes/placements.test.ts > placementRoutes > rejects placements that overlap existing placements
+   ÔåÆ expected 500 to be 400 // Object.is equality
+ ├ù src/routes/placements.test.ts > placementRoutes > rejects placements that overlap openings
+   ÔåÆ expected 500 to be 400 // Object.is equality
+ Ô£ô src/routes/placements.test.ts > placementRoutes > deletes a placement from the room payload
+ ├ù src/routes/placements.test.ts > placementRoutes > replaces all placements for a room via batch put
+   ÔåÆ expected 500 to be 200 // Object.is equality
+ ├ù src/routes/placements.test.ts > placementRoutes > rejects invalid batch placement updates
+   ÔåÆ expected 500 to be 400 // Object.is equality
+ ├ù src/routes/placements.test.ts > placementRoutes > updates a single placement by id
+   ÔåÆ expected 500 to be 200 // Object.is equality
+ Ô£ô src/routes/placements.test.ts > placementRoutes > rejects single-placement updates with mismatched ids
+
+node.exe : ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 6 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ÔÄ»Ô 
+   Ä»ÔÄ»ÔÄ»ÔÄ»...ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»:String) [], Rem  
+  oteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+ FAIL  src/routes/placements.test.ts > 
+placementRoutes > creates a placement when wall, 
+openings and siblings allow it
+AssertionError: expected 500 to be 201 // 
+Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 201[39m
+[31m+ 500[39m
+
+ ÔØ» src/routes/placements.test.ts:99:33
+     97|     })
+     98| 
+     99|     expect(response.statusCode).toBe(201)
+       |                                 ^
+    100|     expect(response.json()).toEqual(
+    101|       expect.objectContaining({
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/6]ÔÄ»
+
+ FAIL  src/routes/placements.test.ts > 
+placementRoutes > rejects placements that overlap 
+existing placements
+AssertionError: expected 500 to be 400 // 
+Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 400[39m
+[31m+ 500[39m
+
+ ÔØ» src/routes/placements.test.ts:145:33
+    143|     })
+    144| 
+    145|     expect(response.statusCode).toBe(400)
+       |                                 ^
+    146|     expect(response.json()).toEqual({
+    147|       error: 'BAD_REQUEST',
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/6]ÔÄ»
+
+ FAIL  src/routes/placements.test.ts > 
+placementRoutes > rejects placements that overlap 
+openings
+AssertionError: expected 500 to be 400 // 
+Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 400[39m
+[31m+ 500[39m
+
+ ÔØ» src/routes/placements.test.ts:185:33
+    183|     })
+    184| 
+    185|     expect(response.statusCode).toBe(400)
+       |                                 ^
+    186|     expect(response.json()).toEqual({
+    187|       error: 'BAD_REQUEST',
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/6]ÔÄ»
+
+ FAIL  src/routes/placements.test.ts > 
+placementRoutes > replaces all placements for a 
+room via batch put
+AssertionError: expected 500 to be 200 // 
+Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 200[39m
+[31m+ 500[39m
+
+ ÔØ» src/routes/placements.test.ts:309:33
+    307|     })
+    308| 
+    309|     expect(response.statusCode).toBe(200)
+       |                                 ^
+    310|     expect(response.json()).toEqual(paylo
+ad.placements)
+    311|     expect(prismaMock.room.update).toHave
+BeenCalledWith({
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/6]ÔÄ»
+
+ FAIL  src/routes/placements.test.ts > 
+placementRoutes > rejects invalid batch placement 
+updates
+AssertionError: expected 500 to be 400 // 
+Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 400[39m
+[31m+ 500[39m
+
+ ÔØ» src/routes/placements.test.ts:354:33
+    352|     })
+    353| 
+    354|     expect(response.statusCode).toBe(400)
+       |                                 ^
+    355|     expect(response.json()).toEqual({
+    356|       error: 'BAD_REQUEST',
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/6]ÔÄ»
+
+ FAIL  src/routes/placements.test.ts > 
+placementRoutes > updates a single placement by id
+AssertionError: expected 500 to be 200 // 
+Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 200[39m
+[31m+ 500[39m
+
+ ÔØ» src/routes/placements.test.ts:408:33
+    406|     })
+    407| 
+    408|     expect(response.statusCode).toBe(200)
+       |                                 ^
+    409|     expect(response.json()).toEqual({
+    410|       id: 'placement-1',
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/6]ÔÄ»
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 3 passed (9)
+   Start at  20:05:31
+   Duration  1.09s (transform 138ms, setup 0ms, collect 407ms, tests 68ms, environment 0ms, prepare 230ms)
+
+

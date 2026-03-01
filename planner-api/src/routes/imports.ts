@@ -7,6 +7,7 @@ import { parseSkp } from '@yakds/skp-import'
 import type { CadLayer } from '@yakds/shared-schemas'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendForbidden, sendNotFound, sendServerError } from '../errors.js'
+import { registerProjectDocument } from '../services/documentRegistry.js'
 
 const LegacyImportJobSchema = z.object({
   project_id: z.string().uuid(),
@@ -92,6 +93,18 @@ function deriveCadSourceFormat(
   }
 
   return sourceFilename.toLowerCase().endsWith('.dwg') ? 'dwg' : 'dxf'
+}
+
+function getImportMimeType(sourceFormat: 'dxf' | 'dwg' | 'skp'): string {
+  if (sourceFormat === 'dxf') {
+    return 'application/dxf'
+  }
+
+  if (sourceFormat === 'dwg') {
+    return 'application/acad'
+  }
+
+  return 'application/octet-stream'
 }
 
 function emptyCadImportAsset(
@@ -363,7 +376,7 @@ function getTenantId(request: unknown): string | null {
 async function findProjectInTenantScope(projectId: string, tenantId: string) {
   return prisma.project.findFirst({
     where: { id: projectId, tenant_id: tenantId },
-    select: { id: true },
+    select: { id: true, tenant_id: true },
   })
 }
 
@@ -414,6 +427,10 @@ export async function importRoutes(app: FastifyInstance) {
     }
 
     const sourceFormat = deriveCadSourceFormat(parsed.data.source_filename, parsed.data.source_format)
+    const sourceBuffer =
+      parsed.data.dxf !== undefined
+        ? Buffer.from(parsed.data.dxf, 'utf8')
+        : decodeBase64(parsed.data.file_base64 ?? '')
     const fileSizeBytes =
       parsed.data.dxf !== undefined
         ? Buffer.byteLength(parsed.data.dxf, 'utf8')
@@ -453,10 +470,10 @@ export async function importRoutes(app: FastifyInstance) {
           ),
           ...(parsed.data.layer_mapping
             ? {
-                mapping_state: {
-                  layers: parsed.data.layer_mapping,
-                },
-              }
+              mapping_state: {
+                layers: parsed.data.layer_mapping,
+              },
+            }
             : {}),
         }
         protocol = dwgProtocol
@@ -481,6 +498,19 @@ export async function importRoutes(app: FastifyInstance) {
       }
 
       const completedJob = await finalizeImportJob(importJob.id, importAsset, protocol)
+      await registerProjectDocument({
+        projectId: project.id,
+        tenantId,
+        filename: parsed.data.source_filename,
+        originalFilename: parsed.data.source_filename,
+        mimeType: getImportMimeType(sourceFormat),
+        uploadedBy: 'system:import',
+        type: 'cad_import',
+        tags: ['import', sourceFormat],
+        sourceKind: 'import_job',
+        sourceId: importJob.id,
+        buffer: sourceBuffer,
+      })
       return reply.status(201).send(completedJob)
     } catch (error) {
       const message = await failImportJob(importJob.id, error)
@@ -524,6 +554,19 @@ export async function importRoutes(app: FastifyInstance) {
       )
       const protocol = createSkpProtocol(mappedModel)
       const completedJob = await finalizeImportJob(importJob.id, mappedModel, protocol)
+      await registerProjectDocument({
+        projectId: project.id,
+        tenantId,
+        filename: parsed.data.source_filename,
+        originalFilename: parsed.data.source_filename,
+        mimeType: getImportMimeType('skp'),
+        uploadedBy: 'system:import',
+        type: 'cad_import',
+        tags: ['import', 'skp'],
+        sourceKind: 'import_job',
+        sourceId: importJob.id,
+        buffer: fileBuffer,
+      })
 
       return reply.status(201).send(completedJob)
     } catch (error) {

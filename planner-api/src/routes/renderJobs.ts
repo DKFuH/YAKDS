@@ -2,7 +2,8 @@ import { FastifyInstance } from 'fastify'
 import type { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../db.js'
-import { sendBadRequest, sendNotFound } from '../errors.js'
+import { sendBadRequest, sendNotFound, sendServerError } from '../errors.js'
+import { registerProjectDocument } from '../services/documentRegistry.js'
 
 const CreateRenderJobParamsSchema = z.object({
   id: z.string().uuid(),
@@ -30,11 +31,24 @@ const WorkerJobParamsSchema = z.object({
 })
 
 const CompleteJobBodySchema = z.object({
-  image_url: z.string().url(),
+  image_url: z.string().url().optional(),
+  image_base64: z.string().min(1).optional(),
+  filename: z.string().min(1).max(255).optional(),
   width_px: z.number().int().positive(),
   height_px: z.number().int().positive(),
   render_time_ms: z.number().int().nonnegative(),
+}).superRefine((value, ctx) => {
+  if (!value.image_url && !value.image_base64) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Either image_url or image_base64 is required',
+    })
+  }
 })
+
+function decodeBase64(value: string): Buffer {
+  return Buffer.from(value, 'base64')
+}
 
 const FailJobBodySchema = z.object({
   error_message: z.string().min(1).max(2000),
@@ -181,7 +195,17 @@ export async function renderJobRoutes(app: FastifyInstance) {
         return sendNotFound(reply, 'Worker not registered')
       }
 
-      const job = await prisma.renderJob.findUnique({ where: { id: parsedParams.data.jobId } })
+      const job = await prisma.renderJob.findUnique({
+        where: { id: parsedParams.data.jobId },
+        include: {
+          project: {
+            select: {
+              id: true,
+              tenant_id: true,
+            },
+          },
+        },
+      })
       if (!job) {
         return sendNotFound(reply, 'Render job not found')
       }
@@ -218,7 +242,17 @@ export async function renderJobRoutes(app: FastifyInstance) {
         return sendNotFound(reply, 'Worker not registered')
       }
 
-      const job = await prisma.renderJob.findUnique({ where: { id: parsedParams.data.jobId } })
+      const job = await prisma.renderJob.findUnique({
+        where: { id: parsedParams.data.jobId },
+        include: {
+          project: {
+            select: {
+              id: true,
+              tenant_id: true,
+            },
+          },
+        },
+      })
       if (!job) {
         return sendNotFound(reply, 'Render job not found')
       }
@@ -235,17 +269,39 @@ export async function renderJobRoutes(app: FastifyInstance) {
         },
       })
 
+      let imageUrl = parsedBody.data.image_url ?? null
+
+      if (parsedBody.data.image_base64) {
+        if (!job.project.tenant_id) {
+          return sendServerError(reply, 'Render job project is missing tenant scope')
+        }
+
+        const document = await registerProjectDocument({
+          projectId: job.project.id,
+          tenantId: job.project.tenant_id,
+          filename: parsedBody.data.filename ?? `${job.id}.png`,
+          mimeType: 'image/png',
+          uploadedBy: `system:render-worker:${parsedParams.data.workerId}`,
+          type: 'render_image',
+          tags: ['render', `render-job:${job.id}`],
+          sourceKind: 'render_job',
+          sourceId: job.id,
+          buffer: decodeBase64(parsedBody.data.image_base64),
+        })
+        imageUrl = `/api/v1/projects/${job.project.id}/documents/${document.id}/download`
+      }
+
       const result = await prisma.renderJobResult.upsert({
         where: { job_id: updated.id },
         create: {
           job_id: updated.id,
-          image_url: parsedBody.data.image_url,
+          image_url: imageUrl ?? '',
           width_px: parsedBody.data.width_px,
           height_px: parsedBody.data.height_px,
           render_time_ms: parsedBody.data.render_time_ms,
         },
         update: {
-          image_url: parsedBody.data.image_url,
+          image_url: imageUrl ?? '',
           width_px: parsedBody.data.width_px,
           height_px: parsedBody.data.height_px,
           render_time_ms: parsedBody.data.render_time_ms,

@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import type { CeilingConstraint, Point2D } from '@yakds/shared-schemas'
 import { getAvailableHeight } from '@yakds/shared-schemas'
+import type { CeilingConstraint, Point2D } from '@yakds/shared-schemas'
 
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'

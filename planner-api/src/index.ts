@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import { projectRoutes } from './routes/projects.js'
 import { documentRoutes } from './routes/documents.js'
+import { dashboardRoutes } from './routes/dashboards.js'
 import { ceilingConstraintRoutes } from './routes/ceilingConstraints.js'
 import { roomRoutes } from './routes/rooms.js'
 import { validateRoutes } from './routes/validate.js'
@@ -22,6 +23,7 @@ import { autoCompletionRoutes } from './routes/autoCompletion.js'
 import { validateV2Routes } from './routes/validateV2.js'
 import { biRoutes } from './routes/bi.js'
 import { leadRoutes } from './routes/leads.js'
+import { contactRoutes } from './routes/contacts.js'
 import { tenantMiddleware } from './tenantMiddleware.js'
 import { prisma } from './db.js'
 
@@ -37,6 +39,7 @@ await app.register(tenantMiddleware)
 // Routes
 await app.register(projectRoutes, { prefix: '/api/v1' })
 await app.register(documentRoutes, { prefix: '/api/v1' })
+await app.register(dashboardRoutes, { prefix: '/api/v1' })
 await app.register(ceilingConstraintRoutes, { prefix: '/api/v1' })
 await app.register(roomRoutes, { prefix: '/api/v1' })
 await app.register(catalogRoutes, { prefix: '/api/v1' })
@@ -57,6 +60,7 @@ await app.register(autoCompletionRoutes, { prefix: '/api/v1' })
 await app.register(validateV2Routes, { prefix: '/api/v1' })
 await app.register(biRoutes, { prefix: '/api/v1' })
 await app.register(leadRoutes, { prefix: '/api/v1' })
+await app.register(contactRoutes, { prefix: '/api/v1' })
 
 // Health check
 app.get('/health', async () => ({ status: 'ok' }))

@@ -12,8 +12,16 @@ const { prismaMock } = vi.hoisted(() => {
   return { prismaMock: mock }
 })
 
+const { registerProjectDocumentMock } = vi.hoisted(() => ({
+  registerProjectDocumentMock: vi.fn(),
+}))
+
 vi.mock('../db.js', () => ({
   prisma: prismaMock,
+}))
+
+vi.mock('../services/documentRegistry.js', () => ({
+  registerProjectDocument: registerProjectDocumentMock,
 }))
 
 import { quoteRoutes } from './quotes.js'
@@ -21,6 +29,7 @@ import { quoteRoutes } from './quotes.js'
 describe('quoteRoutes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    registerProjectDocumentMock.mockResolvedValue({ id: 'doc-1' })
   })
 
   it('creates a new quote with incremented version and items', async () => {
@@ -148,6 +157,10 @@ describe('quoteRoutes', () => {
           show_on_quote: true,
         },
       ],
+      project: {
+        id: '11111111-1111-1111-1111-111111111111',
+        tenant_id: '00000000-0000-0000-0000-000000000001',
+      },
     })
 
     const app = Fastify()
@@ -164,6 +177,16 @@ describe('quoteRoutes', () => {
     expect(response.body.startsWith('%PDF-1.4')).toBe(true)
     expect(response.body).toContain('ANG-2026-0004')
     expect(response.body).toContain('Unterschrank 60')
+    expect(response.headers['x-document-id']).toBe('doc-1')
+    expect(registerProjectDocumentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: '11111111-1111-1111-1111-111111111111',
+        tenantId: '00000000-0000-0000-0000-000000000001',
+        type: 'quote_pdf',
+        sourceKind: 'quote_export',
+        sourceId: '44444444-4444-4444-4444-444444444444',
+      }),
+    )
 
     await app.close()
   })

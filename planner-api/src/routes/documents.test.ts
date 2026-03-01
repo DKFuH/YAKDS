@@ -5,21 +5,33 @@ const tenantId = '00000000-0000-0000-0000-000000000001'
 const projectId = '11111111-1111-1111-1111-111111111111'
 const documentId = '22222222-2222-2222-2222-222222222222'
 
-const { prismaMock } = vi.hoisted(() => ({
+const { prismaMock, registerProjectDocumentMock, readDocumentBlobMock, deleteDocumentBlobMock } = vi.hoisted(() => ({
   prismaMock: {
     project: {
       findFirst: vi.fn(),
     },
     document: {
-      create: vi.fn(),
       findMany: vi.fn(),
-      deleteMany: vi.fn(),
+      findFirst: vi.fn(),
+      delete: vi.fn(),
     },
   },
+  registerProjectDocumentMock: vi.fn(),
+  readDocumentBlobMock: vi.fn(),
+  deleteDocumentBlobMock: vi.fn(),
 }))
 
 vi.mock('../db.js', () => ({
   prisma: prismaMock,
+}))
+
+vi.mock('../services/documentRegistry.js', () => ({
+  registerProjectDocument: registerProjectDocumentMock,
+}))
+
+vi.mock('../services/documentStorage.js', () => ({
+  readDocumentBlob: readDocumentBlobMock,
+  deleteDocumentBlob: deleteDocumentBlobMock,
 }))
 
 import { documentRoutes } from './documents.js'
@@ -31,11 +43,19 @@ function createDocument(overrides: Record<string, unknown> = {}) {
     project_id: projectId,
     tenant_id: tenantId,
     filename: 'angebot-001.pdf',
+    original_filename: 'angebot-001.pdf',
     mime_type: 'application/pdf',
     size_bytes: 152340,
     uploaded_by: 'dev-user-id',
     uploaded_at: new Date('2026-03-01T11:00:00.000Z'),
     type: 'quote_pdf',
+    source_kind: 'manual_upload',
+    source_id: null,
+    storage_provider: 'local_fs',
+    storage_bucket: null,
+    storage_key: 'tenant/project/doc.pdf',
+    storage_version: 1,
+    external_url: null,
     tags: ['quote', 'customer'],
     is_public: false,
     ...overrides,
@@ -48,8 +68,8 @@ describe('documentRoutes', () => {
     prismaMock.project.findFirst.mockResolvedValue({ id: projectId, tenant_id: tenantId })
   })
 
-  it('creates a document metadata record for a project', async () => {
-    prismaMock.document.create.mockResolvedValue(createDocument())
+  it('creates a document record from base64 payloads', async () => {
+    registerProjectDocumentMock.mockResolvedValue(createDocument())
 
     const app = Fastify()
     await app.register(tenantMiddleware)
@@ -62,7 +82,7 @@ describe('documentRoutes', () => {
       payload: {
         filename: 'angebot-001.pdf',
         mime_type: 'application/pdf',
-        size_bytes: 152340,
+        file_base64: Buffer.from('pdf-content').toString('base64'),
         uploaded_by: 'dev-user-id',
         type: 'quote_pdf',
         tags: ['quote', 'customer'],
@@ -74,22 +94,18 @@ describe('documentRoutes', () => {
       id: documentId,
       project_id: projectId,
       type: 'quote_pdf',
-      tags: ['quote', 'customer'],
+      download_url: `/api/v1/projects/${projectId}/documents/${documentId}/download`,
     })
-    expect(prismaMock.document.create).toHaveBeenCalledWith({
-      data: {
-        project_id: projectId,
-        tenant_id: tenantId,
+    expect(registerProjectDocumentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId,
+        tenantId,
         filename: 'angebot-001.pdf',
-        mime_type: 'application/pdf',
-        size_bytes: 152340,
-        uploaded_by: 'dev-user-id',
+        mimeType: 'application/pdf',
+        uploadedBy: 'dev-user-id',
         type: 'quote_pdf',
-        tags: ['quote', 'customer'],
-        is_public: false,
-      },
-      select: expect.any(Object),
-    })
+      }),
+    )
 
     await app.close()
   })
@@ -132,8 +148,31 @@ describe('documentRoutes', () => {
     await app.close()
   })
 
-  it('deletes a document in tenant project scope', async () => {
-    prismaMock.document.deleteMany.mockResolvedValue({ count: 1 })
+  it('downloads a stored document blob', async () => {
+    prismaMock.document.findFirst.mockResolvedValue(createDocument())
+    readDocumentBlobMock.mockResolvedValue(Buffer.from('pdf-content'))
+
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(documentRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/projects/${projectId}/documents/${documentId}/download`,
+      headers: { 'x-tenant-id': tenantId },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['content-type']).toContain('application/pdf')
+    expect(response.body).toBe('pdf-content')
+    expect(readDocumentBlobMock).toHaveBeenCalledWith('tenant/project/doc.pdf')
+
+    await app.close()
+  })
+
+  it('deletes a document and removes its stored blob', async () => {
+    prismaMock.document.findFirst.mockResolvedValue(createDocument())
+    prismaMock.document.delete.mockResolvedValue(createDocument())
 
     const app = Fastify()
     await app.register(tenantMiddleware)
@@ -146,13 +185,10 @@ describe('documentRoutes', () => {
     })
 
     expect(response.statusCode).toBe(204)
-    expect(prismaMock.document.deleteMany).toHaveBeenCalledWith({
-      where: {
-        id: documentId,
-        project_id: projectId,
-        tenant_id: tenantId,
-      },
+    expect(prismaMock.document.delete).toHaveBeenCalledWith({
+      where: { id: documentId },
     })
+    expect(deleteDocumentBlobMock).toHaveBeenCalledWith('tenant/project/doc.pdf')
 
     await app.close()
   })

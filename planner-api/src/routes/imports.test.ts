@@ -18,8 +18,16 @@ const { prismaMock } = vi.hoisted(() => ({
   },
 }))
 
+const { registerProjectDocumentMock } = vi.hoisted(() => ({
+  registerProjectDocumentMock: vi.fn(),
+}))
+
 vi.mock('../db.js', () => ({
   prisma: prismaMock,
+}))
+
+vi.mock('../services/documentRegistry.js', () => ({
+  registerProjectDocument: registerProjectDocumentMock,
 }))
 
 import { importRoutes } from './imports.js'
@@ -108,8 +116,9 @@ describe('importRoutes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     persistedJob = null
+    registerProjectDocumentMock.mockResolvedValue({ id: 'doc-import-1' })
 
-    prismaMock.project.findFirst.mockResolvedValue({ id: projectId })
+    prismaMock.project.findFirst.mockResolvedValue({ id: projectId, tenant_id: tenantId })
     prismaMock.importJob.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => {
       persistedJob = createImportJob(data)
       return persistedJob
@@ -222,6 +231,15 @@ describe('importRoutes', () => {
     )
     expect(prismaMock.importJob.create).toHaveBeenCalledTimes(1)
     expect(prismaMock.importJob.update).toHaveBeenCalledTimes(2)
+    expect(registerProjectDocumentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId,
+        tenantId,
+        type: 'cad_import',
+        sourceKind: 'import_job',
+        sourceId: importJobId,
+      }),
+    )
 
     await app.close()
   })
@@ -252,6 +270,11 @@ describe('importRoutes', () => {
     expect(body.protocol[0]).toMatchObject({
       status: 'needs_review',
     })
+    expect(registerProjectDocumentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tags: ['import', 'dwg'],
+      }),
+    )
 
     await app.close()
   })
@@ -289,6 +312,11 @@ describe('importRoutes', () => {
     expect(body.protocol[0]).toMatchObject({
       status: 'ignored',
     })
+    expect(registerProjectDocumentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tags: ['import', 'skp'],
+      }),
+    )
 
     await app.close()
   })

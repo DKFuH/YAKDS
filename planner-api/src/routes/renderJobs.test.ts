@@ -22,8 +22,16 @@ const { prismaMock } = vi.hoisted(() => ({
   },
 }))
 
+const { registerProjectDocumentMock } = vi.hoisted(() => ({
+  registerProjectDocumentMock: vi.fn(),
+}))
+
 vi.mock('../db.js', () => ({
   prisma: prismaMock,
+}))
+
+vi.mock('../services/documentRegistry.js', () => ({
+  registerProjectDocument: registerProjectDocumentMock,
 }))
 
 import { renderJobRoutes } from './renderJobs.js'
@@ -31,6 +39,7 @@ import { renderJobRoutes } from './renderJobs.js'
 describe('renderJobRoutes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    registerProjectDocumentMock.mockResolvedValue({ id: 'doc-render-1' })
     prismaMock.renderNode.create.mockResolvedValue({
       id: '44444444-4444-4444-4444-444444444444',
       node_name: 'worker-a',
@@ -114,6 +123,10 @@ describe('renderJobRoutes', () => {
       id: '33333333-3333-3333-3333-333333333333',
       status: 'assigned',
       worker_id: workerId,
+      project: {
+        id: '11111111-1111-1111-1111-111111111111',
+        tenant_id: '00000000-0000-0000-0000-000000000001',
+      },
     })
 
     const fetchResponse = await app.inject({
@@ -133,7 +146,8 @@ describe('renderJobRoutes', () => {
       method: 'POST',
       url: `/api/v1/render-workers/${workerId}/jobs/33333333-3333-3333-3333-333333333333/complete`,
       payload: {
-        image_url: 'https://example.com/render.png',
+        image_base64: Buffer.from('render-png').toString('base64'),
+        filename: 'render-001.png',
         width_px: 1920,
         height_px: 1080,
         render_time_ms: 1200,
@@ -141,6 +155,20 @@ describe('renderJobRoutes', () => {
     })
     expect(completeResponse.statusCode).toBe(200)
     expect(completeResponse.json().job.status).toBe('done')
+    expect(registerProjectDocumentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'render_image',
+        sourceKind: 'render_job',
+        sourceId: '33333333-3333-3333-3333-333333333333',
+      }),
+    )
+    expect(prismaMock.renderJobResult.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          image_url: '/api/v1/projects/11111111-1111-1111-1111-111111111111/documents/doc-render-1/download',
+        }),
+      }),
+    )
 
     await app.close()
   })

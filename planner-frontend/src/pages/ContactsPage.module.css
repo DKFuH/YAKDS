@@ -1,0 +1,215 @@
+.page {
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--primary-color) 10%, transparent), transparent 30%),
+    linear-gradient(180deg, var(--surface-muted), var(--bg-light));
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  padding: 4rem;
+  color: var(--text-muted);
+}
+
+.header {
+  max-width: 1400px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--primary-color);
+}
+
+.subtitle {
+  margin: 0.45rem 0 0;
+  color: var(--text-muted);
+  max-width: 44rem;
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.toolbar,
+.createForm,
+.grid,
+.error {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar input,
+.createForm input,
+.createForm select,
+.attachRow select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-default);
+}
+
+.createForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--surface-default) 92%, white);
+  box-shadow: var(--shadow-card);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-default) 94%, white);
+  box-shadow: var(--shadow-card);
+}
+
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cardHead p {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.sourceBadge {
+  align-self: start;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-color) 14%, white);
+  color: var(--primary-color);
+  font-size: 0.78rem;
+}
+
+.meta {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.kpis div {
+  padding: 0.7rem;
+  border-radius: 0.85rem;
+  background: var(--surface-muted);
+}
+
+.kpis strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.kpis span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.projects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.projectChip {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--surface-default);
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.attachRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+}
+
+.btnPrimary,
+.btnSecondary {
+  border: none;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.btnPrimary {
+  background: var(--primary-color);
+  color: var(--text-inverse);
+}
+
+.btnSecondary {
+  background: var(--surface-default);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+  border: 1px solid var(--status-danger-border);
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .createForm {
+    grid-template-columns: 1fr;
+  }
+}

@@ -57,24 +57,26 @@ describe('manufacturerRoutes', () => {
   })
 
   it('GET /manufacturers/:id/articles returns articles for manufacturer', async () => {
+    const mfrId = '4003d506-698f-431c-9945-8c014606774c'
     prismaMock.catalogArticle.findMany.mockResolvedValue([
-      { id: 'art-1', manufacturer_id: 'mfr-1', sku: 'US60', name: 'Unterschrank 60', article_type: 'cabinet' },
+      { id: 'art-1', manufacturer_id: mfrId, sku: 'US60', name: 'Unterschrank 60', article_type: 'cabinet' },
     ])
     const app = Fastify()
     await app.register(manufacturerRoutes, { prefix: '/api/v1' })
 
-    const res = await app.inject({ method: 'GET', url: '/api/v1/manufacturers/mfr-1/articles' })
+    const res = await app.inject({ method: 'GET', url: `/api/v1/manufacturers/${mfrId}/articles` })
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual(expect.arrayContaining([expect.objectContaining({ sku: 'US60' })]))
     await app.close()
   })
 
   it('DELETE /manufacturers/:id returns 204', async () => {
-    prismaMock.manufacturer.delete.mockResolvedValue({ id: 'mfr-1' })
+    const mfrId = '4003d506-698f-431c-9945-8c014606774c'
+    prismaMock.manufacturer.delete.mockResolvedValue({ id: mfrId })
     const app = Fastify()
     await app.register(manufacturerRoutes, { prefix: '/api/v1' })
 
-    const res = await app.inject({ method: 'DELETE', url: '/api/v1/manufacturers/mfr-1' })
+    const res = await app.inject({ method: 'DELETE', url: `/api/v1/manufacturers/${mfrId}` })
     expect(res.statusCode).toBe(204)
     await app.close()
   })
