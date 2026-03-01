@@ -1,0 +1,18 @@
+.canvas {
+  flex: 1;
+  background: #e8e8f0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder {
+  text-align: center;
+  color: #9ca3af;
+}
+
+.placeholder p { margin: 0.25rem 0; font-size: 1rem; }
+.sub { color: #6b7280; }
+.hint { font-size: 0.8rem; color: #d1d5db; margin-top: 0.5rem !important; }

@@ -1,0 +1,38 @@
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: #fff;
+  border-left: 1px solid #e5e7eb;
+  overflow-y: auto;
+}
+
+.section {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.sectionTitle {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b7280;
+  letter-spacing: 0.05em;
+}
+
+.empty {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.props {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.props dt { color: #6b7280; }
+.props dd { margin: 0; font-weight: 500; }

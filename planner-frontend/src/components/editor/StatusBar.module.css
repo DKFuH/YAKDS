@@ -1,0 +1,13 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 1rem;
+  height: 32px;
+  background: #1e1e2e;
+  color: #a1a1aa;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.right { margin-left: auto; }
