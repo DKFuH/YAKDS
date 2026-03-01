@@ -4,6 +4,7 @@
   --primary-color: #218d8d;
   --primary-hover: #1d7480;
   --primary-light: rgba(33, 141, 141, 0.1);
+  --primary-soft: #a78bfa;
 
   --bg-light: #f4f7f6;
   --surface-default: #ffffff;
@@ -18,6 +19,7 @@
 
   --status-danger: #dc3545;
   --status-warning: #ffc107;
+  --status-warning-strong: #ea580c;
   --status-success: #10b981;
   --status-info: #0dcaf0;
   --status-danger-bg: #fdf0f1;
@@ -30,6 +32,7 @@
   --focus-ring: rgba(33, 141, 141, 0.25);
   --border-soft: #e8edf0;
   --overlay-soft: rgba(255, 255, 255, 0.5);
+  --editor-hover-overlay: rgba(255, 255, 255, 0.1);
   --text-soft-inverse: #d5dde2;
 
   --editor-bg: #102033;

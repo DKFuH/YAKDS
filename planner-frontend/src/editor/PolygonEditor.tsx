@@ -14,33 +14,36 @@ const SCALE = 0.15 // 1px = ~6,67mm → 5m Raum = 750px
 
 function worldToCanvas(mm: number): number { return mm * SCALE }
 function canvasToWorld(px: number): number { return px / SCALE }
-function resolveColor(token: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback
-  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim()
-  return value || fallback
+function resolveColor(token: string, fallbackToken?: string): string {
+  if (typeof window === 'undefined') return 'transparent'
+  const styles = getComputedStyle(document.documentElement)
+  const value = styles.getPropertyValue(token).trim()
+  if (value) return value
+  if (!fallbackToken) return 'transparent'
+  return styles.getPropertyValue(fallbackToken).trim() || 'transparent'
 }
 
 // ─── Farben ───────────────────────────────────────────────────────────────────
 
 const COLOR = {
-  polygon: resolveColor('--primary-color', '#6366f1'),
-  polygonFill: resolveColor('--primary-light', 'rgba(99, 102, 241, 0.14)'),
-  preview: resolveColor('--text-muted', '#94a3b8'),
-  vertex: resolveColor('--primary-color', '#6366f1'),
-  vertexHover: resolveColor('--status-danger', '#ef4444'),
-  vertexSelected: resolveColor('--status-warning', '#f59e0b'),
-  edgeSelected: resolveColor('--status-warning', '#f59e0b'),
-  error: resolveColor('--status-danger', '#ef4444'),
-  errorFill: resolveColor('--status-danger-bg', 'rgba(239, 68, 68, 0.10)'),
-  openingDoor: resolveColor('--status-info', '#3b82f6'),
-  openingWindow: resolveColor('--status-info-soft', '#06b6d4'),
-  openingPassThrough: resolveColor('--status-success', '#10b981'),
-  openingSelected: resolveColor('--status-warning', '#f97316'),
-  placementFill: resolveColor('--primary-soft', '#a78bfa'),
-  placementStroke: resolveColor('--primary-color', '#7c3aed'),
-  placementSelectedFill: resolveColor('--status-warning', '#f97316'),
-  placementSelectedStroke: resolveColor('--status-warning-strong', '#ea580c'),
-  vertexStroke: resolveColor('--text-inverse', '#ffffff'),
+  polygon: resolveColor('--primary-color'),
+  polygonFill: resolveColor('--primary-light'),
+  preview: resolveColor('--text-muted'),
+  vertex: resolveColor('--primary-color'),
+  vertexHover: resolveColor('--status-danger'),
+  vertexSelected: resolveColor('--status-warning'),
+  edgeSelected: resolveColor('--status-warning'),
+  error: resolveColor('--status-danger'),
+  errorFill: resolveColor('--status-danger-bg'),
+  openingDoor: resolveColor('--status-info'),
+  openingWindow: resolveColor('--status-info-soft', '--status-info'),
+  openingPassThrough: resolveColor('--status-success'),
+  openingSelected: resolveColor('--status-warning'),
+  placementFill: resolveColor('--primary-soft', '--primary-light'),
+  placementStroke: resolveColor('--primary-color'),
+  placementSelectedFill: resolveColor('--status-warning'),
+  placementSelectedStroke: resolveColor('--status-warning-strong', '--status-warning-text'),
+  vertexStroke: resolveColor('--text-inverse'),
 } as const
 
 function openingColor(type: Opening['type'], selected: boolean) {
