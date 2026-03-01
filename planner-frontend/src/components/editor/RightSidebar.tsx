@@ -3,6 +3,7 @@ import type { Vertex, Point2D } from '@shared/types'
 import type { Opening } from '../../api/openings.js'
 import type { Placement } from '../../api/placements.js'
 import type { Room } from '../../api/projects.js'
+import type { CatalogItem } from '../../api/catalog.js'
 import type { ValidateResponse } from '../../api/validate.js'
 import styles from './RightSidebar.module.css'
 
@@ -16,6 +17,12 @@ export interface CeilingConstraint {
   depth_into_room_mm: number
 }
 
+export interface ConfiguredDimensions {
+  width_mm: number
+  height_mm: number
+  depth_mm: number
+}
+
 interface Props {
   room: Room | null
   selectedVertexIndex: number | null
@@ -24,6 +31,9 @@ interface Props {
   edgeLengthMm: number | null
   selectedOpening: Opening | null
   selectedPlacement: Placement | null
+  selectedCatalogItem: CatalogItem | null
+  configuredDimensions: ConfiguredDimensions | null
+  onConfigureDimensions: (dims: ConfiguredDimensions) => void
   ceilingConstraints: CeilingConstraint[]
   selectedWallGeom: { id: string; start: Point2D; end: Point2D } | null
   onMoveVertex: (index: number, pos: Point2D) => void
@@ -44,6 +54,9 @@ export function RightSidebar({
   selectedEdgeIndex, edgeLengthMm,
   selectedOpening,
   selectedPlacement,
+  selectedCatalogItem,
+  configuredDimensions,
+  onConfigureDimensions,
   ceilingConstraints,
   selectedWallGeom,
   onMoveVertex, onSetEdgeLength,
@@ -83,19 +96,30 @@ export function RightSidebar({
           onSetLength={onSetEdgeLength}
         />
       ) : (
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Eigenschaften</h3>
-          {room ? (
-            <dl className={styles.props}>
-              <dt>Raumhöhe</dt>
-              <dd>{(room.ceiling_height_mm / 1000).toFixed(2)} m</dd>
-              <dt>Platzierungen</dt>
-              <dd>{(room.placements as unknown[]).length}</dd>
-            </dl>
+        <>
+          {selectedCatalogItem && configuredDimensions ? (
+            <KonfiguratorPanel
+              key={selectedCatalogItem.id}
+              item={selectedCatalogItem}
+              dimensions={configuredDimensions}
+              onChange={onConfigureDimensions}
+            />
           ) : (
-            <p className={styles.empty}>Kein Objekt ausgewählt</p>
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>Eigenschaften</h3>
+              {room ? (
+                <dl className={styles.props}>
+                  <dt>Raumhöhe</dt>
+                  <dd>{(room.ceiling_height_mm / 1000).toFixed(2)} m</dd>
+                  <dt>Platzierungen</dt>
+                  <dd>{(room.placements as unknown[]).length}</dd>
+                </dl>
+              ) : (
+                <p className={styles.empty}>Kein Objekt ausgewählt</p>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
 
       <ValidationPanel
@@ -556,6 +580,81 @@ function ConstraintRow({ constraint, onUpdate, onDelete }: {
       <button type="button" className={styles.deleteBtn} onClick={onDelete}>
         Dachschräge löschen
       </button>
+    </div>
+  )
+}
+
+// ─── Konfigurator-Panel ───────────────────────────────────────────────────────
+
+function KonfiguratorPanel({ item, dimensions, onChange }: {
+  item: CatalogItem
+  dimensions: ConfiguredDimensions
+  onChange: (dims: ConfiguredDimensions) => void
+}) {
+  const [w, setW] = useState(String(Math.round(dimensions.width_mm)))
+  const [h, setH] = useState(String(Math.round(dimensions.height_mm)))
+  const [d, setD] = useState(String(Math.round(dimensions.depth_mm)))
+
+  useEffect(() => {
+    setW(String(Math.round(dimensions.width_mm)))
+    setH(String(Math.round(dimensions.height_mm)))
+    setD(String(Math.round(dimensions.depth_mm)))
+  }, [item.id, dimensions.width_mm, dimensions.height_mm, dimensions.depth_mm])
+
+  function commit(field: 'width_mm' | 'height_mm' | 'depth_mm', raw: string) {
+    const n = parseFloat(raw)
+    if (!Number.isFinite(n) || n <= 0) return
+    onChange({ ...dimensions, [field]: n })
+  }
+
+  return (
+    <div className={styles.section}>
+      <h3 className={styles.sectionTitle}>Konfigurator</h3>
+      <p className={styles.konfigName}>{item.name}</p>
+      <p className={styles.hint}>{item.sku}</p>
+
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Breite (mm)</label>
+        <input
+          aria-label="Breite in mm"
+          className={styles.fieldInput}
+          type="number"
+          min={1}
+          value={w}
+          onChange={e => setW(e.target.value)}
+          onBlur={() => commit('width_mm', w)}
+          onKeyDown={e => { if (e.key === 'Enter') commit('width_mm', w) }}
+        />
+      </div>
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Höhe (mm)</label>
+        <input
+          aria-label="Höhe in mm"
+          className={styles.fieldInput}
+          type="number"
+          min={1}
+          value={h}
+          onChange={e => setH(e.target.value)}
+          onBlur={() => commit('height_mm', h)}
+          onKeyDown={e => { if (e.key === 'Enter') commit('height_mm', h) }}
+        />
+      </div>
+      <div className={styles.field}>
+        <label className={styles.fieldLabel}>Tiefe (mm)</label>
+        <input
+          aria-label="Tiefe in mm"
+          className={styles.fieldInput}
+          type="number"
+          min={1}
+          value={d}
+          onChange={e => setD(e.target.value)}
+          onBlur={() => commit('depth_mm', d)}
+          onKeyDown={e => { if (e.key === 'Enter') commit('depth_mm', d) }}
+        />
+      </div>
+      <p className={styles.hint}>
+        Maße anpassen → dann Wand anklicken und "+ Platzieren"
+      </p>
     </div>
   )
 }

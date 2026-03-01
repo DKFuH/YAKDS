@@ -1,4 +1,6 @@
 import { api } from './client.js'
+import { createRoom as createDemoRoom, updateRoom as updateDemoRoom } from './demoBackend.js'
+import { shouldUseDemoFallback } from './client.js'
 import type { Vertex, WallSegment } from '@shared/types'
 
 export interface RoomBoundaryPayload {
@@ -23,21 +25,35 @@ export const roomsApi = {
   list: (projectId: string) =>
     api.get<RoomPayload[]>(`/projects/${projectId}/rooms`),
 
-  create: (data: {
+  create: async (data: {
     project_id: string
     name: string
     ceiling_height_mm?: number
     boundary: RoomBoundaryPayload
-  }) => api.post<RoomPayload>('/rooms', data),
+  }) => {
+    try {
+      return await api.post<RoomPayload>('/rooms', data)
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return createDemoRoom(data)
+      throw error
+    }
+  },
 
-  update: (id: string, data: Partial<{
+  update: async (id: string, data: Partial<{
     name: string
     ceiling_height_mm: number
     boundary: RoomBoundaryPayload
     ceiling_constraints: unknown[]
     openings: unknown[]
     placements: unknown[]
-  }>) => api.put<RoomPayload>(`/rooms/${id}`, data),
+  }>) => {
+    try {
+      return await api.put<RoomPayload>(`/rooms/${id}`, data)
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return updateDemoRoom(id, data)
+      throw error
+    }
+  },
 
   delete: (id: string) => api.delete(`/rooms/${id}`),
 }

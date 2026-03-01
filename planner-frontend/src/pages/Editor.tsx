@@ -7,11 +7,12 @@ import { placementsApi, type Placement } from '../api/placements.js'
 import { roomsApi, type RoomBoundaryPayload, type RoomPayload } from '../api/rooms.js'
 import { openingsApi, type Opening } from '../api/openings.js'
 import { validateApi, type ValidateResponse } from '../api/validate.js'
+import { autoCompletionApi, type AutoCompleteResult } from '../api/autoCompletion.js'
 import { usePolygonEditor, edgeLengthMm } from '../editor/usePolygonEditor.js'
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { Preview3D } from '../components/editor/Preview3D.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
-import { RightSidebar, type CeilingConstraint } from '../components/editor/RightSidebar.js'
+import { RightSidebar, type CeilingConstraint, type ConfiguredDimensions } from '../components/editor/RightSidebar.js'
 import { StatusBar } from '../components/editor/StatusBar.js'
 import styles from './Editor.module.css'
 
@@ -28,8 +29,11 @@ export function Editor() {
   const [placements, setPlacements] = useState<Placement[]>([])
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null)
   const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItem | null>(null)
+  const [configuredDimensions, setConfiguredDimensions] = useState<ConfiguredDimensions | null>(null)
   const [validationResult, setValidationResult] = useState<ValidateResponse | null>(null)
   const [validationLoading, setValidationLoading] = useState(false)
+  const [autoCompleteLoading, setAutoCompleteLoading] = useState(false)
+  const [autoCompleteResult, setAutoCompleteResult] = useState<AutoCompleteResult | null>(null)
 
   // Editor-State nach oben gehoben, damit RightSidebar darauf zugreifen kann
   const editor = usePolygonEditor()
@@ -157,13 +161,31 @@ export function Editor() {
     }
   }, [])
 
+  // Reset configuredDimensions whenever the selected catalog item changes
+  useEffect(() => {
+    if (selectedCatalogItem) {
+      setConfiguredDimensions({
+        width_mm: selectedCatalogItem.width_mm,
+        height_mm: selectedCatalogItem.height_mm,
+        depth_mm: selectedCatalogItem.depth_mm,
+      })
+    } else {
+      setConfiguredDimensions(null)
+    }
+  }, [selectedCatalogItem])
+
   const handleAddPlacement = useCallback((wallId: string, wallLengthMm: number) => {
     if (!selectedCatalogItem) {
       console.warn('Kein Katalogartikel ausgewählt')
       return
     }
 
-    const placementWidth = Math.max(1, selectedCatalogItem.width_mm)
+    const dims = configuredDimensions ?? {
+      width_mm: selectedCatalogItem.width_mm,
+      height_mm: selectedCatalogItem.height_mm,
+      depth_mm: selectedCatalogItem.depth_mm,
+    }
+    const placementWidth = Math.max(1, dims.width_mm)
     const offset = Math.max(0, Math.round((wallLengthMm - placementWidth) / 2))
     const newPlacement: Placement = {
       id: crypto.randomUUID(),
@@ -171,15 +193,15 @@ export function Editor() {
       wall_id: wallId,
       offset_mm: offset,
       width_mm: placementWidth,
-      depth_mm: Math.max(1, selectedCatalogItem.depth_mm),
-      height_mm: Math.max(1, selectedCatalogItem.height_mm),
+      depth_mm: Math.max(1, dims.depth_mm),
+      height_mm: Math.max(1, dims.height_mm),
     }
 
     const updated = [...placementsRef.current, newPlacement]
     setPlacements(updated)
     setSelectedPlacementId(newPlacement.id)
     handleSavePlacements(updated)
-  }, [handleSavePlacements, selectedCatalogItem])
+  }, [handleSavePlacements, selectedCatalogItem, configuredDimensions])
 
   const handleUpdatePlacement = useCallback((updated: Placement) => {
     const nextPlacements = placementsRef.current.map((placement) => (
@@ -195,6 +217,20 @@ export function Editor() {
     setSelectedPlacementId((current) => (current === placementId ? null : current))
     handleSavePlacements(nextPlacements)
   }, [handleSavePlacements])
+
+  // Auto-Vervollständigung (Langteile, Sockel, Wangen)
+  const handleAutoComplete = useCallback(async () => {
+    if (!id || !selectedRoomRef.current) return
+    setAutoCompleteLoading(true)
+    try {
+      const result = await autoCompletionApi.run(id, selectedRoomRef.current.id)
+      setAutoCompleteResult(result)
+    } catch (e) {
+      console.error('Auto-Vervollständigung fehlgeschlagen:', e)
+    } finally {
+      setAutoCompleteLoading(false)
+    }
+  }, [id])
 
   // Geometrieprüfung ausführen
   const handleRunValidation = useCallback(async () => {
@@ -288,6 +324,20 @@ export function Editor() {
         <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>← Projekte</button>
         <span className={styles.projectName}>{project.name}</span>
         <div className={styles.topbarActions}>
+          {autoCompleteResult && (
+            <span className={styles.autoCompleteHint}>
+              ✓ {autoCompleteResult.created} Langteile generiert
+            </span>
+          )}
+          <button
+            type="button"
+            className={styles.btnSecondary}
+            onClick={handleAutoComplete}
+            disabled={autoCompleteLoading || !selectedRoomId}
+            title="Arbeitsplatten, Sockel und Wangen automatisch generieren"
+          >
+            {autoCompleteLoading ? 'Generiere…' : 'Auto vervollständigen'}
+          </button>
           <button
             type="button"
             className={styles.btnSecondary}
@@ -336,6 +386,9 @@ export function Editor() {
           edgeLengthMm={selEdgeLen}
           selectedOpening={selectedOpening}
           selectedPlacement={selectedPlacement}
+          selectedCatalogItem={selectedCatalogItem}
+          configuredDimensions={configuredDimensions}
+          onConfigureDimensions={setConfiguredDimensions}
           ceilingConstraints={ceilingConstraints}
           selectedWallGeom={selectedWallGeom}
           onMoveVertex={editor.moveVertex}

@@ -1,4 +1,6 @@
 import { api } from './client.js'
+import { shouldUseDemoFallback } from './client.js'
+import { validateProject as validateDemoProject } from './demoBackend.js'
 
 export interface RuleViolation {
   severity: 'error' | 'warning' | 'hint'
@@ -42,6 +44,12 @@ export interface ValidatePayload {
 }
 
 export const validateApi = {
-  run: (projectId: string, payload: ValidatePayload): Promise<ValidateResponse> =>
-    api.post<ValidateResponse>(`/projects/${projectId}/validate`, payload),
+  run: async (projectId: string, payload: ValidatePayload): Promise<ValidateResponse> => {
+    try {
+      return await api.post<ValidateResponse>(`/projects/${projectId}/validate`, payload)
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return validateDemoProject(payload)
+      throw error
+    }
+  },
 }

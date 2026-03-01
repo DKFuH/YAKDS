@@ -42,6 +42,12 @@ export function ProjectList() {
       <header className={styles.header}>
         <h1>YAKDS – Küchenplaner</h1>
         <div className={styles.headerActions}>
+          <button className={styles.btnSecondary} onClick={() => navigate('/webplanner')}>
+            Webplaner
+          </button>
+          <button className={styles.btnSecondary} onClick={() => navigate('/bi')}>
+            BI Dashboard
+          </button>
           <button className={styles.btnSecondary} onClick={() => navigate('/catalog')}>
             Katalog
           </button>

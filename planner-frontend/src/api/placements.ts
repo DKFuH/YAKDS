@@ -1,4 +1,6 @@
 import { api } from './client.js'
+import { savePlacements as saveDemoPlacements } from './demoBackend.js'
+import { shouldUseDemoFallback } from './client.js'
 
 export interface Placement {
   id: string
@@ -15,8 +17,14 @@ export const placementsApi = {
   list: (roomId: string): Promise<Placement[]> =>
     api.get<Placement[]>(`/rooms/${roomId}/placements`),
 
-  save: (roomId: string, placements: Placement[]): Promise<Placement[]> =>
-    api.put<Placement[]>(`/rooms/${roomId}/placements`, { placements }),
+  save: async (roomId: string, placements: Placement[]): Promise<Placement[]> => {
+    try {
+      return await api.put<Placement[]>(`/rooms/${roomId}/placements`, { placements })
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return saveDemoPlacements(roomId, placements)
+      throw error
+    }
+  },
 
   create: (roomId: string, placement: Omit<Placement, 'id'>): Promise<Placement> =>
     api.post<Placement>(`/rooms/${roomId}/placements`, placement),

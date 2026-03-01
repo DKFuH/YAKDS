@@ -1,4 +1,6 @@
 import { api } from './client.js'
+import { createProject as createDemoProject, deleteProject as deleteDemoProject, getProject as getDemoProject, listProjects as listDemoProjects, updateProject as updateDemoProject } from './demoBackend.js'
+import { shouldUseDemoFallback } from './client.js'
 
 export interface Project {
   id: string
@@ -31,11 +33,44 @@ export interface Room {
 const USER_ID_PLACEHOLDER = 'dev-user-id' // wird durch Auth ersetzt
 
 export const projectsApi = {
-  list: () => api.get<Project[]>(`/projects?user_id=${USER_ID_PLACEHOLDER}`),
-  get: (id: string) => api.get<ProjectDetail>(`/projects/${id}`),
-  create: (data: { name: string; description?: string }) =>
-    api.post<Project>('/projects', { ...data, user_id: USER_ID_PLACEHOLDER }),
-  update: (id: string, data: { name?: string; description?: string; status?: string }) =>
-    api.put<Project>(`/projects/${id}`, data),
-  delete: (id: string) => api.delete(`/projects/${id}`),
+  list: async () => {
+    try {
+      return await api.get<Project[]>(`/projects?user_id=${USER_ID_PLACEHOLDER}`)
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return listDemoProjects()
+      throw error
+    }
+  },
+  get: async (id: string) => {
+    try {
+      return await api.get<ProjectDetail>(`/projects/${id}`)
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return getDemoProject(id)
+      throw error
+    }
+  },
+  create: async (data: { name: string; description?: string }) => {
+    try {
+      return await api.post<Project>('/projects', { ...data, user_id: USER_ID_PLACEHOLDER })
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return createDemoProject(data)
+      throw error
+    }
+  },
+  update: async (id: string, data: { name?: string; description?: string; status?: string }) => {
+    try {
+      return await api.put<Project>(`/projects/${id}`, data)
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return updateDemoProject(id, data)
+      throw error
+    }
+  },
+  delete: async (id: string) => {
+    try {
+      return await api.delete(`/projects/${id}`)
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return deleteDemoProject(id)
+      throw error
+    }
+  },
 }

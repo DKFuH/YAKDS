@@ -1,4 +1,6 @@
 import { api } from './client.js'
+import { getCatalogItem as getDemoCatalogItem, listCatalog as listDemoCatalog } from './demoBackend.js'
+import { shouldUseDemoFallback } from './client.js'
 
 export type CatalogItemType =
   | 'base_cabinet'
@@ -25,7 +27,7 @@ export interface CatalogItem {
 }
 
 export const catalogApi = {
-  list: (params?: {
+  list: async (params?: {
     type?: CatalogItemType
     q?: string
     limit?: number
@@ -37,11 +39,22 @@ export const catalogApi = {
     if (params?.limit != null) search.set('limit', String(params.limit))
     if (params?.offset != null) search.set('offset', String(params.offset))
     const qs = search.toString()
-    return api.get<CatalogItem[]>(`/catalog/items${qs ? `?${qs}` : ''}`)
+    try {
+      return await api.get<CatalogItem[]>(`/catalog/items${qs ? `?${qs}` : ''}`)
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return listDemoCatalog(params)
+      throw error
+    }
   },
 
-  getById: (id: string): Promise<CatalogItem> =>
-    api.get<CatalogItem>(`/catalog/items/${id}`),
+  getById: async (id: string): Promise<CatalogItem> => {
+    try {
+      return await api.get<CatalogItem>(`/catalog/items/${id}`)
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return getDemoCatalogItem(id)
+      throw error
+    }
+  },
 }
 
 export const CATALOG_TYPE_LABELS: Record<CatalogItemType, string> = {

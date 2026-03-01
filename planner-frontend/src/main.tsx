@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ProjectList } from './pages/ProjectList.js'
 import { Editor } from './pages/Editor.js'
 import { CatalogPage } from './pages/CatalogPage.js'
+import { BIDashboard } from './pages/BIDashboard.js'
+import { WebplannerPage } from './pages/WebplannerPage.js'
 import './global.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -12,6 +14,8 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<ProjectList />} />
         <Route path="/catalog" element={<CatalogPage />} />
+        <Route path="/bi" element={<BIDashboard />} />
+        <Route path="/webplanner" element={<WebplannerPage />} />
         <Route path="/projects/:id" element={<Editor />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
