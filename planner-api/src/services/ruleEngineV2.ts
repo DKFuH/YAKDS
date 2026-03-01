@@ -40,6 +40,74 @@ interface ViolationInput {
 
 type RuleHandler = (s: ProjectSnapshot, p: Record<string, unknown>) => ViolationInput[]
 
+interface WorldPoint {
+    x_mm: number
+    y_mm: number
+}
+
+function getWorldPolygon(obj: PlacedObjectV2): WorldPoint[] | null {
+    if (!obj.worldPos) {
+        return null
+    }
+
+    const x = obj.worldPos.x_mm
+    const y = obj.worldPos.y_mm
+    const width = Math.max(0, obj.width_mm)
+    const depth = Math.max(0, obj.depth_mm)
+
+    return [
+        { x_mm: x, y_mm: y },
+        { x_mm: x + width, y_mm: y },
+        { x_mm: x + width, y_mm: y + depth },
+        { x_mm: x, y_mm: y + depth },
+    ]
+}
+
+function dot(a: WorldPoint, b: WorldPoint): number {
+    return a.x_mm * b.x_mm + a.y_mm * b.y_mm
+}
+
+function edgeNormal(a: WorldPoint, b: WorldPoint): WorldPoint {
+    const edge = { x_mm: b.x_mm - a.x_mm, y_mm: b.y_mm - a.y_mm }
+    return { x_mm: -edge.y_mm, y_mm: edge.x_mm }
+}
+
+function projectPolygon(points: WorldPoint[], axis: WorldPoint): { min: number; max: number } {
+    const first = dot(points[0], axis)
+    let min = first
+    let max = first
+
+    for (let i = 1; i < points.length; i++) {
+        const value = dot(points[i], axis)
+        if (value < min) min = value
+        if (value > max) max = value
+    }
+
+    return { min, max }
+}
+
+function polygonsIntersectSAT(left: WorldPoint[], right: WorldPoint[]): boolean {
+    const axes: WorldPoint[] = []
+
+    for (let i = 0; i < left.length; i++) {
+        axes.push(edgeNormal(left[i], left[(i + 1) % left.length]))
+    }
+    for (let i = 0; i < right.length; i++) {
+        axes.push(edgeNormal(right[i], right[(i + 1) % right.length]))
+    }
+
+    for (const axis of axes) {
+        const l = projectPolygon(left, axis)
+        const r = projectPolygon(right, axis)
+
+        if (l.max <= r.min || r.max <= l.min) {
+            return false
+        }
+    }
+
+    return true
+}
+
 // ─── Regelimplementierungen ───────────────────────────────────────
 
 const rules: Record<string, RuleHandler> = {
@@ -49,8 +117,18 @@ const rules: Record<string, RuleHandler> = {
         for (let i = 0; i < bases.length; i++) {
             for (let j = i + 1; j < bases.length; j++) {
                 const a = bases[i], b = bases[j]
-                if (a.wall_id !== b.wall_id) continue
-                if (a.offset_mm < b.offset_mm + b.width_mm && a.offset_mm + a.width_mm > b.offset_mm) {
+                const sameWallOverlap =
+                    a.wall_id === b.wall_id &&
+                    a.offset_mm < b.offset_mm + b.width_mm &&
+                    a.offset_mm + a.width_mm > b.offset_mm
+
+                const polyA = getWorldPolygon(a)
+                const polyB = getWorldPolygon(b)
+                const worldOverlap = polyA !== null && polyB !== null
+                    ? polygonsIntersectSAT(polyA, polyB)
+                    : false
+
+                if (sameWallOverlap || worldOverlap) {
                     out.push({ rule_key: 'COLL-001', severity: 'error', entity_refs: [a.id, b.id], message: `Schrank ${a.id} und ${b.id} überlappen.` })
                 }
             }
