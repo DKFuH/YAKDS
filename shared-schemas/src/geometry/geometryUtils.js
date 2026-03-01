@@ -164,4 +164,3 @@ export function polygonArea(points) {
 export function cloneVertices(vertices) {
     return vertices.map((vertex) => ({ ...vertex }));
 }
-//# sourceMappingURL=geometryUtils.js.map

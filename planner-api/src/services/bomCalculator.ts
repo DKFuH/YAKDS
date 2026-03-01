@@ -91,8 +91,50 @@ function defaultTaxGroup(taxGroups: TaxGroup[]): TaxGroup {
   return taxGroups[0] ?? { id: 'default-tax', name: 'Default Tax', tax_rate: 0 };
 }
 
+function createGeneratedLine(
+  projectId: string,
+  item: GeneratedItemInput,
+  taxGroupId: string,
+  taxRate: number
+): BOMLine {
+  const isLength = item.item_type === 'worktop' || item.item_type === 'plinth';
+  const unit: BOMLine['unit'] = isLength ? 'm' : 'stk';
+  const qty = isLength ? item.qty / 1000 : item.qty;
+  const price = item.list_price_net ?? 0;
+  return {
+    id: crypto.randomUUID(),
+    project_id: projectId,
+    type: 'extra',
+    catalog_item_id: item.catalog_article_id ?? null,
+    description: item.label,
+    qty,
+    unit,
+    list_price_net: price,
+    dealer_price_net: 0,
+    variant_surcharge: 0,
+    object_surcharges: 0,
+    position_discount_pct: 0,
+    pricing_group_discount_pct: 0,
+    line_net_after_discounts: price * qty,
+    tax_group_id: taxGroupId,
+    tax_rate: taxRate
+  };
+}
+
+export interface GeneratedItemInput {
+  id: string;
+  label: string;
+  item_type: string;
+  qty: number;
+  unit: string;
+  tax_group_id?: string;
+  catalog_article_id?: string;
+  list_price_net?: number;
+}
+
 export interface CalculateBOMOptions {
   specialTrimSurchargeNet?: number;
+  generatedItems?: GeneratedItemInput[];
 }
 
 export function calculateBOM(project: ProjectSnapshot, options: CalculateBOMOptions = {}): BOMLine[] {
@@ -153,6 +195,12 @@ export function calculateBOM(project: ProjectSnapshot, options: CalculateBOMOpti
 
   for (const accessory of accessories) {
     lines.push(createCatalogLine(project.id, accessory, 'accessory', project.priceListItems, project.taxGroups));
+  }
+
+  for (const item of options.generatedItems ?? []) {
+    const taxGroupId = item.tax_group_id ?? defaultTax.id;
+    const taxRate = item.tax_group_id ? findTaxRate(item.tax_group_id, project.taxGroups) : defaultTax.tax_rate;
+    lines.push(createGeneratedLine(project.id, item, taxGroupId, taxRate));
   }
 
   lines.push(

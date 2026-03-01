@@ -44,4 +44,3 @@ export function validatePolygon(vertices, minEdgeLengthMm = 100) {
         errors
     };
 }
-//# sourceMappingURL=validatePolygon.js.map
