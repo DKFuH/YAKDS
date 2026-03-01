@@ -22,7 +22,9 @@
     "@yakds/dxf-import": "file:../interop-cad/dxf-import",
     "@yakds/shared-schemas": "file:../shared-schemas",
     "@yakds/skp-import": "file:../interop-sketchup/skp-import",
+    "fast-xml-parser": "^5.4.1",
     "fastify": "^4.28.1",
+    "iconv-lite": "^0.7.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {

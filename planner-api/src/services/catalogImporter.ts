@@ -266,7 +266,13 @@ function normalizeRawArticle(record: Record<string, unknown>): RawArticle {
   };
 }
 
-export function parseCatalogFile(fileBuffer: Buffer, format: 'csv' | 'json'): RawArticle[] {
+import { parseIdmArticles } from './idmParser.js';
+
+export async function parseCatalogFile(fileBuffer: Buffer, format: 'csv' | 'json' | 'xml' | 'idm'): Promise<RawArticle[]> {
+  if (format === 'xml' || format === 'idm') {
+    return parseIdmArticles(fileBuffer);
+  }
+
   const rows = format === 'csv' ? parseCsv(fileBuffer) : parseJson(fileBuffer);
   return rows.map(normalizeRawArticle);
 }
