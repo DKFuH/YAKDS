@@ -7,3 +7,4 @@ export * from './geometry/validatePolygon.js';
 export * from './geometry/wallPlacement.js';
 export * from './validation/collisionDetector.js';
 export * from './validation/heightChecker.js';
+export * from './validation/placementValidator.js';

@@ -4,12 +4,17 @@
 
 Umsetzung der Codex-Aufgabe aus Sprint 8:
 
-- TASK-8-C01 – Wandbasierte Platzierungsalgorithmen
+- TASK-8-C01 - Wandbasierte Platzierungsalgorithmen
+- API-Integration fuer Room-gebundene Placements
 
 ## Umgesetzte Dateien
 
 - `shared-schemas/src/geometry/wallPlacement.ts`
 - `shared-schemas/src/geometry/wallPlacement.test.ts`
+- `shared-schemas/src/validation/placementValidator.ts`
+- `shared-schemas/src/validation/placementValidator.test.ts`
+- `planner-api/src/routes/placements.ts`
+- `planner-api/src/routes/placements.test.ts`
 
 ## Ergebnis
 
@@ -19,19 +24,42 @@ Implementierte Funktionen:
   - liefert normierten Richtungsvektor von `start` nach `end`
 
 - `getWallInnerNormal(wall, polygon)`
-  - berechnet rechte/ linke Normale
-  - prüft per Point-in-Polygon, welche Normale ins Rauminnere zeigt
+  - bestimmt die nach innen zeigende Normale ueber Point-in-Polygon
 
 - `getPlacementWorldPos(wall, offsetMm)`
-  - liefert Weltkoordinate auf der Wand für den gegebenen Offset
+  - liefert die Weltkoordinate auf der Wand fuer einen Offset
 
 - `snapToWall(dragWorldPos, wall)`
-  - projiziert beliebigen Punkt auf Wandachse
-  - liefert geclampten Offset `[0, wall.length_mm]`
+  - projiziert einen Punkt auf die Wandachse und clampt auf die Wandlaenge
 
 - `canPlaceOnWall(wall, offsetMm, widthMm, existing)`
-  - prüft Wandgrenzen
-  - prüft Intervall-Überlappung mit bestehenden Placements auf derselben Wand
+  - prueft Wandgrenzen und Intervall-Ueberlappungen
+
+- `validatePlacement(wall, placement, existingPlacements, openings)`
+  - prueft Offset und Objektabmessungen
+  - prueft Wandgrenzen
+  - prueft Ueberlappungen mit bestehenden Placements
+  - prueft Ueberlappungen mit Oeffnungen
+
+API-Integration:
+
+- `GET /api/v1/rooms/:id/placements`
+  - liefert alle Placements eines Raums
+
+- `POST /api/v1/rooms/:id/placements`
+  - legt ein Placement fuer ein `catalog_item_id` an
+  - validiert gegen Wandgrenzen, andere Placements und Oeffnungen
+
+- `PUT /api/v1/rooms/:id/placements`
+  - speichert eine komplette Placement-Liste fuer den Raum
+  - validiert die gesamte Liste vor dem Persistieren gegen Wandgrenzen, Oeffnungen und gegenseitige Ueberlappungen
+
+- `PUT /api/v1/rooms/:id/placements/:placementId`
+  - aktualisiert ein einzelnes Placement gezielt per ID
+  - lehnt Payloads mit abweichender Placement-ID ab
+
+- `DELETE /api/v1/rooms/:id/placements/:placementId`
+  - entfernt ein Placement aus dem Room-Payload
 
 ## Testabdeckung
 
@@ -39,18 +67,21 @@ Implementierte Funktionen:
 - Innennormale auf rechteckigem Polygon
 - Weltposition aus Offset
 - Projektion auf Wand
-- Überlappungsprüfung bestehender Objekte
+- Ueberlappungspruefung bestehender Objekte
+- Placement-Validator gegen Wandgrenzen, Placements und Oeffnungen
+- Route-Tests fuer `GET`, `POST`, Batch-`PUT`, Einzel-`PUT`, Validierungsfehler und `DELETE`
 
 ## DoD-Status Sprint 8
 
-- Platzierung entlang beliebiger Wände mathematisch als pure Funktionen vorhanden
-- Grundlage für wandbasiertes Drag/Drop und Regelprüfung geschaffen
+- Platzierung entlang beliebiger Waende ist mathematisch als pure Funktion vorhanden
+- Placement-Validierung ist zentral in `shared-schemas` exportiert
+- Room-gebundene Placement-API ist fuer Anlegen, Speichern, Aktualisieren und Loeschen vorhanden und testbar abgesichert
 
-## Nächster Sprint
+## Naechster Sprint
 
 Sprint 9 (TASK-9-C01):
 
 - Objekt-Kollisionen
-- Objekt-vs-Raum / Objekt-vs-Öffnung
-- Mindestabstände und Cost-Hints
+- Objekt-vs-Raum und Objekt-vs-Oeffnung
+- Mindestabstaende und Cost-Hints
 - Unit-Tests und Sprint-Dokumentation

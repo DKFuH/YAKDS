@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import { projectRoutes } from './routes/projects.js'
+import { ceilingConstraintRoutes } from './routes/ceilingConstraints.js'
 import { roomRoutes } from './routes/rooms.js'
 import { validateRoutes } from './routes/validate.js'
 import { catalogRoutes } from './routes/catalog.js'
@@ -22,6 +23,7 @@ await app.register(cors, {
 
 // Routes
 await app.register(projectRoutes, { prefix: '/api/v1' })
+await app.register(ceilingConstraintRoutes, { prefix: '/api/v1' })
 await app.register(roomRoutes, { prefix: '/api/v1' })
 await app.register(catalogRoutes, { prefix: '/api/v1' })
 await app.register(validateRoutes, { prefix: '/api/v1' })
