@@ -274,11 +274,11 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ---
 
-## Phase 5 – Sprints 41–45: Winner-Parität (Profi-Workflow)
+## Phase 5 – Sprints 41–45: Profi-Parität (Profi-Workflow)
 
 **Ausgangslage (nach Sprint 40):** Vollständige Studio-Plattform inkl. Makros, Arbeitsplattenschemas, Annotationen, Raumdekoration, Lichtprofile und manuelle Angebotszeilen.
 
-**Ziel:** Funktionslücken zu professionellen Küchenstudio-Systemen (Winner Profi) schließen. Quelle: Schulungsunterlagen Winner Profi Teil 1 & 2 (analysiert 2026-03-02).
+**Ziel:** Funktionslücken zu professionellen Küchenstudio-Systemen () schließen. Quelle: Schulungsunterlagen  Teil 1 & 2 (analysiert 2026-03-02).
 
 ---
 
@@ -393,7 +393,7 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 | Nach Sprint | Ergebnis |
 |-------------|----------|
-| 45 | Winner-Profi-Parität: Passstücke, Angebotsworkflow, Taschenrechner, Favoriten, Batchdruck, Nischenverkleidung |
+| 45 | Profi-Parität: Passstücke, Angebotsworkflow, Taschenrechner, Favoriten, Batchdruck, Nischenverkleidung |
 
 ### Risiken Phase 5
 
@@ -407,7 +407,7 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ## Phase 6 – Sprints 46–50: Vernetzte Branchenlösung (Auftragssteuerung, Mobile, ERP, Compliance)
 
-**Ausgangslage (nach Sprint 45):** Winner-Profi-Parität hergestellt. Studio-Tool deckt den vollständigen Planungs- und Angebotsworkflow ab.
+**Ausgangslage (nach Sprint 45):** Profi-Parität hergestellt. Studio-Tool deckt den vollständigen Planungs- und Angebotsworkflow ab.
 
 **Ziel:** OKP zur vernetzten Branchenlösung ausbauen: Produktionssteuerung, mobiler Außendienst, ERP-Anbindung, erweitertes Reporting, DSGVO/SSO/RBAC. Quelle: Copilot-Planungsdokument (PR #9, 2026-03-02).
 

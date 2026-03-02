@@ -10,7 +10,7 @@ Projektstatus per 2026-03-02 - MVP, Phase 2, Phase 3 und Phase 4 abgeschlossen. 
 - **Sprints 20-24 (Phase 2): abgeschlossen**
 - **Sprints 25-30 (Phase 3): abgeschlossen**
 - **Sprints 31-40 (Phase 4 + Sprints 35-40): abgeschlossen** (PR #8 gemergt 2026-03-02)
-- **Sprints 41-45 (Phase 5 – Winner-Parität): geplant**
+- **Sprints 41-45 (Phase 5 – Profi-Parität): geplant**
 - **Sprints 46-50 (Phase 6 – Vernetzte Branchenlösung): geplant**
 
 Sprint 01 wurde extern bearbeitet. Alle übrigen Sprints lieferten Artefakte in:
@@ -106,7 +106,7 @@ Alle Reviews (TASK-3-R01 bis TASK-11-R01) intern ausgeführt. Alle Findings umge
 
 ## Nächste Schritte
 
-- Phase 5 (Sprints 41–45) starten: Winner-Profi-Parität (Passstücke, Angebotsworkflow, Taschenrechner, Favoriten, Batchdruck, Nischenverkleidung).
+- Phase 5 (Sprints 41–45) starten: Profi-Parität (Passstücke, Angebotsworkflow, Taschenrechner, Favoriten, Batchdruck, Nischenverkleidung).
 - Referenzplanung Phase 5: `Docs/PHASE_5_DOD_AND_EXECUTION_PLAN.md`
 - Sprint 46 vervollständigen: `ProductionOrder` + Freeze-Guard + Produktionsübersicht.
 - Phase 6 (Sprints 46–50) folgt nach Phase 5: Auftragssteuerung, Mobile PWA, ERP-Anbindung, Analytics, Compliance.

@@ -6,7 +6,7 @@ Stand: 2026-03-02
 
 ## 1) Executive Summary: Phase-5 Definition of Done (DoD)
 
-- **Winner-Parität als Ziel:** OKP schließt die verbleibenden Funktionslücken zu professionellen Küchenstudio-Systemen (Winner Profi). Quelle: Schulungsunterlagen Winner Profi Teil 1 & 2, analysiert 2026-03-02.
+- **Profi-Parität als Ziel:** OKP schließt die verbleibenden Funktionslücken zu professionellen Küchenstudio-Systemen 
 - **Nahtlose Fortsetzung von Phase 4:** Alle Features bauen auf Bereichen/Alternativen (Sprint 31–32), Onboarding (Sprint 33), Workspace-Layout (Sprint 34) und den Planungs-/Render-Sprints 35–40 auf.
 - **One-Week-Sprints:** Sprints 41–45 werden als 5 aufeinanderfolgende 1-Wochen-Inkremente umgesetzt.
 - **Praxisorientierter Fokus:** Features sind direkt aus echten Schulungsunterlagen abgeleitet – keine hypothetischen Anforderungen.
