@@ -1,14 +1,15 @@
 # STATUS.md
 
-Projektstatus per 2026-03-01 - MVP abgeschlossen, Phase 2 umgesetzt, Phase 3 in technischer Umsetzung.
+Projektstatus per 2026-03-02 - MVP abgeschlossen, Phase 2 umgesetzt, Phase 3 in technischer Umsetzung, Phase 4 implementiert.
 
 ---
 
-## Gesamtstatus (Stand 2026-03-01)
+## Gesamtstatus (Stand 2026-03-02)
 
 - **Sprints 0-19 (MVP): abgeschlossen**
 - **Sprints 20-24 (Phase 2): abgeschlossen**
 - **Sprints 25-30 (Phase 3): in Umsetzung / große Teile bereits integriert**
+- **Sprints 31-34 (Phase 4): implementiert**
 
 Sprint 01 wurde extern bearbeitet. Alle übrigen Sprints lieferten Artefakte in:
 - `shared-schemas` - Polygon, Öffnungen, Decken/Wände, Kollision/Höhe
@@ -62,6 +63,32 @@ Alle Reviews (TASK-3-R01 bis TASK-11-R01) intern ausgeführt. Alle Findings umge
 ### Sprint 30 - Plattform-Features
 - Tenant-sichere Routen für globale Suche, CSV-Export, Notification-Webhook und Daily-Backup aktiv.
 - Frontend-Integration für globale Suche und CSV-Exporte umgesetzt.
+
+## Phase-4 Fortschritt (Sprint 31-34)
+
+### Sprint 31 – Projektliste & 3-Punkte-Menü
+- `GET /projects?search=…&status_filter=…&sales_rep=…` aktiv.
+- `POST /projects` mit Kundendaten aktiv.
+- `PATCH /projects/:id/3dots?action=duplicate|archive|unarchive` aktiv.
+- Kanban-Board mit Filter, Suche, 3-Punkte-Menü und Status-Drag-Drop im Frontend integriert.
+
+### Sprint 32 – Bereiche / Alternativen & Modellauswahl
+- `GET|POST /projects/:id/areas`, `POST /projects/:id/areas/:areaId/alternatives` aktiv.
+- `GET|PUT /alternatives/:id/model-settings` (F7-Dialog) aktiv.
+- `AreasPanel` mit Baumstruktur, Rechtsklick-Kontextmenü, Doppelklick und F7-Dialog im Editor integriert.
+
+### Sprint 33 – Onboarding & Lernreise
+- `OnboardingWizard` (Erster Login → Schritte: Katalog, Projekt, Kontakte) aktiv.
+- `LernreisePanel` (Hilfe-Sidebar mit Kursen: Erste Schritte, Projekt vorbereiten, Raum planen, Möbel platzieren) im Editor integriert.
+- `SaveNotificationBanner` ("Speichern nicht automatisch – jetzt speichern?") im Editor aktiv.
+- In-App-Support-Suche und „Support kontaktieren"-Link im LernreisePanel vorhanden.
+
+### Sprint 34 – Workspace-Layout & Projekt-Details
+- `GET|PUT /user/workspace-layout` aktiv.
+- `PATCH /projects/:id/advisor` aktiv.
+- Workspace-Layout wird beim Editor-Start geladen und kann über den SaveNotificationBanner persistiert werden.
+- Fachberater/Sachbearbeiter im Projektboard editierbar (Feld `advisor`).
+- Fachberater-Badge im Editor-Topbar sichtbar.
 
 ## Offene Punkte
 

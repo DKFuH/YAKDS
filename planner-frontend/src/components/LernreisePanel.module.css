@@ -1,0 +1,199 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface-default);
+  border-left: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.btnClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+.btnClose:hover {
+  background: var(--surface-muted);
+  color: var(--text-default);
+}
+
+.courseList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.courseCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-subtle, var(--surface-default));
+  cursor: default;
+  text-align: left;
+}
+
+.courseCard:hover {
+  border-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 6%, var(--surface-default));
+}
+
+.courseIcon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.courseContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.courseTitle {
+  font-weight: 600;
+  color: var(--text-default);
+  font-size: 0.9rem;
+}
+
+.courseDesc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.courseSteps {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.courseSteps li {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding-left: 0.9rem;
+  position: relative;
+}
+
+.courseSteps li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+}
+
+.support {
+  border-top: 1px solid var(--border-subtle);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.supportTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+.supportRow {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface-default);
+  color: var(--text-default);
+}
+
+.btnSupport {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-default);
+  color: var(--text-default);
+  cursor: pointer;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.btnSupport:hover {
+  background: var(--surface-muted);
+}
+
+.btnSupportPrimary {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--primary-color);
+  color: var(--text-inverse);
+  cursor: pointer;
+  font-size: 0.82rem;
+  width: 100%;
+}
+
+.btnSupportPrimary:hover {
+  background: var(--primary-hover);
+}
+
+.searchResults {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 8rem;
+  overflow-y: auto;
+}
+
+.searchResultItem {
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.82rem;
+  background: var(--surface-subtle, var(--surface-default));
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-default);
+}
+
+.searchResultItem:hover {
+  border-color: var(--primary-color);
+}

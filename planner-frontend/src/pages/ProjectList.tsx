@@ -443,6 +443,26 @@ export function ProjectList() {
                         </label>
 
                         <label>
+                          <span>Fachberater</span>
+                          <input
+                            type="text"
+                            value={project.advisor ?? ''}
+                            placeholder="Fachberater/Sachbearbeiter"
+                            disabled={savingProjectId === project.id}
+                            onBlur={(event) => {
+                              const value = event.target.value.trim()
+                              void patchProject(project.id, () => projectsApi.advisor(project.id, { advisor: value === '' ? null : value }))
+                            }}
+                            onChange={(event) => {
+                              const nextValue = event.target.value
+                              setProjects((prev) => prev.map((entry) => (
+                                entry.id === project.id ? { ...entry, advisor: nextValue } : entry
+                              )))
+                            }}
+                          />
+                        </label>
+
+                        <label>
                           <span>Fortschritt</span>
                           <input
                             type="range"

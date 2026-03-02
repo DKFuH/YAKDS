@@ -48,6 +48,16 @@
   text-overflow: ellipsis;
 }
 
+.advisorBadge {
+  font-size: 0.78rem;
+  color: var(--editor-text-muted);
+  white-space: nowrap;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--editor-surface-alt);
+  border: 1px solid var(--editor-border);
+}
+
 .topbarActions { display: flex; align-items: center; gap: 0.5rem; }
 
 .autoCompleteHint {

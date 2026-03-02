@@ -11,6 +11,7 @@ import { roomsApi, type RoomBoundaryPayload, type RoomPayload } from '../api/roo
 import { openingsApi, type Opening } from '../api/openings.js'
 import { validateApi, type ValidateResponse } from '../api/validate.js'
 import { autoCompletionApi, type AutoCompleteResult } from '../api/autoCompletion.js'
+import { workspaceLayoutApi } from '../api/workspaceLayout.js'
 import { usePolygonEditor, edgeLengthMm } from '../editor/usePolygonEditor.js'
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { PopoutWindow } from '../components/editor/PopoutWindow.js'
@@ -19,6 +20,8 @@ import { LeftSidebar } from '../components/editor/LeftSidebar.js'
 import { RightSidebar, type CeilingConstraint, type ConfiguredDimensions } from '../components/editor/RightSidebar.js'
 import { StatusBar } from '../components/editor/StatusBar.js'
 import { AreasPanel } from '../components/editor/AreasPanel.js'
+import { LernreisePanel } from '../components/LernreisePanel.js'
+import { SaveNotificationBanner } from '../components/SaveNotificationBanner.js'
 import styles from './Editor.module.css'
 
 function resolveArticleVariantId(article: CatalogArticle, chosenOptions: Record<string, string>): string | undefined {
@@ -87,6 +90,9 @@ export function Editor() {
   const [autoCompleteResult, setAutoCompleteResult] = useState<AutoCompleteResult | null>(null)
   const [isPreviewPopoutOpen, setIsPreviewPopoutOpen] = useState(false)
   const [showAreasPanel, setShowAreasPanel] = useState(false)
+  const [showHelpPanel, setShowHelpPanel] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [savingLayout, setSavingLayout] = useState(false)
 
   // Editor-State nach oben gehoben, damit RightSidebar darauf zugreifen kann
   const editor = usePolygonEditor()
@@ -108,6 +114,16 @@ export function Editor() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
+
+  // Sprint 34: Load workspace layout on mount
+  useEffect(() => {
+    workspaceLayoutApi.get().then((layout) => {
+      const json = layout.layout_json as { showAreasPanel?: boolean; showHelpPanel?: boolean; viewMode?: '2d' | '3d' }
+      if (json.showAreasPanel != null) setShowAreasPanel(json.showAreasPanel)
+      if (json.showHelpPanel != null) setShowHelpPanel(json.showHelpPanel)
+      if (json.viewMode === '2d' || json.viewMode === '3d') setViewMode(json.viewMode)
+    }).catch(() => { /* ignore if backend unavailable */ })
+  }, [])
 
   // Editor-Vertices + Öffnungen neu laden wenn Raum wechselt
   useEffect(() => {
@@ -387,6 +403,19 @@ export function Editor() {
     }).catch((e: Error) => console.error('Dachschrägen speichern fehlgeschlagen:', e))
   }, [handleRoomUpdated])
 
+  // Sprint 34: Save workspace layout
+  async function handleSaveLayout() {
+    setSavingLayout(true)
+    try {
+      await workspaceLayoutApi.save({ showAreasPanel, showHelpPanel, viewMode })
+      setHasUnsavedChanges(false)
+    } catch (e) {
+      console.error('Layout speichern fehlgeschlagen:', e)
+    } finally {
+      setSavingLayout(false)
+    }
+  }
+
   const selectedRoom = project?.rooms.find(r => r.id === selectedRoomId) ?? null
   selectedRoomRef.current = selectedRoom as unknown as RoomPayload | null
 
@@ -426,6 +455,9 @@ export function Editor() {
       <header className={styles.topbar}>
         <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>← Projekte</button>
         <span className={styles.projectName}>{project.name}</span>
+        {project.advisor && (
+          <span className={styles.advisorBadge} title="Fachberater">👤 {project.advisor}</span>
+        )}
         <div className={styles.topbarActions}>
           {autoCompleteResult && (
             <span className={styles.autoCompleteHint}>
@@ -441,11 +473,11 @@ export function Editor() {
           >
             {autoCompleteLoading ? 'Generiere…' : 'Auto vervollständigen'}
           </button>
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={() => setViewMode((prev) => (prev === '2d' ? '3d' : '2d'))}
-          >
+          <button type="button" className={styles.btnSecondary} onClick={() => setViewMode((prev) => {
+            const next = prev === '2d' ? '3d' : '2d'
+            setHasUnsavedChanges(true)
+            return next
+          })}>
             {viewMode === '2d' ? '3D Preview' : '2D Editor'}
           </button>
           <button
@@ -460,8 +492,11 @@ export function Editor() {
           <button type="button" className={styles.btnSecondary} onClick={() => navigate(`/projects/${id}/quote-lines`)}>
             Angebotspositionen
           </button>
-          <button type="button" className={styles.btnSecondary} onClick={() => setShowAreasPanel((prev) => !prev)}>
+          <button type="button" className={styles.btnSecondary} onClick={() => { setShowAreasPanel((prev) => !prev); setHasUnsavedChanges(true) }}>
             {showAreasPanel ? 'Bereiche ausblenden' : 'Bereiche / Alternativen'}
+          </button>
+          <button type="button" className={styles.btnSecondary} onClick={() => { setShowHelpPanel((prev) => !prev); setHasUnsavedChanges(true) }}>
+            {showHelpPanel ? 'Hilfe ausblenden' : '? Hilfe'}
           </button>
         </div>
       </header>
@@ -469,6 +504,9 @@ export function Editor() {
       <div className={styles.workspace}>
         {showAreasPanel && id && (
           <AreasPanel projectId={id} />
+        )}
+        {showHelpPanel && (
+          <LernreisePanel onClose={() => setShowHelpPanel(false)} />
         )}
         <LeftSidebar
           rooms={project.rooms}
@@ -530,6 +568,14 @@ export function Editor() {
       </div>
 
       <StatusBar project={project} selectedRoom={selectedRoom} />
+
+      {hasUnsavedChanges && (
+        <SaveNotificationBanner
+          onSave={handleSaveLayout}
+          onDismiss={() => setHasUnsavedChanges(false)}
+          saving={savingLayout}
+        />
+      )}
 
       {isPreviewPopoutOpen && (
         <PopoutWindow
