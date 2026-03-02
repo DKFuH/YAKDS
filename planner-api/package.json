@@ -15,8 +15,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@fastify/cors": "^9.0.1",
-    "@fastify/multipart": "^8.3.0",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/multipart": "^9.4.0",
     "@prisma/client": "^5.22.0",
     "@types/adm-zip": "^0.5.7",
     "@okp/dxf-export": "file:../interop-cad/dxf-export",
@@ -25,7 +25,7 @@
     "@okp/skp-import": "file:../interop-sketchup/skp-import",
     "adm-zip": "^0.5.16",
     "fast-xml-parser": "^5.4.1",
-    "fastify": "^4.28.1",
+    "fastify": "^5.7.2",
     "iconv-lite": "^0.7.2",
     "zod": "^3.23.8"
   },
