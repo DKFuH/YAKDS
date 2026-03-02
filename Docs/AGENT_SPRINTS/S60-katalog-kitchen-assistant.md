@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-60-katalog-kitchen-assistant`
 **Gruppe:** D
-**Status:** `planned`
+**Status:** `done`
 **Abhängigkeiten:** S59 (Bemaßung), S20 (Herstellerkataloge)
 
 ---

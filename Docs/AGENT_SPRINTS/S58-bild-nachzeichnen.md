@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-58-bild-nachzeichnen`
 **Gruppe:** C
-**Status:** `planned`
+**Status:** `done`
 
 ---
 

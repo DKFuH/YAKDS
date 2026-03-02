@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-53-dwg-skp`
 **Gruppe:** D
-**Status:** `planned`
+**Status:** `done`
 **Abhängigkeiten:** S52 (IFC fertig), S19 (DXF-Stubs vorhanden)
 
 ---

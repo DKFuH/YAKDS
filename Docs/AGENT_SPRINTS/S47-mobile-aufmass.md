@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-47-mobile-aufmass`
 **Gruppe:** A (sofort startbar, keine Konflikte mit anderen Gruppe-A-Sprints)
-**Status:** `planned`
+**Status:** `done`
 
 ---
 

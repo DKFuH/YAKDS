@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-55-raumakustik`
 **Gruppe:** D
-**Status:** `planned`
+**Status:** `done`
 **Abhängigkeiten:** S54 (OFML-Konfigurator), S14 (3D-Preview)
 
 ---

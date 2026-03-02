@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-54-ofml-konfigurator`
 **Gruppe:** C
-**Status:** `planned`
+**Status:** `done`
 
 ---
 

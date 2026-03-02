@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-51-gltf-export`
 **Gruppe:** A (sofort startbar – neues Paket, kein DB-Konflikt)
-**Status:** `planned`
+**Status:** `done`
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-48-erp-connector`
 **Gruppe:** B (startbar nach S46 ✅ oder parallel zu anderen Gruppe-B-Sprints)
-**Status:** `planned`
+**Status:** `done`
 **Abhängigkeit:** PurchaseOrder (Sprint 46, bereits gemergt)
 
 ---

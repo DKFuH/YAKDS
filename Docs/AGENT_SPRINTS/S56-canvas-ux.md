@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-56-canvas-ux`
 **Gruppe:** A (sofort startbar – nur Frontend, kein DB, keine API)
-**Status:** `planned`
+**Status:** `done`
 
 ---
 

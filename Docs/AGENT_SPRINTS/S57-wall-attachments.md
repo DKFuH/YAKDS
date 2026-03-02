@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-57-wall-attachments`
 **Gruppe:** B (parallel zu anderen Gruppe-B-Sprints – nur Enum-Extension, kein Tabellenkonflikt)
-**Status:** `planned`
+**Status:** `done`
 
 ---
 

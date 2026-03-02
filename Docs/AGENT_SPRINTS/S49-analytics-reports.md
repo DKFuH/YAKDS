@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-49-analytics-reports`
 **Gruppe:** A (sofort startbar, keine Konflikte mit anderen Gruppe-A-Sprints)
-**Status:** `planned`
+**Status:** `done`
 
 ---
 

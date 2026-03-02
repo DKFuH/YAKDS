@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-59-bemassung-frontansicht`
 **Gruppe:** C
-**Status:** `planned`
+**Status:** `done`
 
 ---
 

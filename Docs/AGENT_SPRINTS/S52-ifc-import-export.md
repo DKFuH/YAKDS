@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-52-ifc-import-export`
 **Gruppe:** D
-**Status:** `planned`
+**Status:** `done`
 **Abhängigkeiten:** S51 (GLTF-Export muss fertig sein – `alternatives`-Tabelle existiert)
 
 ---

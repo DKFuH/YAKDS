@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-50-compliance-rbac`
 **Gruppe:** B (parallel zu anderen Gruppe-B-Sprints – neue Tabellen, keine Konflikte)
-**Status:** `planned`
+**Status:** `done`
 
 ---
 
