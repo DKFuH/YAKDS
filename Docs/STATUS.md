@@ -38,6 +38,16 @@ Alle Reviews (TASK-3-R01 bis TASK-11-R01) intern ausgeführt. Alle Findings umge
 
 ---
 
+## Phase-5 Fortschritt (in Umsetzung)
+
+### Sprint 35 – Bestellverwaltung
+- `PurchaseOrder`- und `PurchaseOrderItem`-Modelle im Prisma-Schema verankert.
+- CRUD-Routen (`POST/GET /projects/:id/purchase-orders`, `GET/PUT/DELETE /purchase-orders/:id`) aktiv.
+- Statuswechsel-Endpunkt (`PATCH /purchase-orders/:id/status`) mit Notification-Integration aktiv.
+- 10 Unit-Tests grün.
+
+---
+
 ## Phase-3 Fortschritt (neu)
 
 ### Sprint 26 - Dokumentenmanagement

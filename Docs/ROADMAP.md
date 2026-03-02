@@ -271,3 +271,98 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 1. Bereiche/Alternativen müssen konsistent mit bestehender Raum-/Placement-Logik sein.
 2. Onboarding darf bestehende Auth-/User-Flows nicht brechen.
 3. Workspace-Layout-Persistenz muss per User/Tenant isoliert bleiben.
+
+---
+
+## Phase 5 – Sprints 35–39: Auftragsabwicklung & Bestellwesen
+
+**Ausgangslage (nach Sprint 34):** Volle Studio-Praxis vorhanden. Jetzt den Auftragskreislauf schließen: Bestellungen, Liefertermine, Kundenkommunikation, Nachkalkulation, Abschlussrechnung.
+
+**Ziel:** Geschlossener End-to-End-Kreislauf von der Angebotsakzeptanz bis zur bezahlten Rechnung.
+
+---
+
+### Sprint 35 – Bestellverwaltung
+
+**Ziel:** Kaufbestellungen an Lieferanten projektgebunden erstellen und verfolgen.
+
+**Features:**
+
+- `PurchaseOrder`-Entity: Lieferant, Status (`draft` → `sent` → `confirmed` → `delivered`), Bestelldatum, Lieferdatum.
+- `PurchaseOrderItem`-Entity: SKU, Beschreibung, Menge, Einheit, Einzelpreis, Zeilenpreis.
+- `POST/GET /projects/:id/purchase-orders`, `GET/PUT/DELETE /purchase-orders/:id`, `PATCH /purchase-orders/:id/status`.
+
+**DoD:** Bestellung anlegen, Items hinzufügen, Status wechseln; 5–8 Tests grün.
+
+---
+
+### Sprint 36 – Lieferterminplanung
+
+**Ziel:** Liefer- und Montagetermine strukturiert erfassen und im Kalender darstellen.
+
+**Features:**
+
+- `DeliveryAppointment`-Entity: Typ (Lieferung/Montage/Service), Datum/Zeitfenster, Team, Status.
+- `POST/GET /projects/:id/delivery-appointments`, `PATCH /delivery-appointments/:id/status`.
+- `GET /delivery-appointments/calendar?tenant_id=?&from=?&to=?`.
+
+**DoD:** Termin anlegen, Kalender zeigt Termine mandantenübergreifend.
+
+---
+
+### Sprint 37 – Kundenkommunikation & Freigabe-Workflow
+
+**Ziel:** Kundenkorrespondenz und Freigabe-Aktionen als Aktivitäten am Projekt verfolgen.
+
+**Features:**
+
+- `ProjectActivity`-Entity: Typ (E-Mail/Anruf/Meeting/Freigabe), Betreff, Nachricht, Kontaktlink.
+- `POST/GET /projects/:id/activities`, `POST /projects/:id/activities/:activityId/approval-request`.
+
+**DoD:** Aktivität anlegen, Freigabe-Anfrage erzeugt Notification.
+
+---
+
+### Sprint 38 – Nachkalkulation & Abschlussrechnung
+
+**Ziel:** Ist-Kosten aus Bestellungen gegen Angebotswerte spiegeln; Rechnung aus Angebot erzeugen.
+
+**Features:**
+
+- `ProjectInvoice`-Entity: Rechnungsnummer, Status, Fälligkeit, Bezug zu Quote.
+- `POST/GET /projects/:id/invoices`, `PATCH /invoices/:id/status`.
+- `GET /projects/:id/cost-analysis` – Soll/Ist-Vergleich Angebot vs. Bestellkosten.
+
+**DoD:** Rechnung aus Angebot erzeugen, Kostenanalyse spiegelt Bestellwerte.
+
+---
+
+### Sprint 39 – Erweiterte Plattformauswertungen
+
+**Ziel:** KPI-Dashboard um Bestell-, Liefer- und Rechnungsmetriken erweitern.
+
+**Features:**
+
+- `GET /kpis/order-volume`, `GET /kpis/delivery-performance`, `GET /kpis/invoice-aging`, `GET /kpis/margin-analysis`.
+- Dashboard-Widgets für Bestellvolumen, Lieferperformance und Margenanalyse.
+
+**DoD:** Neue KPI-Endpunkte liefern plausible Werte; Dashboard-Widgets verfügbar.
+
+---
+
+### Meilenstein Phase 5
+
+| Nach Sprint | Ergebnis |
+|-------------|----------|
+| 39 | Geschlossener Auftragskreislauf: Lead → Planung → Angebot → Bestellung → Lieferung → Rechnung → Abschluss |
+
+### Referenz
+
+- Detailplanung und DoD: `Docs/PHASE_5_DOD_AND_EXECUTION_PLAN.md`
+
+### Risiken Phase 5
+
+1. Bestellkomplexität (mehrere Lieferanten pro Projekt) erfordert klares 1:n-Modell.
+2. Rechnungslegung muss steuerrechtlichen Anforderungen (GoBD) gerecht werden.
+3. Margenanalyse erfordert konsistente SKU-Verknüpfung zwischen Bestellung und BOM.
+4. Notification-Last durch Bestell- und Lieferereignisse muss von bestehender Infrastruktur getragen werden.
