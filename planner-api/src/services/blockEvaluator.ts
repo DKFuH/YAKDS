@@ -2,7 +2,7 @@ import type {
   BlockDefinition,
   BlockEvaluation,
   PriceSummary
-} from '@yakds/shared-schemas';
+} from '@okp/shared-schemas';
 
 function getBasisValue(priceSummary: PriceSummary, basis: BlockDefinition['basis']): number {
   switch (basis) {

@@ -14,7 +14,7 @@ import {
     type AutoLongPartCabinet,
     type WorktopParams,
     type PlinthParams,
-} from '@yakds/shared-schemas'
+} from '@okp/shared-schemas'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../db.js'
 

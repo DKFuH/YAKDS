@@ -912,7 +912,7 @@ Datei: `interop-cad/dxf-export/src/dxfExporter.ts`
 Bibliothek: `dxf-writer` (npm)
 
 Layer-Konventionen aus Docs/CAD_INTEROP.md:
-  YAKDS_ROOM, YAKDS_WALLS, YAKDS_OPENINGS, YAKDS_FURNITURE
+  OKP_ROOM, OKP_WALLS, OKP_OPENINGS, OKP_FURNITURE
 
 Input:
   interface ExportPayload {
@@ -926,10 +926,10 @@ Input:
 Implementiere:
 1. exportToDxf(payload: ExportPayload): string
    - DXF-String mit korrekten Layern
-   - Raumkontur als geschlossene Polylinie auf YAKDS_ROOM
-   - Wandlinien auf YAKDS_WALLS
-   - Öffnungen als Linien auf YAKDS_OPENINGS
-   - Möbelkonturen als Rechtecke auf YAKDS_FURNITURE (wenn includeFurniture)
+   - Raumkontur als geschlossene Polylinie auf OKP_ROOM
+   - Wandlinien auf OKP_WALLS
+   - Öffnungen als Linien auf OKP_OPENINGS
+   - Möbelkonturen als Rechtecke auf OKP_FURNITURE (wenn includeFurniture)
    - Einheit: mm ($INSUNITS = 4)
 
 2. Integrationstest: exportToDxf → output enthält alle Layer-Namen als Strings
@@ -1130,7 +1130,7 @@ Testfälle:
    - DXF mit INSUNITS=1 (Inch) importieren → Koordinaten in mm korrekt
 
 3. Layer-Check:
-   - Exportiertes DXF enthält alle 4 YAKDS-Layer
+   - Exportiertes DXF enthält alle 4 OKP-Layer
 
 4. Robustheit:
    - Leeres DXF → kein Crash, leeres ImportAsset
@@ -1666,7 +1666,7 @@ Prüfe:
 1. Werden Koordinaten mit Toleranz verglichen (±1mm) statt exakt (Float-Vergleich)?
 2. Werden verschiedene DXF-Versionen getestet (R2010, R2013, R2018)?
 3. Leeres DXF als Grenzfall vorhanden?
-4. Werden alle 4 YAKDS-Layer im Export geprüft?
+4. Werden alle 4 OKP-Layer im Export geprüft?
 ```
 
 ### Raptor-Prompt

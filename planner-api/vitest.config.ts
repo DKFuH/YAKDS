@@ -6,14 +6,14 @@ export default defineConfig({
         globals: true,
         environment: 'node',
         alias: {
-            '@yakds/shared-schemas': path.resolve(__dirname, '../shared-schemas/src/index.ts'),
+            '@okp/shared-schemas': path.resolve(__dirname, '../shared-schemas/src/index.ts'),
         },
         server: {
             deps: {
                 inline: [
-                    '@yakds/shared-schemas',
-                    '@yakds/dxf-import',
-                    '@yakds/skp-import',
+                    '@okp/shared-schemas',
+                    '@okp/dxf-import',
+                    '@okp/skp-import',
                 ],
             },
         },

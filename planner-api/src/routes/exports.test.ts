@@ -84,8 +84,8 @@ describe('exportRoutes', () => {
     expect(response.statusCode).toBe(200)
     expect(response.headers['content-disposition']).toContain('kitchen-plan.dxf')
     expect(response.headers['content-type']).toContain('application/dxf')
-    expect(response.body).toContain('YAKDS_ROOM')
-    expect(response.body).toContain('YAKDS_OPENINGS')
+    expect(response.body).toContain('OKP_ROOM')
+    expect(response.body).toContain('OKP_OPENINGS')
 
     await app.close()
   })
@@ -157,7 +157,7 @@ describe('exportRoutes', () => {
     expect(response.headers['x-yakds-export-fallback']).toBe('dwg->dxf')
     expect(response.headers['content-disposition']).toContain('kitchen-plan.dxf')
     expect(response.headers['content-type']).toContain('application/dxf')
-    expect(response.body).toContain('YAKDS_WALLS')
+    expect(response.body).toContain('OKP_WALLS')
 
     await app.close()
   })

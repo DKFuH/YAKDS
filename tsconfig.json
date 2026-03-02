@@ -15,16 +15,16 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@yakds/shared-schemas": [
+      "@okp/shared-schemas": [
         "shared-schemas/src/index.ts"
       ],
-      "@yakds/dxf-import": [
+      "@okp/dxf-import": [
         "interop-cad/dxf-import/src/index.ts"
       ],
-      "@yakds/dxf-export": [
+      "@okp/dxf-export": [
         "interop-cad/dxf-export/src/index.ts"
       ],
-      "@yakds/skp-import": [
+      "@okp/skp-import": [
         "interop-sketchup/skp-import/src/index.ts"
       ],
       "@shared/*": [

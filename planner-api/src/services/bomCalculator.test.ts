@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { BOMLine, ProjectSnapshot } from '@yakds/shared-schemas';
+import type { BOMLine, ProjectSnapshot } from '@okp/shared-schemas';
 import { calculateBOM, sumBOMLines, type GeneratedItemInput } from './bomCalculator.js';
 
 function baseProject(): ProjectSnapshot {

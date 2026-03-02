@@ -1,13 +1,13 @@
 import Drawing from 'dxf-writer';
 
-import { withoutDuplicateClosure } from '@yakds/shared-schemas';
-import type { ExportPayload, Opening, Point2D, WallSegment2D } from '@yakds/shared-schemas';
+import { withoutDuplicateClosure } from '@okp/shared-schemas';
+import type { ExportPayload, Opening, Point2D, WallSegment2D } from '@okp/shared-schemas';
 
 export const CAD_EXPORT_LAYERS = {
-  room: 'YAKDS_ROOM',
-  walls: 'YAKDS_WALLS',
-  openings: 'YAKDS_OPENINGS',
-  furniture: 'YAKDS_FURNITURE'
+  room: 'OKP_ROOM',
+  walls: 'OKP_WALLS',
+  openings: 'OKP_OPENINGS',
+  furniture: 'OKP_FURNITURE'
 } as const;
 
 export const CAD_EXPORT_LAYER_NAMES = Object.values(CAD_EXPORT_LAYERS);

@@ -24,7 +24,7 @@ Umsetzung der Codex-Aufgabe aus Sprint 11.5:
 Implementiert wurde:
 
 - `exportToDxf(payload)`
-- Exportlayer `YAKDS_ROOM`, `YAKDS_WALLS`, `YAKDS_OPENINGS`, `YAKDS_FURNITURE`
+- Exportlayer `OKP_ROOM`, `OKP_WALLS`, `OKP_OPENINGS`, `OKP_FURNITURE`
 - Raumkontur als geschlossene Polylinie
 - Waende und Oeffnungen als Liniensegmente
 - Moebelkonturen als Rechtecke

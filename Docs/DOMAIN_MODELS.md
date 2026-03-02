@@ -1,6 +1,6 @@
 # DOMAIN_MODELS.md
 
-Domänenmodelle für YAKDS - Raumgeometrie, Katalog/Preislogik, Angebotswesen, Prüf-Engine und Mandantenmodell.
+Domänenmodelle für OKP - Raumgeometrie, Katalog/Preislogik, Angebotswesen, Prüf-Engine und Mandantenmodell.
 
 ---
 

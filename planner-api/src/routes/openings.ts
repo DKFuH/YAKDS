@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { detectOpeningsFromCad, validateOpening as validateOpeningRule } from '@yakds/shared-schemas'
-import type { CadEntity, Opening as SharedOpening, WallSegment } from '@yakds/shared-schemas'
+import { detectOpeningsFromCad, validateOpening as validateOpeningRule } from '@okp/shared-schemas'
+import type { CadEntity, Opening as SharedOpening, WallSegment } from '@okp/shared-schemas'
 import { prisma } from '../db.js'
 import { sendNotFound, sendBadRequest } from '../errors.js'
 

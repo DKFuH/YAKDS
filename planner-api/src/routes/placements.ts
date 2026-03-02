@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { validatePlacement } from '@yakds/shared-schemas'
-import type { Opening, Placement, WallSegment } from '@yakds/shared-schemas'
+import { validatePlacement } from '@okp/shared-schemas'
+import type { Opening, Placement, WallSegment } from '@okp/shared-schemas'
 
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'

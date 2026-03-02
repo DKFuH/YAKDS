@@ -1,5 +1,5 @@
 import type { BlockBasis, Prisma } from '@prisma/client'
-import type { BlockDefinition, BlockTier, PriceSummary } from '@yakds/shared-schemas'
+import type { BlockDefinition, BlockTier, PriceSummary } from '@okp/shared-schemas'
 
 export interface StoredBlockCondition {
   id: string

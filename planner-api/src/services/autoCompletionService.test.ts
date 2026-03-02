@@ -17,7 +17,7 @@ vi.mock('../db.js', () => ({
   prisma: prismaMock,
 }))
 
-vi.mock('@yakds/shared-schemas', () => ({
+vi.mock('@okp/shared-schemas', () => ({
   clusterCabinetsByWall: vi.fn((cabinets: any[]) => [
     {
       wall_id: 'wall-1',

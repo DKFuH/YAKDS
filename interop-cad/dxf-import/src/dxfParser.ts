@@ -12,7 +12,7 @@ import type {
   ImportAsset,
   ImportProtocolEntry,
   Point2D
-} from '@yakds/shared-schemas';
+} from '@okp/shared-schemas';
 
 type DxfEntity = Record<string, any>;
 type DxfLayer = { color?: number; name?: string; visible?: boolean; frozen?: boolean };

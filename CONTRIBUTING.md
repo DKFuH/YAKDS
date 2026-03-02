@@ -1,6 +1,6 @@
-# Beitragen zu YAKDS
+# Beitragen zu OKP
 
-Vielen Dank für dein Interesse, zu YAKDS beizutragen!
+Vielen Dank für dein Interesse, zu OKP beizutragen!
 
 ## Voraussetzungen
 
@@ -12,8 +12,8 @@ Vielen Dank für dein Interesse, zu YAKDS beizutragen!
 ## Entwicklungsumgebung einrichten
 
 ```bash
-git clone https://github.com/DKFuH/YAKDS.git
-cd YAKDS
+git clone https://github.com/DKFuH/OKP.git
+cd OKP
 npm install
 npm test
 ```

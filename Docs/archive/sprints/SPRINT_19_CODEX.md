@@ -23,10 +23,10 @@ Umsetzung Sprint 19 fuer Interop-Haertung und Regressionen:
 Implementiert wurde:
 
 - zentrale DXF-Exportlayer als Code-Konstanten:
-  - `YAKDS_ROOM`
-  - `YAKDS_WALLS`
-  - `YAKDS_OPENINGS`
-  - `YAKDS_FURNITURE`
+  - `OKP_ROOM`
+  - `OKP_WALLS`
+  - `OKP_OPENINGS`
+  - `OKP_FURNITURE`
 
 - Unit-/Scale-Review im DXF-Parser:
   - fehlendes `$INSUNITS` erzeugt `needs_review`

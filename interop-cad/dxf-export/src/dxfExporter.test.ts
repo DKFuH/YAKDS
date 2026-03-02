@@ -61,7 +61,7 @@ describe('dxfExporter', () => {
   it('omits furniture geometry when requested', () => {
     const output = exportToDxf(createPayload(false));
 
-    expect(output).toContain('YAKDS_FURNITURE');
+    expect(output).toContain('OKP_FURNITURE');
     expect(output).not.toContain('500\n 20\n500');
   });
 });

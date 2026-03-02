@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import type { Prisma } from '@prisma/client'
 import { z } from 'zod'
-import type { BlockDefinition, BOMLine, GlobalDiscountSettings, PriceSummary } from '@yakds/shared-schemas'
+import type { BlockDefinition, BOMLine, GlobalDiscountSettings, PriceSummary } from '@okp/shared-schemas'
 
 import { prisma } from '../db.js'
 import { sendBadRequest, sendForbidden, sendNotFound } from '../errors.js'

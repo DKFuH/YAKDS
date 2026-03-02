@@ -35,10 +35,10 @@ Protokollzustände: `imported` | `ignored` | `needs_review`
 
 | Layer | Inhalt |
 |-------|--------|
-| `YAKDS_ROOM` | geschlossene Raumkontur |
-| `YAKDS_WALLS` | Wandsegmente |
-| `YAKDS_OPENINGS` | Öffnungen |
-| `YAKDS_FURNITURE` | Möbelkonturen (Draufsicht) |
+| `OKP_ROOM` | geschlossene Raumkontur |
+| `OKP_WALLS` | Wandsegmente |
+| `OKP_OPENINGS` | Öffnungen |
+| `OKP_FURNITURE` | Möbelkonturen (Draufsicht) |
 
 DXF-Export: `$INSUNITS = 4` (mm).
 

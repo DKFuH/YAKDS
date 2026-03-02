@@ -10,7 +10,7 @@ import type {
   Point2D,
   RuleViolation,
   WallSegment2D,
-} from '@yakds/shared-schemas'
+} from '@okp/shared-schemas'
 import {
   checkObjectHeight,
   checkMinClearance,
@@ -18,7 +18,7 @@ import {
   checkObjectOverlap,
   checkObjectVsOpening,
   detectCostHints,
-} from '@yakds/shared-schemas'
+} from '@okp/shared-schemas'
 
 const ProjectParamsSchema = z.object({
   id: z.string().uuid(),

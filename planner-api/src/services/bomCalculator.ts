@@ -6,7 +6,7 @@ import type {
   PriceListItem,
   ProjectSnapshot,
   TaxGroup
-} from '@yakds/shared-schemas';
+} from '@okp/shared-schemas';
 
 export interface ArticlePriceInput {
   article_id: string;

@@ -61,7 +61,7 @@ describe('cad roundtrip', () => {
     const payload = createPayload();
     const dxf = exportToDxf(payload);
     const asset = parseDxf(dxf, 'roundtrip.dxf');
-    const roomLayer = asset.layers.find((layer) => layer.name === 'YAKDS_ROOM');
+    const roomLayer = asset.layers.find((layer) => layer.name === 'OKP_ROOM');
     const roomEntity =
       roomLayer &&
       asset.entities.find(
@@ -124,7 +124,7 @@ describe('cad roundtrip', () => {
     });
   });
 
-  it('keeps all expected YAKDS layer names in exported DXF output', () => {
+  it('keeps all expected OKP layer names in exported DXF output', () => {
     const dxf = exportToDxf(createPayload());
 
     CAD_EXPORT_LAYER_NAMES.forEach((layerName) => {

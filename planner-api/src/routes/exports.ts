@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
-import type { ExportPayload } from '@yakds/shared-schemas'
-import { exportToDxf } from '@yakds/dxf-export'
+import type { ExportPayload } from '@okp/shared-schemas'
+import { exportToDxf } from '@okp/dxf-export'
 import { prisma } from '../db.js'
 
 import { sendBadRequest, sendForbidden, sendNotFound } from '../errors.js'

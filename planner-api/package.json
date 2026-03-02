@@ -1,7 +1,7 @@
 {
   "name": "planner-api",
   "version": "0.1.0",
-  "description": "YAKDS – Küchenplaner API",
+  "description": "OpenKitchenPlanner (OKP) – Küchenplaner API",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -19,10 +19,10 @@
     "@fastify/multipart": "^8.3.0",
     "@prisma/client": "^5.22.0",
     "@types/adm-zip": "^0.5.7",
-    "@yakds/dxf-export": "file:../interop-cad/dxf-export",
-    "@yakds/dxf-import": "file:../interop-cad/dxf-import",
-    "@yakds/shared-schemas": "file:../shared-schemas",
-    "@yakds/skp-import": "file:../interop-sketchup/skp-import",
+    "@okp/dxf-export": "file:../interop-cad/dxf-export",
+    "@okp/dxf-import": "file:../interop-cad/dxf-import",
+    "@okp/shared-schemas": "file:../shared-schemas",
+    "@okp/skp-import": "file:../interop-sketchup/skp-import",
     "adm-zip": "^0.5.16",
     "fast-xml-parser": "^5.4.1",
     "fastify": "^4.28.1",

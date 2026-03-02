@@ -10,7 +10,7 @@ Archivierte Claude/Copilot-Prompts für Sprint-Implementierungen.
 
 ## GitHub-Copilot-Prompt
 
-Arbeite im Repo `YAKDS` und uebernimm eine klar isolierte Sprint-7-Anschlussaufgabe im Frontend.
+Arbeite im Repo `OKP` und uebernimm eine klar isolierte Sprint-7-Anschlussaufgabe im Frontend.
 
 Ziel:
 - Baue eine kleine Katalog-Browser-Komponente auf Basis der bestehenden API
@@ -57,7 +57,7 @@ Akzeptanz:
 
 ## GitHub-Copilot-Prompt
 
-Arbeite im Repo `YAKDS` und integriere die bereits vorhandene Katalog-Komponente in eine unkritische Frontend-Route.
+Arbeite im Repo `OKP` und integriere die bereits vorhandene Katalog-Komponente in eine unkritische Frontend-Route.
 
 Bereits vorhanden:
 
@@ -108,7 +108,7 @@ Akzeptanz:
 
 ## GitHub-Copilot-Prompt
 
-Arbeite im Repo `YAKDS` und uebernimm eine isolierte Frontend-Anschlussaufgabe fuer Sprint 9/10.
+Arbeite im Repo `OKP` und uebernimm eine isolierte Frontend-Anschlussaufgabe fuer Sprint 9/10.
 
 Backend-Vertrag:
 
@@ -170,7 +170,7 @@ Akzeptanz:
 
 ## GitHub-Copilot-Prompt
 
-Arbeite im Repo `YAKDS` und uebernimm eine isolierte Frontend-Anschlussaufgabe fuer Sprint 13.
+Arbeite im Repo `OKP` und uebernimm eine isolierte Frontend-Anschlussaufgabe fuer Sprint 13.
 
 Backend-Vertrag:
 
@@ -456,7 +456,7 @@ Bitte nur melden:
 
 ## GitHub-Copilot-Prompt
 
-Arbeite im Repo `YAKDS` und implementiere einen klar abgegrenzten Frontend-Anschluss fuer die bereits vorhandene Import-Job-API.
+Arbeite im Repo `OKP` und implementiere einen klar abgegrenzten Frontend-Anschluss fuer die bereits vorhandene Import-Job-API.
 
 Ziel:
 - Baue einen kleinen, separaten Frontend-Client fuer die neuen Backend-Endpunkte

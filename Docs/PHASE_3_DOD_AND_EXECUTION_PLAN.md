@@ -6,7 +6,7 @@ Stand: 2026-03-01
 
 ## 1) Executive Summary: Phase-3 Definition of Done (DoD)
 
-- **Plattform-Fokus statt Einzeltool:** YAKDS erweitert den Planungs- und Angebotskern um Projektsteuerung, Dokumente, Kontakte/CRM, personalisierte Dashboards und Cloud-Workflows.
+- **Plattform-Fokus statt Einzeltool:** OKP erweitert den Planungs- und Angebotskern um Projektsteuerung, Dokumente, Kontakte/CRM, personalisierte Dashboards und Cloud-Workflows.
 - **Nahtlose Fortsetzung von Phase 2:** Alle Features bauen auf Multi-Tenant (`Sprint 23`), BI-Light (`Sprint 23`), Quotes (`Sprint 13`) und Webplaner (`Sprint 24`) auf.
 - **One-Week-Sprints:** Sprints 25–30 werden als 6 aufeinanderfolgende 1‑Wochen-Inkremente umgesetzt.
 - **Verbindlicher End-to-End-Flow:** Lead -> Planung -> Quote -> Projektsteuerung -> Abschluss ist in einem zusammenhängenden Cloud-Workflow testbar.
@@ -346,4 +346,4 @@ GET  /projects/export-csv
 
 ## 7) Meilenstein nach Phase 3
 
-Nach Sprint 30 ist YAKDS eine vollständige Studio-Plattform mit End-to-End-Flow von Lead-Erfassung über Planung/Angebot bis Projekt-, Dokumenten- und Kundenmanagement inklusive personalisierter Auswertung und Cloud-Betrieb.
+Nach Sprint 30 ist OKP eine vollständige Studio-Plattform mit End-to-End-Flow von Lead-Erfassung über Planung/Angebot bis Projekt-, Dokumenten- und Kundenmanagement inklusive personalisierter Auswertung und Cloud-Betrieb.

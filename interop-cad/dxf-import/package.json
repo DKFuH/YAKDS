@@ -1,5 +1,5 @@
 {
-  "name": "@yakds/dxf-import",
+  "name": "@okp/dxf-import",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@yakds/shared-schemas": "file:../../shared-schemas",
+    "@okp/shared-schemas": "file:../../shared-schemas",
     "dxf-parser": "^1.1.2"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-# Styling Guide — YAKDS UI System
+# Styling Guide — OKP UI System
 
 **Version**: 1.0  
 **Letzte Aktualisierung**: 01. März 2026  
@@ -8,16 +8,16 @@
 
 ## Ziel
 
-Dieser Guide adaptiert den LeadKüche-Pro-Stil auf YAKDS, ohne Framework-Wechsel.
+Dieser Guide adaptiert den LeadKüche-Pro-Stil auf OKP, ohne Framework-Wechsel.
 
 Wichtig:
-- **Kein Bootstrap-Zwang**: YAKDS nutzt CSS Modules, kein Utility-Framework.
+- **Kein Bootstrap-Zwang**: OKP nutzt CSS Modules, kein Utility-Framework.
 - **Token-first**: Farben, Radius, Shadows und Typografie laufen über zentrale CSS-Variablen in `src/global.css`.
 - **Komponentenorientiert**: Seitenmodule verwenden Tokens (`var(--...)`) statt Hex-Werte.
 
 ---
 
-## Design-Prinzipien für YAKDS
+## Design-Prinzipien für OKP
 
 1. **Klarer Workflow statt Scroll-Flut**
    - Projektliste → Editor → BI/Catalog mit klaren Primäraktionen.
@@ -82,7 +82,7 @@ Wichtig:
 
 ---
 
-## Komponentenmuster (YAKDS)
+## Komponentenmuster (OKP)
 
 ### 1) Surface/Card
 
@@ -118,7 +118,7 @@ Empfehlung:
 
 ---
 
-## YAKDS-spezifische Regeln
+## OKP-spezifische Regeln
 
 1. **Keine neuen Hex-Werte in Modulen** (`*.module.css`) außer im begründeten Sonderfall.
 2. **Neue UI zuerst in Tokens denken** (Global), dann in Komponenten anwenden.
@@ -129,7 +129,7 @@ Empfehlung:
 
 ## Mapping zum ursprünglichen Bootstrap-orientierten Guide
 
-| Ursprungs-Guide | YAKDS Umsetzung |
+| Ursprungs-Guide | OKP Umsetzung |
 |---|---|
 | `btn btn-primary rounded-pill` | `.btnPrimary` + Token (`--primary-color`, `--radius-pill`) |
 | `card rounded-4 shadow-sm` | `.card`/`.panel` mit `--radius-lg`, `--shadow-card` |
