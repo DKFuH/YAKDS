@@ -18,6 +18,7 @@ import { Preview3D } from '../components/editor/Preview3D.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
 import { RightSidebar, type CeilingConstraint, type ConfiguredDimensions } from '../components/editor/RightSidebar.js'
 import { StatusBar } from '../components/editor/StatusBar.js'
+import { AreasPanel } from '../components/editor/AreasPanel.js'
 import styles from './Editor.module.css'
 
 function resolveArticleVariantId(article: CatalogArticle, chosenOptions: Record<string, string>): string | undefined {
@@ -85,6 +86,7 @@ export function Editor() {
   const [autoCompleteLoading, setAutoCompleteLoading] = useState(false)
   const [autoCompleteResult, setAutoCompleteResult] = useState<AutoCompleteResult | null>(null)
   const [isPreviewPopoutOpen, setIsPreviewPopoutOpen] = useState(false)
+  const [showAreasPanel, setShowAreasPanel] = useState(false)
 
   // Editor-State nach oben gehoben, damit RightSidebar darauf zugreifen kann
   const editor = usePolygonEditor()
@@ -458,10 +460,16 @@ export function Editor() {
           <button type="button" className={styles.btnSecondary} onClick={() => navigate(`/projects/${id}/quote-lines`)}>
             Angebotspositionen
           </button>
+          <button type="button" className={styles.btnSecondary} onClick={() => setShowAreasPanel((prev) => !prev)}>
+            {showAreasPanel ? 'Bereiche ausblenden' : 'Bereiche / Alternativen'}
+          </button>
         </div>
       </header>
 
       <div className={styles.workspace}>
+        {showAreasPanel && id && (
+          <AreasPanel projectId={id} />
+        )}
         <LeftSidebar
           rooms={project.rooms}
           selectedRoomId={selectedRoomId}

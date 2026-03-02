@@ -190,3 +190,84 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 3. Preisindexierung darf die bestehende 9-stufige Kalkulation nicht regressiv beeinflussen.
 4. Globale Suche benötigt robuste, domänenübergreifende Indexpflege.
 5. E-Mail-/Webhook-Zustellung braucht Retry- und Fehlertoleranzkonzept.
+
+---
+
+## Phase 4 – Sprints 31–34: Absolute Basics & Onboarding
+
+**Ausgangslage (nach Sprint 30):** End-to-End-Plattform vorhanden. Jetzt fehlende Grundfunktionen für den täglichen Studio-Einsatz nachrüsten.
+
+**Ziel:** Projektsteuerung auf Dashboard-Niveau, Bereiche/Alternativen-Baumstruktur, Onboarding-Assistent und anpassbares Workspace-Layout.
+
+---
+
+### Sprint 31 – Projektliste & 3-Punkte-Menü
+
+**Ziel:** Dashboard-ähnliche Projektliste mit Filtern, Suche, 3-Punkte-Menü.
+
+**Features:**
+
+- Projektliste-View: Filter (Status/Branch/Verkäufer), Suche.
+- „Neues Projekt"-Button → Dialog: Kundenname, Adresse, Kontaktperson, Lead-Quelle.
+- 3-Punkte-Menü pro Projekt (Edit, Duplicate, Delete, Archive).
+- `PATCH /projects/:id/3dots?action=duplicate|archive|unarchive`.
+- `GET /projects?search=…&status_filter=…&sales_rep=…`.
+
+**DoD:** 10 Projekte anlegen, filtern/suchen, Status ändern, 3-Punkte-Menü öffnet Optionen.
+
+---
+
+### Sprint 32 – Bereiche / Alternativen & Modellauswahl
+
+**Ziel:** Baumstruktur + globale Kopfdaten pro Alternative – F7 öffnet überall.
+
+**Features:**
+
+- Projekt-View: Baum „Bereiche > Alternativen" (Rechtsklick: Neu/Duplicate/Delete, Doppelklick öffnen).
+- Modell-/Indexeinstellungen-Dialog (F7): Küchenmodell, Arbeitsplatte, Sockel/Abdeckboden, Raum.
+- `POST /projects/:id/areas`, `POST /projects/:id/areas/:areaId/alternatives`.
+- `GET|PUT /alternatives/:id/model-settings`.
+
+**DoD:** Bereich/Alternative anlegen, Modell ändern → Einstellungen persistiert.
+
+---
+
+### Sprint 33 – Onboarding & Lernreise
+
+**Ziel:** Neuer User kann sich selbstständig einrichten – mit Tutorials und Helpdesk-Links.
+
+**Features:**
+
+- Onboarding-Wizard: Nach erstem Login → „Erste Schritte": Shop-Setup, erster Katalog, Testprojekt.
+- Lernreise-UI: Step-by-Step mit Icons und CTA-Buttons.
+- Benachrichtigungen: „Speichern nicht automatisch – jetzt speichern?".
+
+**DoD:** Neuer User durchläuft Wizard, findet Tutorials, öffnet Support-Centre.
+
+---
+
+### Sprint 34 – Workspace-Layout & Projekt-Details
+
+**Ziel:** Layout anpassbar + Projekt-Details erweitern.
+
+**Features:**
+
+- Workspace-Layout: Speichern/Laden pro User.
+- Projekt-Details: Fachberater/Sachbearbeiter zuweisen, Verkäufer (sales_rep) pflegen.
+- `PUT /user/workspace-layout`, `PATCH /projects/:id/advisor`.
+
+**DoD:** Berater zuweisen, Workspace-Layout speichern.
+
+---
+
+### Meilenstein Phase 4
+
+| Nach Sprint | Ergebnis |
+|-------------|----------|
+| 34 | Volle Studio-Praxis: Onboarding, Bereiche, Modellauswahl, Workspace-Layout |
+
+### Risiken Phase 4
+
+1. Bereiche/Alternativen müssen konsistent mit bestehender Raum-/Placement-Logik sein.
+2. Onboarding darf bestehende Auth-/User-Flows nicht brechen.
+3. Workspace-Layout-Persistenz muss per User/Tenant isoliert bleiben.

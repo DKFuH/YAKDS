@@ -11,6 +11,8 @@ export interface Project {
   deadline: string | null
   priority: 'low' | 'medium' | 'high'
   assigned_to: string | null
+  advisor: string | null
+  sales_rep: string | null
   progress_pct: number
   lead_status?: 'new' | 'qualified' | 'quoted' | 'won' | 'lost'
   quote_value?: number | null
@@ -45,6 +47,8 @@ export interface ProjectBoardFilters {
   user_id?: string
   branch_id?: string
   status_filter?: Project['project_status']
+  search?: string
+  sales_rep?: string
 }
 
 export interface ProjectAssignmentUpdate {
@@ -151,6 +155,28 @@ export const projectsApi = {
       return await api.delete(`/projects/${id}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
       if (shouldUseDemoFallback(error)) return deleteDemoProject(id)
+      throw error
+    }
+  },
+  threeDots: async (id: string, action: 'duplicate' | 'archive' | 'unarchive') => {
+    try {
+      return await api.patch<Project>(`/projects/${id}/3dots?action=${action}`, {}, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) {
+        if (action === 'duplicate') {
+          const project = getDemoProject(id)
+          return createDemoProject({ name: `${project.name} (Kopie)` })
+        }
+        return updateDemoProject(id, { status: action === 'archive' ? 'archived' : 'active' })
+      }
+      throw error
+    }
+  },
+  advisor: async (id: string, data: { advisor: string | null; sales_rep?: string | null }) => {
+    try {
+      return await api.patch<Project>(`/projects/${id}/advisor`, data, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return updateDemoProject(id, data)
       throw error
     }
   },

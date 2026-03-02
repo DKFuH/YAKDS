@@ -51,6 +51,9 @@ const CreateVersionBodySchema = z.object({
 
 const ProjectListQuerySchema = z.object({
   user_id: z.string().min(1).optional(),
+  search: z.string().min(1).max(200).optional(),
+  status_filter: z.enum(projectWorkflowStatusValues).optional(),
+  sales_rep: z.string().min(1).max(200).optional(),
 })
 
 const ProjectBoardQuerySchema = z.object({
@@ -80,6 +83,8 @@ function projectBoardSelect() {
     deadline: true,
     priority: true,
     assigned_to: true,
+    advisor: true,
+    sales_rep: true,
     progress_pct: true,
     lead_status: true,
     quote_value: true,
@@ -93,15 +98,22 @@ function projectBoardSelect() {
 }
 
 export async function projectRoutes(app: FastifyInstance) {
-  app.get<{ Querystring: { user_id?: string } }>('/projects', async (request, reply) => {
+  app.get<{ Querystring: { user_id?: string; search?: string; status_filter?: string; sales_rep?: string } }>('/projects', async (request, reply) => {
     const parsedQuery = ProjectListQuerySchema.safeParse(request.query)
     if (!parsedQuery.success) {
       return sendBadRequest(reply, parsedQuery.error.errors[0]?.message ?? 'Invalid query')
     }
 
+    const { user_id, search, status_filter, sales_rep } = parsedQuery.data
+
     const projects = await prisma.project.findMany({
       where: {
-        ...(parsedQuery.data.user_id ? { user_id: parsedQuery.data.user_id } : {}),
+        ...(user_id ? { user_id } : {}),
+        ...(status_filter ? { project_status: status_filter as typeof projectWorkflowStatusValues[number] } : {}),
+        ...(sales_rep ? { sales_rep } : {}),
+        ...(search
+          ? { name: { contains: search, mode: 'insensitive' } }
+          : {}),
       },
       orderBy: { updated_at: 'desc' },
       select: projectBoardSelect(),
@@ -360,5 +372,90 @@ export async function projectRoutes(app: FastifyInstance) {
     })
 
     return reply.send(versions)
+  })
+
+  // Sprint 34: Fachberater/Sachbearbeiter zuweisen
+  const AdvisorSchema = z.object({
+    advisor: z.string().min(1).max(200).nullable(),
+    sales_rep: z.string().min(1).max(200).nullable().optional(),
+  })
+
+  app.patch<{ Params: { id: string } }>('/projects/:id/advisor', async (request, reply) => {
+    const parsed = AdvisorSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return sendBadRequest(reply, parsed.error.errors[0]?.message ?? 'Invalid payload')
+    }
+
+    const existing = await prisma.project.findUnique({ where: { id: request.params.id } })
+    if (!existing) {
+      return sendNotFound(reply, 'Project not found')
+    }
+
+    const project = await prisma.project.update({
+      where: { id: request.params.id },
+      data: {
+        ...(parsed.data.advisor !== undefined ? { advisor: parsed.data.advisor } : {}),
+        ...(parsed.data.sales_rep !== undefined ? { sales_rep: parsed.data.sales_rep } : {}),
+      },
+      select: projectBoardSelect(),
+    })
+
+    return reply.send(project)
+  })
+
+  // Sprint 31: 3-Punkte-Menü – duplicate / archive
+  const ThreeDotsQuerySchema = z.object({
+    action: z.enum(['duplicate', 'archive', 'unarchive']),
+  })
+
+  app.patch<{ Params: { id: string }; Querystring: { action?: string } }>('/projects/:id/3dots', async (request, reply) => {
+    const parsedQuery = ThreeDotsQuerySchema.safeParse(request.query)
+    if (!parsedQuery.success) {
+      return sendBadRequest(reply, parsedQuery.error.errors[0]?.message ?? 'Invalid action')
+    }
+
+    const existing = await prisma.project.findUnique({ where: { id: request.params.id } })
+    if (!existing) {
+      return sendNotFound(reply, 'Project not found')
+    }
+
+    if (parsedQuery.data.action === 'duplicate') {
+      const copy = await prisma.project.create({
+        data: {
+          user_id: existing.user_id,
+          name: `${existing.name} (Kopie)`,
+          description: existing.description,
+          status: 'active',
+          project_status: 'lead',
+          deadline: existing.deadline,
+          priority: existing.priority,
+          assigned_to: existing.assigned_to,
+          advisor: existing.advisor,
+          sales_rep: existing.sales_rep,
+          progress_pct: 0,
+          tenant_id: existing.tenant_id,
+          branch_id: existing.branch_id,
+        },
+        select: projectBoardSelect(),
+      })
+      return reply.status(201).send(copy)
+    }
+
+    if (parsedQuery.data.action === 'archive') {
+      const project = await prisma.project.update({
+        where: { id: request.params.id },
+        data: { status: 'archived', project_status: 'archived' },
+        select: projectBoardSelect(),
+      })
+      return reply.send(project)
+    }
+
+    // unarchive
+    const project = await prisma.project.update({
+      where: { id: request.params.id },
+      data: { status: 'active', project_status: 'lead' },
+      select: projectBoardSelect(),
+    })
+    return reply.send(project)
   })
 }

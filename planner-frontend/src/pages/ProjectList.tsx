@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { platformApi, type GlobalSearchResult } from '../api/platform.js'
 import { projectsApi, type Project } from '../api/projects.js'
+import { OnboardingWizard, shouldShowOnboarding } from '../components/OnboardingWizard.js'
 import styles from './ProjectList.module.css'
 
 const BOARD_COLUMNS: Array<{ id: Project['project_status']; label: string }> = [
@@ -60,6 +61,21 @@ export function ProjectList() {
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<GlobalSearchResult[]>([])
   const [searching, setSearching] = useState(false)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+  const [showOnboarding, setShowOnboarding] = useState(shouldShowOnboarding)
+
+  // Close dropdown menu on outside click
+  useEffect(() => {
+    if (!openMenuId) return
+    function handleOutsideClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [openMenuId])
 
   async function loadProjects(filter: 'all' | Project['project_status']) {
     setLoading(true)
@@ -98,6 +114,28 @@ export function ProjectList() {
     await projectsApi.delete(id)
     setProjects((prev) => prev.filter((project) => project.id !== id))
     setGanttProjects((prev) => prev.filter((project) => project.id !== id))
+  }
+
+  async function handleDuplicate(id: string) {
+    try {
+      const copy = await projectsApi.threeDots(id, 'duplicate')
+      navigate(`/projects/${copy.id}`)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Duplizieren fehlgeschlagen')
+    }
+  }
+
+  async function handleArchive(id: string) {
+    try {
+      const updated = await projectsApi.threeDots(id, 'archive')
+      setProjects((prev) => prev.filter((p) => p.id !== id))
+      setGanttProjects((prev) => prev.filter((p) => p.id !== id))
+      if (updated) {
+        // no-op; project removed from active board
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Archivieren fehlgeschlagen')
+    }
   }
 
   async function patchProject(projectId: string, action: () => Promise<Project>) {
@@ -177,7 +215,7 @@ export function ProjectList() {
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
-          <p className={styles.kicker}>Phase 3 · Sprint 25</p>
+          <p className={styles.kicker}>Phase 4 · Sprint 31</p>
           <h1>Projektboard</h1>
           <p className={styles.subtitle}>Kanban, Fristen, Prioritäten und einfache Timeline in einer Ansicht.</p>
         </div>
@@ -303,13 +341,34 @@ export function ProjectList() {
                         <button className={styles.cardTitle} onClick={() => navigate(`/projects/${project.id}`)}>
                           {project.name}
                         </button>
-                        <button
-                          className={styles.btnDanger}
-                          aria-label="Projekt löschen"
-                          onClick={() => void handleDelete(project.id)}
-                        >
-                          ×
-                        </button>
+                        <div className={styles.menuWrapper} ref={openMenuId === project.id ? menuRef : undefined}>
+                          <button
+                            className={styles.btnMenuTrigger}
+                            aria-label="Projektmenü öffnen"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setOpenMenuId((prev) => (prev === project.id ? null : project.id))
+                            }}
+                          >
+                            ⋯
+                          </button>
+                          {openMenuId === project.id && (
+                            <div className={styles.dropdownMenu} role="menu">
+                              <button role="menuitem" className={styles.menuItem} onClick={() => { setOpenMenuId(null); navigate(`/projects/${project.id}`) }}>
+                                Bearbeiten
+                              </button>
+                              <button role="menuitem" className={styles.menuItem} onClick={() => { setOpenMenuId(null); void handleDuplicate(project.id) }}>
+                                Duplizieren
+                              </button>
+                              <button role="menuitem" className={styles.menuItem} onClick={() => { setOpenMenuId(null); void handleArchive(project.id) }}>
+                                Archivieren
+                              </button>
+                              <button role="menuitem" className={`${styles.menuItem} ${styles.menuItemDanger}`} onClick={() => { setOpenMenuId(null); void handleDelete(project.id) }}>
+                                Löschen
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <p className={styles.cardDescription}>{project.description ?? 'Kein Beschreibungstext'}</p>
@@ -447,6 +506,8 @@ export function ProjectList() {
           </section>
         </>
       )}
+
+      {showOnboarding && <OnboardingWizard onDismiss={() => setShowOnboarding(false)} />}
     </div>
   )
 }

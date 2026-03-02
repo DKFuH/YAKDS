@@ -158,4 +158,91 @@ describe('projectRoutes', () => {
 
     await app.close()
   })
+
+  it('duplicates a project via 3dots endpoint', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ ...boardProject })
+    prismaMock.project.create.mockResolvedValue({
+      ...boardProject,
+      id: '22222222-2222-2222-2222-222222222222',
+      name: 'Studio Nord (Kopie)',
+      project_status: 'lead',
+      progress_pct: 0,
+    })
+
+    const app = Fastify()
+    await app.register(projectRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/projects/${projectId}/3dots?action=duplicate`,
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(prismaMock.project.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        name: 'Studio Nord (Kopie)',
+        project_status: 'lead',
+        progress_pct: 0,
+      }),
+      select: expect.any(Object),
+    }))
+
+    await app.close()
+  })
+
+  it('archives a project via 3dots endpoint', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ id: projectId })
+    prismaMock.project.update.mockResolvedValue({
+      ...boardProject,
+      status: 'archived',
+      project_status: 'archived',
+    })
+
+    const app = Fastify()
+    await app.register(projectRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/projects/${projectId}/3dots?action=archive`,
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(prismaMock.project.update).toHaveBeenCalledWith({
+      where: { id: projectId },
+      data: { status: 'archived', project_status: 'archived' },
+      select: expect.any(Object),
+    })
+
+    await app.close()
+  })
+
+  it('assigns advisor via the advisor endpoint', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ id: projectId })
+    prismaMock.project.update.mockResolvedValue({
+      ...boardProject,
+      advisor: 'Anna Berger',
+      sales_rep: 'Klaus Müller',
+    })
+
+    const app = Fastify()
+    await app.register(projectRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/projects/${projectId}/advisor`,
+      payload: { advisor: 'Anna Berger', sales_rep: 'Klaus Müller' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(prismaMock.project.update).toHaveBeenCalledWith({
+      where: { id: projectId },
+      data: expect.objectContaining({
+        advisor: 'Anna Berger',
+        sales_rep: 'Klaus Müller',
+      }),
+      select: expect.any(Object),
+    })
+
+    await app.close()
+  })
 })

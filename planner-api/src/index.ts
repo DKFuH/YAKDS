@@ -35,6 +35,9 @@ import { quoteLineRoutes } from './routes/quotelines.js'
 import { macroRoutes } from './routes/macros.js'
 import { tenantMiddleware } from './tenantMiddleware.js'
 import { prisma } from './db.js'
+// Phase 4
+import { areaRoutes } from './routes/areas.js'
+import { workspaceLayoutRoutes } from './routes/workspaceLayout.js'
 
 const app = Fastify({ logger: true })
 
@@ -79,6 +82,9 @@ await app.register(roomDecorationRoutes, { prefix: '/api/v1' })
 await app.register(lightingRoutes, { prefix: '/api/v1' })
 await app.register(quoteLineRoutes, { prefix: '/api/v1' })
 await app.register(macroRoutes, { prefix: '/api/v1' })
+// Phase 4 Routes
+await app.register(areaRoutes, { prefix: '/api/v1' })
+await app.register(workspaceLayoutRoutes, { prefix: '/api/v1' })
 
 // Health check
 app.get('/health', async () => ({ status: 'ok' }))

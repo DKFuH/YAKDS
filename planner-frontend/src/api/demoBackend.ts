@@ -160,6 +160,8 @@ function seedStore(): DemoStore {
         deadline: null,
         priority: 'medium',
         assigned_to: 'Studio Team',
+        advisor: null,
+        sales_rep: null,
         progress_pct: 35,
         lead_status: 'qualified',
         quote_value: 12990,
@@ -291,6 +293,8 @@ export function createProject(data: { name: string; description?: string }): Pro
         deadline: null,
         priority: 'medium',
         assigned_to: null,
+        advisor: null,
+        sales_rep: null,
         progress_pct: 0,
         lead_status: 'new',
         quote_value: null,
@@ -319,6 +323,8 @@ export function createProject(data: { name: string; description?: string }): Pro
     deadline: project.deadline,
     priority: project.priority,
     assigned_to: project.assigned_to,
+    advisor: project.advisor,
+    sales_rep: project.sales_rep,
     progress_pct: project.progress_pct,
     lead_status: project.lead_status,
     quote_value: project.quote_value,
@@ -339,6 +345,8 @@ export function updateProject(
     deadline?: string | null
     priority?: Project['priority']
     assigned_to?: string | null
+    advisor?: string | null
+    sales_rep?: string | null
     progress_pct?: number
   }
 ): Project {
@@ -355,6 +363,8 @@ export function updateProject(
             deadline: data.deadline !== undefined ? data.deadline : project.deadline,
             priority: data.priority ?? project.priority,
             assigned_to: data.assigned_to !== undefined ? data.assigned_to : project.assigned_to,
+            advisor: data.advisor !== undefined ? data.advisor : project.advisor,
+            sales_rep: data.sales_rep !== undefined ? data.sales_rep : project.sales_rep,
             progress_pct: data.progress_pct ?? project.progress_pct,
             updated_at: now()
           }
@@ -376,6 +386,8 @@ export function updateProject(
     deadline: project.deadline,
     priority: project.priority,
     assigned_to: project.assigned_to,
+    advisor: project.advisor,
+    sales_rep: project.sales_rep,
     progress_pct: project.progress_pct,
     lead_status: project.lead_status,
     quote_value: project.quote_value,

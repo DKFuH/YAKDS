@@ -49,6 +49,8 @@ model Project {
   close_probability Int?
   tenant_id         String?
   branch_id         String?
+  advisor           String?   // Phase 4 – Sprint 34: Fachberater/Sachbearbeiter
+  sales_rep         String?   // Phase 4 – Sprint 34: Verkäufer (for branch filter)
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 
@@ -67,6 +69,7 @@ model Project {
   customer_discounts CustomerDiscount[]
   project_line_items ProjectLineItem[]
   project_block_evaluations ProjectBlockEvaluation[]
+  areas             Area[]    // Phase 4 – Sprint 32: Bereiche
   quote_lines         Json      @default("[]")
   pricing_groups_json Json      @default("[]")
   macros              Json      @default("[]")
@@ -1037,4 +1040,80 @@ enum ContactLeadSource {
   showroom
   referral
   other
+}
+
+// ─────────────────────────────────────────
+// PHASE 4 – Sprint 32: Bereiche / Alternativen
+// ─────────────────────────────────────────
+
+model Area {
+  id          String        @id @default(uuid())
+  project_id  String
+  name        String
+  sort_order  Int           @default(0)
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+
+  project      Project      @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  alternatives Alternative[]
+
+  @@index([project_id])
+  @@map("areas")
+}
+
+model Alternative {
+  id            String         @id @default(uuid())
+  area_id       String
+  name          String
+  is_active     Boolean        @default(false)
+  sort_order    Int            @default(0)
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+
+  area          Area           @relation(fields: [area_id], references: [id], onDelete: Cascade)
+  model_settings ModelSettings?
+
+  @@index([area_id])
+  @@map("alternatives")
+}
+
+/// Modell-/Indexeinstellungen (F7-Dialog) pro Alternative
+model ModelSettings {
+  id                  String      @id @default(uuid())
+  alternative_id      String      @unique
+  /// Küchenmodell
+  manufacturer_name   String?
+  model_name          String?
+  handle_name         String?
+  /// Arbeitsplatte
+  worktop_model       String?
+  worktop_color       String?
+  /// Sockel / Abdeckboden
+  plinth_height_mm    Int?
+  cover_panel_enabled Boolean     @default(false)
+  /// Raum
+  room_height_mm      Int?
+  wall_thickness_mm   Int?
+  /// zusätzliche freie Felder
+  extra_json          Json        @default("{}")
+  created_at          DateTime    @default(now())
+  updated_at          DateTime    @updatedAt
+
+  alternative         Alternative @relation(fields: [alternative_id], references: [id], onDelete: Cascade)
+
+  @@map("model_settings")
+}
+
+// ─────────────────────────────────────────
+// PHASE 4 – Sprint 34: Workspace-Layout
+// ─────────────────────────────────────────
+
+model UserWorkspaceLayout {
+  id         String   @id @default(uuid())
+  user_id    String   @unique
+  layout_json Json    @default("{}")  // { panels: { floorplan: {...}, perspective: {...}, elevation: {...} } }
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("user_workspace_layouts")
 }
