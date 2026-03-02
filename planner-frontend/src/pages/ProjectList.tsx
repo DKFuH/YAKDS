@@ -220,29 +220,20 @@ export function ProjectList() {
           <p className={styles.subtitle}>Kanban, Fristen, Prioritäten und einfache Timeline in einer Ansicht.</p>
         </div>
         <div className={styles.headerActions}>
-          <button className={styles.btnSecondary} onClick={() => navigate('/webplanner')}>
-            Webplaner
-          </button>
-          <button className={styles.btnSecondary} onClick={() => navigate('/bi')}>
-            BI Dashboard
-          </button>
-          <button className={styles.btnSecondary} onClick={() => navigate('/contacts')}>
-            Kontakte
-          </button>
-          <button className={styles.btnSecondary} onClick={() => navigate('/documents')}>
-            Dokumente
-          </button>
-          <button className={styles.btnSecondary} onClick={() => navigate('/catalog')}>
-            Katalog
-          </button>
-          <button className={styles.btnSecondary} onClick={() => void platformApi.exportProjectsCsv()}>
-            CSV Export
-          </button>
           <button className={styles.btnPrimary} onClick={() => setCreating(true)}>
             + Neues Projekt
           </button>
         </div>
       </header>
+
+      <nav className={styles.topNav} aria-label="Navigation">
+        <button type="button" className={styles.topNavLink} onClick={() => navigate('/webplanner')}>Webplaner</button>
+        <button type="button" className={styles.topNavLink} onClick={() => navigate('/bi')}>BI Dashboard</button>
+        <button type="button" className={styles.topNavLink} onClick={() => navigate('/contacts')}>Kontakte</button>
+        <button type="button" className={styles.topNavLink} onClick={() => navigate('/documents')}>Dokumente</button>
+        <button type="button" className={styles.topNavLink} onClick={() => navigate('/catalog')}>Katalog</button>
+        <button type="button" className={styles.topNavLink} onClick={() => void platformApi.exportProjectsCsv()}>CSV Export</button>
+      </nav>
 
       {error && <div className={styles.error}>{error}</div>}
 

@@ -221,3 +221,13 @@
   background: var(--primary-light);
   color: var(--primary-color);
 }
+
+.stepHint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  line-height: 1.4;
+}

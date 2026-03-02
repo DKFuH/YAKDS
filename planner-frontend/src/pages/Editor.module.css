@@ -86,3 +86,80 @@
   flex: 1;
   overflow: hidden;
 }
+
+/* ── Workflow Step Bar ── */
+.stepBar {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.3rem 1rem;
+  background: var(--editor-bg);
+  border-bottom: 1px solid var(--editor-border);
+  flex-shrink: 0;
+}
+
+.stepTab {
+  background: none;
+  border: none;
+  color: var(--editor-text-muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0.25rem 0.9rem;
+  border-radius: var(--radius-pill);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  letter-spacing: 0.03em;
+}
+
+.stepTab:hover {
+  background: var(--editor-surface-alt);
+  color: var(--editor-text);
+}
+
+.stepTabActive {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* ── Mehr flyout menu ── */
+.moreMenuWrapper {
+  position: relative;
+}
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  background: var(--editor-surface);
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card-hover);
+  z-index: 100;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.moreMenuItem {
+  background: none;
+  border: none;
+  color: var(--editor-text);
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  width: 100%;
+  transition: background var(--transition-fast);
+}
+
+.moreMenuItem:hover:not(:disabled) {
+  background: var(--editor-surface-alt);
+}
+
+.moreMenuItem:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

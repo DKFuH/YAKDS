@@ -18,6 +18,7 @@ interface Props {
   onAddRoom: (name: string) => void
   selectedCatalogItem: UnifiedCatalogItem | null
   onSelectCatalogItem: (item: UnifiedCatalogItem | null) => void
+  workflowStep: 'walls' | 'openings' | 'furniture'
 }
 
 const TYPE_OPTIONS: Array<{ value: '' | CatalogItemType; label: string }> = [
@@ -30,7 +31,7 @@ const TYPE_OPTIONS: Array<{ value: '' | CatalogItemType; label: string }> = [
   { value: 'accessory', label: 'Zubehör' },
 ]
 
-export function LeftSidebar({ rooms, selectedRoomId, onSelectRoom, onAddRoom, selectedCatalogItem, onSelectCatalogItem }: Props) {
+export function LeftSidebar({ rooms, selectedRoomId, onSelectRoom, onAddRoom, selectedCatalogItem, onSelectCatalogItem, workflowStep }: Props) {
   const [addingRoom, setAddingRoom] = useState(false)
   const [newRoomName, setNewRoomName] = useState('')
   const [catalogMode, setCatalogMode] = useState<'standard' | 'manufacturer'>('standard')
@@ -166,7 +167,15 @@ export function LeftSidebar({ rooms, selectedRoomId, onSelectRoom, onAddRoom, se
       </div>
 
       <div className={styles.catalogSection}>
-        <div className={styles.catalogHeader}>
+        {workflowStep !== 'furniture' ? (
+          <p className={styles.stepHint}>
+            {workflowStep === 'walls'
+              ? '💡 Wände zeichnen, dann weiter zu Öffnungen'
+              : '💡 Türen & Fenster platzieren, dann weiter zu Möbelierung'}
+          </p>
+        ) : (
+          <>
+            <div className={styles.catalogHeader}>
           <h3 className={styles.sectionTitle}>Katalog</h3>
           <div className={styles.modeToggle}>
             <button
@@ -253,6 +262,8 @@ export function LeftSidebar({ rooms, selectedRoomId, onSelectRoom, onAddRoom, se
               ))
             )}
           </ul>
+        )}
+          </>
         )}
       </div>
     </aside>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import type { Vertex } from '@shared/types'
 import { projectsApi, type ProjectDetail } from '../api/projects.js'
@@ -115,6 +115,9 @@ export function Editor() {
   const [acousticBusy, setAcousticBusy] = useState(false)
   const [acousticMin, setAcousticMin] = useState<number | null>(null)
   const [acousticMax, setAcousticMax] = useState<number | null>(null)
+  const [workflowStep, setWorkflowStep] = useState<'walls' | 'openings' | 'furniture'>('walls')
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const moreMenuRef = useRef<HTMLDivElement | null>(null)
 
   // Editor-State nach oben gehoben, damit RightSidebar darauf zugreifen kann
   const editor = usePolygonEditor()
@@ -240,6 +243,18 @@ export function Editor() {
       setActiveAcousticGridId(match.id)
     }
   }, [acousticGrids])
+
+  // Close "Mehr" flyout on outside click
+  useEffect(() => {
+    if (!moreMenuOpen) return
+    function handleOutsideClick(e: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [moreMenuOpen])
 
   useEffect(() => {
     if (!id) return
@@ -624,44 +639,97 @@ export function Editor() {
           <button
             type="button"
             className={styles.btnSecondary}
-            onClick={handleAutoComplete}
-            disabled={autoCompleteLoading || !selectedRoomId}
-            title="Arbeitsplatten, Sockel und Wangen automatisch generieren"
-          >
-            {autoCompleteLoading ? 'Generiere…' : 'Auto vervollständigen'}
-          </button>
-          <button
-            type="button"
-            className={styles.btnSecondary}
             onClick={() => setViewMode((prev) => (prev === '2d' ? '3d' : '2d'))}
           >
             {viewMode === '2d' ? '3D Preview' : '2D Editor'}
           </button>
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={() => setIsPreviewPopoutOpen((prev) => !prev)}
-            disabled={!selectedRoom}
-            title="3D-Ansicht in separatem Fenster öffnen"
-          >
-            {isPreviewPopoutOpen ? '3D-Fenster schließen' : '3D in Fenster'}
-          </button>
-          <button type="button" className={styles.btnSecondary} onClick={() => navigate(`/projects/${id}/quote-lines`)}>
-            Angebotspositionen
-          </button>
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={() => { void handleGltfExport() }}
-            disabled={gltfExportLoading || !selectedAlternativeId}
-          >
-            {gltfExportLoading ? 'GLB exportiere…' : 'GLB exportieren'}
-          </button>
-          <button type="button" className={styles.btnSecondary} onClick={() => setShowAreasPanel((prev) => !prev)}>
-            {showAreasPanel ? 'Bereiche ausblenden' : 'Bereiche / Alternativen'}
-          </button>
+          <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              aria-haspopup="true"
+              aria-expanded={moreMenuOpen}
+              onClick={() => setMoreMenuOpen((prev) => !prev)}
+            >
+              Mehr ▾
+            </button>
+            {moreMenuOpen && (
+              <div className={styles.moreMenu} role="menu">
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); void handleAutoComplete() }}
+                  disabled={autoCompleteLoading || !selectedRoomId}
+                  title="Arbeitsplatten, Sockel und Wangen automatisch generieren"
+                >
+                  {autoCompleteLoading ? 'Generiere…' : 'Auto vervollständigen'}
+                </button>
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); setIsPreviewPopoutOpen((prev) => !prev) }}
+                  disabled={!selectedRoom}
+                  title="3D-Ansicht in separatem Fenster öffnen"
+                >
+                  {isPreviewPopoutOpen ? '3D-Fenster schließen' : '3D in Fenster'}
+                </button>
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/quote-lines`) }}
+                >
+                  Angebotspositionen
+                </button>
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); void handleGltfExport() }}
+                  disabled={gltfExportLoading || !selectedAlternativeId}
+                >
+                  {gltfExportLoading ? 'GLB exportiere…' : 'GLB exportieren'}
+                </button>
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); setShowAreasPanel((prev) => !prev) }}
+                >
+                  {showAreasPanel ? 'Bereiche ausblenden' : 'Bereiche / Alternativen'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
+
+      {/* Workflow step tabs */}
+      <nav className={styles.stepBar} aria-label="Arbeitsschritte">
+        {(['walls', 'openings', 'furniture'] as const).map((step, idx) => {
+          const labels = ['1 · Wände', '2 · Öffnungen', '3 · Möbelierung'] as const
+          const isActive = workflowStep === step
+          return (
+            <button
+              key={step}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`${styles.stepTab} ${isActive ? styles.stepTabActive : ''}`}
+              onClick={() => setWorkflowStep(step)}
+              onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+                const steps = ['walls', 'openings', 'furniture'] as const
+                if (e.key === 'ArrowRight') { e.preventDefault(); setWorkflowStep(steps[Math.min(idx + 1, 2)]) }
+                if (e.key === 'ArrowLeft') { e.preventDefault(); setWorkflowStep(steps[Math.max(idx - 1, 0)]) }
+              }}
+            >
+              {labels[idx]}
+            </button>
+          )
+        })}
+      </nav>
 
       <div className={styles.workspace}>
         {showAreasPanel && id && (
@@ -674,6 +742,7 @@ export function Editor() {
           onAddRoom={handleAddRoom}
           selectedCatalogItem={selectedCatalogItem}
           onSelectCatalogItem={setSelectedCatalogItem}
+          workflowStep={workflowStep}
         />
 
         {viewMode === '2d' ? (
