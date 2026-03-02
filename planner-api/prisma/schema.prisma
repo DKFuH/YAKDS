@@ -1072,6 +1072,9 @@ model Alternative {
 
   area          Area           @relation(fields: [area_id], references: [id], onDelete: Cascade)
   model_settings ModelSettings?
+  filler_pieces  FillerPiece[]
+  height_zone    HeightZone?
+  plinth_option  PlinthOption?
 
   @@index([area_id])
   @@map("alternatives")
@@ -1116,4 +1119,54 @@ model UserWorkspaceLayout {
   updated_at DateTime @updatedAt
 
   @@map("user_workspace_layouts")
+}
+
+// ─────────────────────────────────────────
+// PHASE 5 – Sprint 41: Füllstücke / Höhenzonen / Sockeloptionen
+// ─────────────────────────────────────────
+
+model FillerPiece {
+  id              String      @id @default(uuid())
+  alternative_id  String
+  wall_id         String
+  gap_mm          Float
+  width_mm        Float
+  position_mm     Float
+  side            String      // 'left' | 'right'
+  params_json     Json        @default("{}")
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+
+  alternative     Alternative @relation(fields: [alternative_id], references: [id], onDelete: Cascade)
+
+  @@index([alternative_id])
+  @@map("filler_pieces")
+}
+
+model HeightZone {
+  id              String      @id @default(uuid())
+  alternative_id  String      @unique
+  zones_json      Json        @default("[]")
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+
+  alternative     Alternative @relation(fields: [alternative_id], references: [id], onDelete: Cascade)
+
+  @@map("height_zones")
+}
+
+model PlinthOption {
+  id              String      @id @default(uuid())
+  alternative_id  String      @unique
+  height_mm       Int         @default(150)
+  depth_mm        Int         @default(60)
+  material        String?
+  color           String?
+  extra_json      Json        @default("{}")
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+
+  alternative     Alternative @relation(fields: [alternative_id], references: [id], onDelete: Cascade)
+
+  @@map("plinth_options")
 }

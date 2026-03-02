@@ -20,6 +20,7 @@
     "@okp/dxf-import": "file:interop-cad/dxf-import",
     "@okp/shared-schemas": "file:shared-schemas",
     "@okp/skp-import": "file:interop-sketchup/skp-import",
+    "@prisma/client": "^5.22.0",
     "dxf-parser": "^1.1.2",
     "dxf-writer": "^1.18.4",
     "fastify": "^5.7.2",
