@@ -99,20 +99,35 @@ describe('openingValidator', () => {
     ]);
   });
 
-  it('returns empty list for non-positive wall length', () => {
-    const entities: CadEntity[] = [
-      {
-        id: 'line-1',
-        layer_id: 'layer-1',
-        type: 'line',
-        geometry: {
-          type: 'line',
-          start: { x_mm: 0, y_mm: 0 },
-          end: { x_mm: 1000, y_mm: 0 }
-        }
-      }
-    ];
+  it('accepts a window opening with recess within wall thickness', () => {
+    const thickWall: WallSegment = { id: 'wall-1', length_mm: 4000, thickness_mm: 300 };
+    const opening: Opening = { id: 'opening-1', wall_id: 'wall-1', type: 'window', offset_mm: 500, width_mm: 1000, recess_mm: 150 };
 
-    expect(detectOpeningsFromCad(entities, 0)).toEqual([]);
+    expect(validateOpening(thickWall, opening, [])).toEqual({ valid: true, errors: [] });
+  });
+
+  it('rejects a window opening with recess exceeding wall thickness', () => {
+    const thickWall: WallSegment = { id: 'wall-1', length_mm: 4000, thickness_mm: 200 };
+    const opening: Opening = { id: 'opening-1', wall_id: 'wall-1', type: 'window', offset_mm: 500, width_mm: 1000, recess_mm: 250 };
+
+    const result = validateOpening(thickWall, opening, []);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('Opening recess exceeds wall thickness.');
+  });
+
+  it('rejects a window opening with negative recess', () => {
+    const opening: Opening = { id: 'opening-1', wall_id: 'wall-1', type: 'window', offset_mm: 500, width_mm: 1000, recess_mm: -10 };
+
+    const result = validateOpening(wall, opening, []);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('Opening recess must be at least 0 mm.');
+  });
+
+  it('allows recess without wall thickness defined', () => {
+    const opening: Opening = { id: 'opening-1', wall_id: 'wall-1', type: 'window', offset_mm: 500, width_mm: 1000, recess_mm: 150 };
+
+    expect(validateOpening(wall, opening, [])).toEqual({ valid: true, errors: [] });
   });
 });

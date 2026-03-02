@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import type { Opening, Placement, WallSegment } from '../types.js'
 import { validatePlacement } from './placementValidator.js'
 
-function wall(length_mm = 4000): WallSegment {
-  return { id: 'wall-1', length_mm }
+function wall(length_mm = 4000, thickness_mm?: number): WallSegment {
+  return { id: 'wall-1', length_mm, ...(thickness_mm !== undefined && { thickness_mm }) }
 }
 
 function placement(overrides: Partial<Placement> = {}): Placement {
@@ -50,5 +50,77 @@ describe('validatePlacement', () => {
 
     expect(result.valid).toBe(false)
     expect(result.errors).toContain('Placement overlaps with opening opening-1.')
+  })
+
+  it('allows a base cabinet placed under a window when height is below sill', () => {
+    const openings: Opening[] = [
+      {
+        id: 'window-1',
+        wall_id: 'wall-1',
+        type: 'window',
+        offset_mm: 500,
+        width_mm: 800,
+        sill_height_mm: 900,
+      },
+    ]
+
+    const result = validatePlacement(wall(), placement({ height_mm: 720 }), [], openings)
+
+    expect(result).toEqual({ valid: true, errors: [] })
+  })
+
+  it('rejects a tall cabinet that overlaps a window above sill height', () => {
+    const openings: Opening[] = [
+      {
+        id: 'window-1',
+        wall_id: 'wall-1',
+        type: 'window',
+        offset_mm: 500,
+        width_mm: 800,
+        sill_height_mm: 900,
+      },
+    ]
+
+    const result = validatePlacement(wall(), placement({ height_mm: 1800 }), [], openings)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Placement overlaps with opening window-1.')
+  })
+
+  it('rejects a cabinet under a window when depth exceeds window recess', () => {
+    const openings: Opening[] = [
+      {
+        id: 'window-1',
+        wall_id: 'wall-1',
+        type: 'window',
+        offset_mm: 500,
+        width_mm: 800,
+        sill_height_mm: 900,
+        recess_mm: 200,
+      },
+    ]
+
+    const result = validatePlacement(wall(), placement({ height_mm: 720, depth_mm: 600 }), [], openings)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors[0]).toContain('window reveal depth of 200 mm')
+  })
+
+  it('accepts a cabinet under a window when depth fits within window recess', () => {
+    const openings: Opening[] = [
+      {
+        id: 'window-1',
+        wall_id: 'wall-1',
+        type: 'window',
+        offset_mm: 500,
+        width_mm: 800,
+        sill_height_mm: 900,
+        recess_mm: 650,
+      },
+    ]
+
+    const result = validatePlacement(wall(), placement({ height_mm: 720, depth_mm: 600 }), [], openings)
+
+    expect(result).toEqual({ valid: true, errors: [] })
   })
 })

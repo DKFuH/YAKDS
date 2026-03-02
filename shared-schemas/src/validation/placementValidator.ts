@@ -51,13 +51,27 @@ export function validatePlacement(
     .filter((opening) => opening.wall_id === placement.wall_id)
     .forEach((opening) => {
       if (
-        intervalsOverlap(
+        !intervalsOverlap(
           placement.offset_mm,
           placement.offset_mm + placement.width_mm,
           opening.offset_mm,
           opening.offset_mm + opening.width_mm,
         )
       ) {
+        return
+      }
+
+      const sillHeight = opening.sill_height_mm ?? 0
+      const isUnderWindow =
+        opening.type === 'window' && placement.height_mm <= sillHeight
+
+      if (isUnderWindow) {
+        if (opening.recess_mm !== undefined && placement.depth_mm > opening.recess_mm) {
+          errors.push(
+            `Placement depth exceeds window reveal depth of ${opening.recess_mm} mm at opening ${opening.id}.`,
+          )
+        }
+      } else {
         errors.push(`Placement overlaps with opening ${opening.id}.`)
       }
     })

@@ -53,6 +53,7 @@ interface WallSegment {
   end_vertex_id: string;
   length_mm: number;        // berechnet
   inner_normal: Vector2D;   // zeigt ins Rauminnere
+  thickness_mm?: number;    // Wandstärke (z.B. 240 mm für Außenwand)
 }
 ```
 
@@ -67,11 +68,14 @@ interface Opening {
   width_mm: number;
   height_mm: number;
   sill_height_mm: number;   // 0 bei Türen
+  recess_mm?: number;       // Fenster-Rücksprung: Tiefe der Laibung von der Raumseite
   source: 'manual' | 'cad_import';
 }
 ```
 
-Regeln: `offset_mm + width_mm <= wall.length_mm`, keine Überschneidungen, Objekte nicht in Öffnungen.
+Regeln: `offset_mm + width_mm <= wall.length_mm`, keine Überschneidungen.  
+Objekte nicht in Öffnungen, außer wenn `type === 'window'` und `placement.height_mm <= sill_height_mm` (Unterschrank unter Fenster).  
+Wenn `recess_mm` gesetzt: `recess_mm <= wall.thickness_mm`; bei Unterschrank unter Fenster darf `depth_mm` den `recess_mm` nicht überschreiten.
 
 ### `CeilingConstraint` - Dachschräge
 

@@ -58,6 +58,7 @@ export interface Opening {
   width_mm: number;
   height_mm?: number;
   sill_height_mm?: number;
+  recess_mm?: number;
   source?: 'manual' | 'cad_import';
 }
 

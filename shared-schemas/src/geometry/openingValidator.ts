@@ -83,6 +83,14 @@ export function validateOpening(
     errors.push('Opening exceeds wall length.');
   }
 
+  if (opening.recess_mm !== undefined) {
+    if (opening.recess_mm < 0) {
+      errors.push('Opening recess must be at least 0 mm.');
+    } else if (wall.thickness_mm !== undefined && opening.recess_mm > wall.thickness_mm) {
+      errors.push('Opening recess exceeds wall thickness.');
+    }
+  }
+
   existingOpenings
     .filter((candidate) => candidate.id !== opening.id && candidate.wall_id === opening.wall_id)
     .forEach((candidate) => {
