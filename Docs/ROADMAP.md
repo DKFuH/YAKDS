@@ -552,3 +552,92 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 4. Kaskadierende DSGVO-Löschungen können referenzielle Integrität brechen – Anonymisierungs-Strategie statt Hard-Delete bevorzugen.
 5. SSO-Fallback-Sicherheit: Lokale Auth darf nicht als Backdoor fungieren – MFA-Pflicht für Fallback.
 6. SLA-Snapshot-Datenmenge: Langfristige Retention-Strategie (Aggregation, TTL) für Monitoring-Daten definieren.
+
+---
+
+## Phase 7 – Sprints 51–53: Interoperabilität & Dateiformate
+
+**Ausgangslage (nach Sprint 50):** Vollständige Branchenlösung mit ERP-Anbindung, Mobile und Compliance. Interop-Stubs (DXF, DWG, SKP) aus dem MVP sind vorhanden aber nicht vollständig implementiert.
+
+**Ziel:** OKP als offene Plattform mit professionellen Datei-Schnittstellen: 3D-Render-Export (GLTF/GLB), BIM-Integration (IFC), vollständige CAD-Interop (DWG, SKP). Orientierung an pCon.planner Interop-Funktionsumfang.
+
+---
+
+### Sprint 51 – GLTF/GLB Export & 3D-Render-Pipeline
+
+**Ziel:** Planung als GLTF/GLB exportieren für externe Renderer, AR/VR-Viewer und Kundenvisualisierung.
+
+**Hintergrund:** Three.js (bereits im Frontend) liest GLTF nativ. GLTF/GLB ist der offene Industriestandard für Web-3D (Khronos Group). Ermöglicht Export in AR-Apps, externe Renderer und Kunden-Viewer ohne proprietäre Formate.
+
+**Features:**
+- **GLTF-Export:** Planung (Schränke, Wände, Boden) als `.glb` exportieren; Materialien (Farbe, Textur) erhalten
+- **LOD-Stufen:** Low-Detail für Web-Preview, High-Detail für Druck/Render
+- **Interop-Paket:** `interop-gltf/gltf-export` nach gleichem Muster wie `interop-cad/dxf-export`
+- **API-Endpunkt:** `POST /alternatives/:id/export/gltf` – gibt `.glb`-Datei zurück
+- **Frontend-Preview:** GLB direkt im Three.js-Viewer laden (keine neue Abhängigkeit)
+
+**Neues Paket:** `interop-gltf/gltf-export` mit `three` + `three/examples/jsm/exporters/GLTFExporter`
+
+**Deliverables:** GLTF-Export-Service, API-Endpunkt, Frontend-Download-Button, 15 Tests.
+
+**DoD:** GLB-Datei enthält alle platzierten Objekte mit korrekter Position und Material; Datei öffnet in Standard-GLTF-Viewern (z. B. gltf.report); Export < 5 Sekunden für typische Planung.
+
+---
+
+### Sprint 52 – IFC Import/Export (BIM-Integration)
+
+**Ziel:** IFC 2×3 und IFC 4 Import/Export für Austausch mit Architekten, Planungsbüros und BIM-Software (Revit, ArchiCAD, Allplan).
+
+**Hintergrund:** IFC (Industry Foundation Classes) ist der offene Standard für BIM (Building Information Modeling). Ermöglicht bidirektionalen Datenaustausch mit Architekturbüros. Bibliothek: `web-ifc` (npm, WASM-basiert, schnell).
+
+**Features:**
+- **IFC-Import (IFC2×3, IFC4):** Raumgeometrie (IfcSpace, IfcWall) aus IFC-Datei lesen und als Raum-Grundriss in OKP übernehmen
+- **IFC-Export:** Geplante Küche als IfcFurnishingElement-Sammlung exportieren; Wände und Maße als IfcWall
+- **Interop-Paket:** `interop-ifc/ifc-import` und `interop-ifc/ifc-export`
+- **API-Endpunkte:**
+  - `POST /projects/:id/import/ifc` – liest Raumgeometrie aus IFC
+  - `POST /alternatives/:id/export/ifc` – exportiert Planung als IFC
+- **Mapping:** Katalog-Artikel → `IfcFurnishingElement` mit Name, Maßen, Material
+
+**Abhängigkeit:** `web-ifc` npm-Paket (WASM-Bundle, ~2 MB)
+
+**Deliverables:** IFC-Import-Service, IFC-Export-Service, 2 API-Endpunkte, IFC-Mapping-Tabelle, 20 Tests.
+
+**DoD:** IFC-Datei mit Raumgeometrie importiert und als Grundriss sichtbar; Export enthält alle platzierten Möbel als IfcFurnishingElement; Datei valide laut `web-ifc`-Parser.
+
+---
+
+### Sprint 53 – DWG-Vollimplementierung, SKP-Export & CAD-Parität
+
+**Ziel:** Bestehende Stubs (DWG, SKP) vollständig implementieren; pCon.planner-Interop-Parität erreichen.
+
+**Hintergrund:** DWG-Stubs (`interop-cad/dwg-import`, `dwg-export`) und SKP-Export-Stub (`interop-sketchup/skp-export`) existieren bereits im Repo ohne Implementierung.
+
+**Features:**
+- **DWG-Import:** Grundriss aus DWG-Datei importieren (Wände, Öffnungen); Bibliothek: `@jscad/dxf` oder Open Design Alliance Node Wrapper
+- **DWG-Export:** Planung (Wandansichten, Grundriss, Maßketten) als DWG exportieren
+- **SKP-Export:** Planung als SketchUp-Datei exportieren (`skp-export`-Stub implementieren)
+- **DXF-Vollständigkeit:** Bestehenden DXF-Import/Export gegen reale Dateien aus Planungssoftware testen und Lücken schließen
+- **Batch-Export:** Alle Formate (DXF, DWG, GLTF, IFC) über einen einzigen `POST /alternatives/:id/export`-Endpunkt mit `format`-Parameter
+
+**Deliverables:** DWG-Import/-Export vollständig, SKP-Export vollständig, Batch-Export-Endpunkt, 25 Tests (inkl. Round-Trip-Tests DXF→OKP→DXF).
+
+**DoD:** DWG-Grundriss importiert und als Raum sichtbar; DWG-Export öffnet in AutoCAD/LibreCAD ohne Fehler; SKP-Export öffnet in SketchUp; Batch-Export liefert alle Formate in einem ZIP.
+
+---
+
+### Meilenstein Phase 7
+
+| Nach Sprint | Ergebnis |
+|-------------|----------|
+| 51 | GLTF/GLB-Export: Planung als Web-3D-Datei für Renderer und AR/VR |
+| 52 | IFC-Integration: BIM-Austausch mit Architekturbüros und Planungssoftware |
+| 53 | CAD-Parität: DWG, SKP, DXF vollständig – offene Plattform für alle Dateiformate |
+
+### Risiken Phase 7
+
+1. `web-ifc` ist WASM-basiert – Node.js-Kompatibilität in Fastify-Serverumgebung prüfen (ggf. Worker Thread nötig).
+2. DWG ist proprietär (Autodesk) – Open-Source-Bibliotheken erreichen nicht 100 % Kompatibilität; Einschränkungen dokumentieren.
+3. GLTF-Export bei großen Planungen (100+ Objekte) kann speicherintensiv sein – Streaming/Chunking prüfen.
+4. IFC-Mapping ist komplex: Nicht alle Katalog-Attribute haben IFC-Entsprechungen – explizite Mapping-Tabelle definieren.
+5. SKP-Format ist proprietär und schlecht dokumentiert – Reverse-Engineering-Risiko; Community-Bibliotheken evaluieren.
