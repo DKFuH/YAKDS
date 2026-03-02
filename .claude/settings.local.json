@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git merge --abort)",
+      "Bash(git merge --no-ff origin/copilot/update-winner-flex-basics --no-commit)",
+      "Bash(node -e \":*)",
+      "Bash(command -v pdftotext)",
+      "Bash(pdftotext \"C:/Users/DanielKlas/OneDrive - Tischlermeister Daniel Klas/0_INBOX/Schulungsunterlagen Winner Profi Teil 1_Daniel Klas.pdf\" -)",
+      "Bash(pdftotext \"C:/Users/DanielKlas/OneDrive - Tischlermeister Daniel Klas/0_INBOX/Schulungsunterlagen Winner Profi Teil 2_Daniel Klas.pdf\" -)",
+      "WebFetch(domain:api.github.com)"
+    ]
+  }
+}

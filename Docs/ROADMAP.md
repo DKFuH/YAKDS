@@ -4,37 +4,51 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ---
 
+## Status-Taxonomie
+
+Einheitliche Status-Kennzeichnung für alle Sprints und Snapshots:
+
+| Status | Bedeutung |
+|--------|-----------|
+| `planned` | Geplant, noch nicht begonnen |
+| `in_progress` | In aktiver Umsetzung |
+| `blocked` | Blockiert – Abhängigkeit oder Risiko offen |
+| `done` | Implementiert, ggf. noch nicht vollständig abgesichert |
+| `hardened` | Implementiert + Tests + Regression abgesichert |
+
+---
+
 ## MVP - Sprints 0-19
 
 **Zielbild:** Nicht-rechteckige Räume, Dachschrägen, BOM/Preise/Angebote, DXF-Interop, SKP-Referenzimport, externer Render-Worker.
 
 ### Sprint-Übersicht
 
-| Sprint | Thema | Deliverables |
-|--------|-------|--------------|
-| 0 | Architektur & Domänenmodell | ARCHITECTURE.md, Kerndokumente, Monorepo-Struktur |
-| 1 | Backend-Grundgerüst | Projekt-CRUD, Postgres-Schema, API-Grundstruktur |
-| 2 | Frontend-Grundgerüst | Projektliste, Editor-Layout, Canvas, Sidebars |
-| 3 | Polygon-Raumeditor v1 | Punkte setzen, Polygon schließen, Validierung |
-| 3.5 | CAD/SKP-Import Grundlagen | Upload-Pipeline, neutrales Austauschformat |
-| 4 | Präzisionsbearbeitung | Vertex-Move, numerische Kantenlänge, stabile Wand-IDs |
-| 5 | Öffnungen | Türen/Fenster an Wänden, Offset, Brüstungshöhe |
-| 6 | Dachschrägen | CeilingConstraints, Höhenberechnung an beliebigem Punkt |
-| 7 | Katalog MVP | Schrank-/Gerätetypen, Preisfelder, Warengruppen |
-| 7.5 | SKP-Komponenten-Mapping | Referenzmodell, Heuristik, Mapping-Persistenz |
-| 8 | Platzierungsengine v1 | wall_id + offset, Innenrichtung, Verschieben |
-| 9 | Geometrieprüfung v1 | Kollisionen, Öffnungsblockierung, Mindestabstände |
-| 10 | Höhenprüfung | Dachschrägen-Regeln, Preiswirkung (flags) |
-| 11 | Stücklisten-Engine v1 | BOM aus Planung, `POST /calculate-bom` |
-| 11.5 | DXF-Export v1 | Raumkontur + Möbel als DXF, Layer-Konventionen |
-| 12 | Preisengine v1 | 9-stufige Kalkulation, netto/MwSt/brutto/DB |
-| 13 | Angebotsmanagement v1 | Angebotsnummer, Versionen, PDF light |
-| 14 | Browser-3D-Preview | Three.js, Extrusion, Proxy-Meshes, Orbit |
-| 15 | Render-Job-System | Queue, Scene Payload, Worker-Protokoll End-to-End |
-| 16 | Business-Sprint | Kundenpreislisten, CRM-Felder light, JSON/CSV-Export |
-| 17 | Blockverrechnung | Blockprogramme, automatische Auswahl des besten Blocks |
-| 18 | Interop-API | Asynchrone Importjobs, Prüfprotokoll, Mapping-Persistenz |
-| 19 | Interop-Härtung | Roundtrip-Tests, Einheitenprüfung, Regressionstests |
+| Sprint | Status | Thema | Deliverables |
+|--------|--------|-------|--------------|
+| 0 | `hardened` | Architektur & Domänenmodell | ARCHITECTURE.md, Kerndokumente, Monorepo-Struktur |
+| 1 | `hardened` | Backend-Grundgerüst | Projekt-CRUD, Postgres-Schema, API-Grundstruktur |
+| 2 | `hardened` | Frontend-Grundgerüst | Projektliste, Editor-Layout, Canvas, Sidebars |
+| 3 | `hardened` | Polygon-Raumeditor v1 | Punkte setzen, Polygon schließen, Validierung |
+| 3.5 | `hardened` | CAD/SKP-Import Grundlagen | Upload-Pipeline, neutrales Austauschformat |
+| 4 | `hardened` | Präzisionsbearbeitung | Vertex-Move, numerische Kantenlänge, stabile Wand-IDs |
+| 5 | `hardened` | Öffnungen | Türen/Fenster an Wänden, Offset, Brüstungshöhe |
+| 6 | `hardened` | Dachschrägen | CeilingConstraints, Höhenberechnung an beliebigem Punkt |
+| 7 | `hardened` | Katalog MVP | Schrank-/Gerätetypen, Preisfelder, Warengruppen |
+| 7.5 | `hardened` | SKP-Komponenten-Mapping | Referenzmodell, Heuristik, Mapping-Persistenz |
+| 8 | `hardened` | Platzierungsengine v1 | wall_id + offset, Innenrichtung, Verschieben |
+| 9 | `hardened` | Geometrieprüfung v1 | Kollisionen, Öffnungsblockierung, Mindestabstände |
+| 10 | `hardened` | Höhenprüfung | Dachschrägen-Regeln, Preiswirkung (flags) |
+| 11 | `hardened` | Stücklisten-Engine v1 | BOM aus Planung, `POST /calculate-bom` |
+| 11.5 | `hardened` | DXF-Export v1 | Raumkontur + Möbel als DXF, Layer-Konventionen |
+| 12 | `hardened` | Preisengine v1 | 9-stufige Kalkulation, netto/MwSt/brutto/DB |
+| 13 | `hardened` | Angebotsmanagement v1 | Angebotsnummer, Versionen, PDF light |
+| 14 | `hardened` | Browser-3D-Preview | Three.js, Extrusion, Proxy-Meshes, Orbit |
+| 15 | `hardened` | Render-Job-System | Queue, Scene Payload, Worker-Protokoll End-to-End |
+| 16 | `hardened` | Business-Sprint | Kundenpreislisten, CRM-Felder light, JSON/CSV-Export |
+| 17 | `hardened` | Blockverrechnung | Blockprogramme, automatische Auswahl des besten Blocks |
+| 18 | `hardened` | Interop-API | Asynchrone Importjobs, Prüfprotokoll, Mapping-Persistenz |
+| 19 | `hardened` | Interop-Härtung | Roundtrip-Tests, Einheitenprüfung, Regressionstests |
 
 ### Meilensteine
 
@@ -53,6 +67,51 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 - Echtzeit-Multiuser, vollwertiges ERP
 - Verlustfreier SKP-Roundtrip, nativer DWG-Binary-Parser
 
+### Sprint-Metadaten (MVP)
+
+| Sprint | Owner | ETA | Abhängigkeiten | DoD-Kurzfassung |
+|--------|-------|-----|----------------|-----------------|
+| 0 | Arch-Lead | MVP | – | ARCHITECTURE.md fertig; Team-Alignment über Domänenmodell |
+| 1 | Backend-Lead | MVP | S0 | `GET/POST/PATCH/DELETE /projects` mit Postgres-Persistenz |
+| 2 | Frontend-Lead | MVP | S0 | Projektliste + Editor-Layout renderbar |
+| 3 | Full-Stack | MVP | S1, S2 | Polygon schließbar, validiert, API persistiert |
+| 3.5 | Interop-Lead | MVP | S3 | Upload-Endpunkt aktiv, neutrales Format parsebar |
+| 4 | Frontend-Lead | MVP | S3 | Vertex verschiebbar, Kantenlänge numerisch eingebbar |
+| 5 | Frontend-Lead | MVP | S4 | Tür/Fenster platzierbar, Offset konfigurierbar |
+| 6 | Full-Stack | MVP | S5 | CeilingConstraints berechenbar an beliebigem Punkt |
+| 7 | Backend-Lead | MVP | S1 | Katalog-CRUD, Preisfelder, Warengruppen aktiv |
+| 7.5 | Interop-Lead | MVP | S3.5, S7 | SKP hochladbar, Komponenten gemappt, Mapping persistiert |
+| 8 | Full-Stack | MVP | S5, S7 | Möbel wandgebunden platziert und verschiebbar |
+| 9 | Backend-Lead | MVP | S8 | Kollisionsprüfung aktiv, Mindestabstände geprüft |
+| 10 | Backend-Lead | MVP | S9, S6 | Höhenregeln greifen, Preiswirkung (flags) korrekt |
+| 11 | Backend-Lead | MVP | S10 | BOM vollständig via `POST /calculate-bom` |
+| 11.5 | Interop-Lead | MVP | S3.5, S11 | DXF-Export Layer-konform und reimportierbar |
+| 12 | Backend-Lead | MVP | S11 | 9-stufige Kalkulation korrekt (netto/MwSt/brutto/DB) |
+| 13 | Backend-Lead | MVP | S12 | Angebot erstell-/versionierbar, PDF generierbar |
+| 14 | Frontend-Lead | MVP | S8 | 3D-Preview vollständig im Browser renderbar |
+| 15 | Full-Stack | MVP | S14 | Render-Job End-to-End durchlaufen (queue→done) |
+| 16 | Backend-Lead | MVP | S13 | Preislisten, CRM-Felder, JSON/CSV-Export aktiv |
+| 17 | Backend-Lead | MVP | S12, S16 | Blockprogramme automatisch ausgewählt, BOM korrekt |
+| 18 | Interop-Lead | MVP | S3.5, S7.5 | Import-Jobs asynchron, Prüfprotokoll vollständig |
+| 19 | Interop-Lead | MVP | S18 | Roundtrip-Tests grün, Einheitenprüfung abgesichert |
+
+### Interop-Support-Matrix (MVP)
+
+Abgrenzung der im MVP unterstützten und explizit nicht unterstützten Interop-Funktionen:
+
+| Format | Import | Export | Garantie | Anmerkung |
+|--------|--------|--------|----------|-----------|
+| DXF 2D | ✅ | ✅ | Lossless (Raumkontur + Layer) | `$INSUNITS`-Normierung; unbekannte Codes → `needs_review` |
+| DWG 2D | ⚠️ | ❌ | Best-effort (Review-Flag) | Kein nativer Binary-Parser; Job endet mit `needs_review` |
+| SKP | ✅ | ❌ | Referenzmodell (kein Roundtrip) | GLTF-Preview; kein Rückschreiben ins Original |
+| CSV/JSON (Katalog) | ✅ | ✅ | Vollständig | Herstellerkatalog-Import und BOM-Export |
+
+**Einheiten:** Intern immer Millimeter. DXF-Export: `$INSUNITS=4` (mm). DXF-Import: Einheitenkonvertierung per `$INSUNITS`-Code.
+
+**Nicht im MVP (explizit ausgeschlossen):** Verlustfreier SKP-Roundtrip · Nativer DWG-Binary-Parser · GLTF/GLB-Export · IFC.
+
+Vollständige Interop-Dokumentation: [`Docs/INTEROP.md`](./INTEROP.md)
+
 ---
 
 ## Phase 2 - Sprints 20-24
@@ -64,6 +123,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 20 - Herstellerkatalog & Schrankkonfigurator (Light)
+
+**Meta:** Status: `done` · Owner: Backend-Lead · ETA: Phase 2 · Abhängigkeiten: S19
 
 **Ziel:** 1 Hersteller-Import End-to-End + konfigurierbarer Schrank mit Artikel/Preis/BOM.
 
@@ -79,6 +140,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 21 - Automatismen (Langteile, Zubehör, Auto-Vervollständigung)
 
+**Meta:** Status: `done` · Owner: Full-Stack · ETA: Phase 2 · Abhängigkeiten: S20
+
 **Ziel:** Automatische BOM-Generierung für Arbeitsplatte, Sockel, Wange, Standardzubehör.
 
 **Scope:**
@@ -91,6 +154,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 22 - Prüf-Engine v2 ("Protect"-Niveau)
+
+**Meta:** Status: `done` · Owner: Backend-Lead · ETA: Phase 2 · Abhängigkeiten: S20, S21
 
 **Ziel:** Konfigurierbares Prüfmodul mit Kategorien, Bericht und Finalprüfung.
 
@@ -105,6 +170,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 23 - Multi-Tenant / BI-Light
+
+**Meta:** Status: `done` · Owner: Backend-Lead · ETA: Phase 2 · Abhängigkeiten: S22
 
 **Ziel:** Vom Single-Studio zu Multi-Tenant mit KPI-Endpunkten.
 
@@ -122,6 +189,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 24 - Online-Webplaner MVP + Handover
 
+**Meta:** Status: `done` · Owner: Full-Stack · ETA: Phase 2 · Abhängigkeiten: S23
+
 **Ziel:** Abgespeckter Endkunden-Webplaner (Lead Gen) mit Übergabe ins Profi-Tool.
 
 **Scope:**
@@ -134,6 +203,14 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 **DoD:** Endkunde konfiguriert Küche, Lead geht ans Studio, Studio öffnet Projekt im Profi-Editor.
 
 ---
+
+### Security & Tenant-Isolation (Phase 2)
+
+**AuthN/AuthZ:** JWT-basiertes Session-Token; Rollen (`admin`, `planner`, `viewer`) werden in der `users`-Tabelle pro Tenant verwaltet. Alle API-Endpunkte prüfen `tenant_id` aus dem Token-Payload gegen die angefragte Ressource.
+
+**Storage-Isolation:** Jede Tenant-Ressource (Dokumente, Exporte) erhält Bucket-Prefix `tenant-{id}/`. Keine Cross-Tenant-Zugriffe über geteilte Endpunkte. Signed URLs für Datei-Downloads; Direktzugriff auf S3-Bucket geblockt.
+
+**Migrations-/Index-Disziplin:** Alle neuen Tabellen aus Sprint 20–24 erhalten `tenant_id NOT NULL` mit FK + Index. Migrations werden im Rahmen des Sprint-DoD als Gate geprüft: Migration schlägt fehl → Sprint gilt nicht als `done`. Rückwärtskompatible Migrationen; kein Löschen bestehender Spalten ohne Deprecation-Vorlauf.
 
 ## Risiken Phase 2
 
@@ -153,14 +230,14 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Fortschrittssnapshot (Stand 2026-03-01)
 
-| Sprint | Status | Hinweis |
-|--------|--------|---------|
-| 25 | In Arbeit | Projektboard/Gantt und Status-/Assign-Pfade bereits vorhanden, weitere Härtung offen |
-| 26 | Weit umgesetzt | Dokumentrouten und Kern-Integration inkl. Auto-Attach/Download aktiv |
-| 27 | Weit umgesetzt | Kontakt-API + Projektverknüpfung + CRM-Ansicht mit KPIs aktiv |
-| 28 | Weit umgesetzt | DashboardConfig + KPI-Endpunkte + Dashboard-UI integriert |
-| 29 | Weit umgesetzt | CatalogIndex-API + Pricing-Einfluss + Batch-UI integriert |
-| 30 | In Umsetzung | Suche/Export/Notifications/Backup-Endpunkte und Frontend-Anbindung vorhanden |
+| Sprint | Status | Owner | ETA | Hinweis |
+|--------|--------|-------|-----|---------|
+| 25 | `in_progress` | Full-Stack | Phase 3 | Projektboard/Gantt und Status-/Assign-Pfade bereits vorhanden, weitere Härtung offen |
+| 26 | `done` | Backend-Lead | Phase 3 | Dokumentrouten und Kern-Integration inkl. Auto-Attach/Download aktiv |
+| 27 | `done` | Backend-Lead | Phase 3 | Kontakt-API + Projektverknüpfung + CRM-Ansicht mit KPIs aktiv |
+| 28 | `done` | Full-Stack | Phase 3 | DashboardConfig + KPI-Endpunkte + Dashboard-UI integriert |
+| 29 | `done` | Backend-Lead | Phase 3 | CatalogIndex-API + Pricing-Einfluss + Batch-UI integriert |
+| 30 | `in_progress` | Full-Stack | Phase 3 | Suche/Export/Notifications/Backup-Endpunkte und Frontend-Anbindung vorhanden |
 
 ### Sprint-Übersicht
 
@@ -183,6 +260,14 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 - Detailplanung und DoD: `Docs/PHASE_3_DOD_AND_EXECUTION_PLAN.md`
 
+### Security & Tenant-Isolation (Phase 3)
+
+**AuthN/AuthZ:** Tenant-Scope-Middleware (`tenant_id` aus JWT) wird auf alle neuen Routen (Dokumente, Kontakte, Dashboards, Katalog-Index) angewendet. DMS-Zugriffskontrolle: Lesezugriff auf Dokumente erfordert `viewer`-Rolle im jeweiligen Tenant.
+
+**Storage-Isolation:** Dokument-Uploads (Sprint 26) werden unter `tenant-{id}/documents/{doc-id}` gespeichert. Download-URLs sind Signed URLs mit TTL ≤ 1 h. Audit-Log bei Upload/Download/Löschung erforderlich (wer, wann, welches Dokument).
+
+**Migrations-/Index-Disziplin:** Alle neuen Entities (Dokumente, Kontakte, Dashboard-Configs, CatalogIndex) erhalten `tenant_id NOT NULL` + Index als **Gate für Sprint-DoD**. Schema-Änderungen an bestehenden Kern-Tabellen (z. B. `projects`, `quotes`) erfordern separates Migrations-Review.
+
 ### Risiken Phase 3
 
 1. Dokumenten-Storage und Zugriffskontrolle müssen tenant-sicher und revisionsfähig sein.
@@ -203,6 +288,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 31 – Projektliste & 3-Punkte-Menü
 
+**Meta:** Status: `planned` · Owner: Full-Stack · ETA: Phase 4 · Abhängigkeiten: S30
+
 **Ziel:** Dashboard-ähnliche Projektliste mit Filtern, Suche, 3-Punkte-Menü.
 
 **Features:**
@@ -219,6 +306,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 32 – Bereiche / Alternativen & Modellauswahl
 
+**Meta:** Status: `planned` · Owner: Full-Stack · ETA: Phase 4 · Abhängigkeiten: S31
+
 **Ziel:** Baumstruktur + globale Kopfdaten pro Alternative – F7 öffnet überall.
 
 **Features:**
@@ -234,6 +323,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 33 – Onboarding & Lernreise
 
+**Meta:** Status: `planned` · Owner: Frontend-Lead · ETA: Phase 4 · Abhängigkeiten: S31, S32
+
 **Ziel:** Neuer User kann sich selbstständig einrichten – mit Tutorials und Helpdesk-Links.
 
 **Features:**
@@ -247,6 +338,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 34 – Workspace-Layout & Projekt-Details
+
+**Meta:** Status: `planned` · Owner: Frontend-Lead · ETA: Phase 4 · Abhängigkeiten: S33
 
 **Ziel:** Layout anpassbar + Projekt-Details erweitern.
 
@@ -266,6 +359,14 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 |-------------|----------|
 | 34 | Volle Studio-Praxis: Onboarding, Bereiche, Modellauswahl, Workspace-Layout |
 
+### Security & Tenant-Isolation (Phase 4)
+
+**AuthN/AuthZ:** Neue Endpunkte (Bereiche, Alternativen, Workspace-Layout) erben Tenant-Scope-Middleware aus Phase 2/3. Workspace-Layouts werden per `user_id + tenant_id` isoliert gespeichert – kein Cross-User-Zugriff.
+
+**Datenisolation:** Bereiche und Alternativen erhalten `tenant_id` in der DB. Projekt-3-Punkte-Aktionen (Duplizieren, Archivieren) prüfen Tenant-Zugehörigkeit, bevor Operationen ausgeführt werden.
+
+**Migrations-/Index-Disziplin:** Neue Tabellen (`areas`, `alternatives`, `model_settings`, `workspace_layouts`) erhalten `tenant_id NOT NULL` + Index als Sprint-DoD-Gate.
+
 ### Risiken Phase 4
 
 1. Bereiche/Alternativen müssen konsistent mit bestehender Raum-/Placement-Logik sein.
@@ -278,11 +379,13 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 **Ausgangslage (nach Sprint 40):** Vollständige Studio-Plattform inkl. Makros, Arbeitsplattenschemas, Annotationen, Raumdekoration, Lichtprofile und manuelle Angebotszeilen.
 
-**Ziel:** Funktionslücken zu professionellen Küchenstudio-Systemen () schließen. Quelle: Schulungsunterlagen  Teil 1 & 2 (analysiert 2026-03-02).
+**Ziel:** Funktionslücken zu professionellen Küchenstudio-Systemen schließen.
 
 ---
 
 ### Sprint 41 – Planungseffizienz: Passstücke, Höhentypen & Sockeloptionen
+
+**Meta:** Status: `planned` · Owner: Full-Stack · ETA: Phase 5 · Abhängigkeiten: S34, S8
 
 **Ziel:** Automatisierte Füllstück-Generierung + farbcodierte Höhenzonierung + flexible Sockeloptionen.
 
@@ -304,6 +407,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 42 – Angebotsworkflow: Schreibschutz, Aufschläge & EK-Nachtrag
+
+**Meta:** Status: `planned` · Owner: Backend-Lead · ETA: Phase 5 · Abhängigkeiten: S41, S13
 
 **Ziel:** Angebotsversand sperrt Alternative; Negativ-Rabatt-Konvention korrekt implementiert; EK nach Auftragsbestätigung nachtragbar.
 
@@ -327,6 +432,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 43 – UX & Eingabe: Taschenrechner, Favoriten & Vorlagen
 
+**Meta:** Status: `planned` · Owner: Frontend-Lead · ETA: Phase 5 · Abhängigkeiten: S42
+
 **Ziel:** Alltagskomfort im Planer: Rechenketten in Maßfeldern, Favoriten-Filter, Modellvorlagen.
 
 **Features:**
@@ -348,6 +455,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 44 – Druck & Export: Batchdruck, S/W-Modus & befristeter Link
 
+**Meta:** Status: `planned` · Owner: Full-Stack · ETA: Phase 5 · Abhängigkeiten: S43, S13
+
 **Ziel:** Druckworkflow professionalisieren: mehrere Formulare auf einmal, Schwarz/Weiß, zeitbegrenzte Freigabelinks.
 
 **Features:**
@@ -368,6 +477,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 45 – Erweiterte Planung: Nischenverkleidung, Abdeckboden & Tiefenkürzung
+
+**Meta:** Status: `planned` · Owner: Full-Stack · ETA: Phase 5 · Abhängigkeiten: S44, S33
 
 **Ziel:** Spezielle Schranktypen und Maßanpassungen mit korrekter BOM- und Preiswirkung.
 
@@ -395,6 +506,14 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 |-------------|----------|
 | 45 | Profi-Parität: Passstücke, Angebotsworkflow, Taschenrechner, Favoriten, Batchdruck, Nischenverkleidung |
 
+### Security & Tenant-Isolation (Phase 5)
+
+**AuthN/AuthZ:** Alternativen-Schreibschutz (Sprint 42) ist API-seitig über `alternatives.status`-Prüfung abgesichert – kein Frontend-Only-Lock. Statusübergänge (`draft → angebot_gesendet → bestellt`) sind ausschließlich über autorisierte Endpunkte erlaubt.
+
+**Datenisolation:** `user_favorites` und `model_templates` erhalten `user_id + tenant_id`. Share-Links (Sprint 44) enthalten keinen Tenant-Token; abgelaufene Links geben HTTP 410 zurück ohne Datenleck.
+
+**Migrations-/Index-Disziplin:** `alternatives.status`-Erweiterung per nicht-brechender Migration (neuer Enum-Wert); bestehende `draft`-Datensätze bleiben unverändert. `quote_positions.purchase_price`-Spalte nullable per Default – kein Rewrite bestehender Zeilen.
+
 ### Risiken Phase 5
 
 1. Schreibschutz-Status-Machine muss atomar sein – kein Race Condition beim gleichzeitigen Drucken.
@@ -409,11 +528,13 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 **Ausgangslage (nach Sprint 45):** Profi-Parität hergestellt. Studio-Tool deckt den vollständigen Planungs- und Angebotsworkflow ab.
 
-**Ziel:** OKP zur vernetzten Branchenlösung ausbauen: Produktionssteuerung, mobiler Außendienst, ERP-Anbindung, erweitertes Reporting, DSGVO/SSO/RBAC. Quelle: Copilot-Planungsdokument (PR #9, 2026-03-02).
+**Ziel:** OKP zur vernetzten Branchenlösung ausbauen: Produktionssteuerung, mobiler Außendienst, ERP-Anbindung, erweitertes Reporting, DSGVO/SSO/RBAC.
 
 ---
 
 ### Sprint 46 – Auftragssteuerung & Produktionsübergabe
+
+**Meta:** Status: `in_progress` · Owner: Backend-Lead · ETA: Phase 6 · Abhängigkeiten: S45, S42
 
 **Ziel:** Bestätigtes Angebot erzeugt zwei verknüpfte Entitäten: interne `ProductionOrder` (Produktionsauftrag im Studio) und externe `PurchaseOrder` (Bestellung an den Küchenhersteller).
 
@@ -451,6 +572,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 47 – Mobile Aufmaß & Baustellenprotokoll
 
+**Meta:** Status: `planned` · Owner: Frontend-Lead · ETA: Phase 6 · Abhängigkeiten: S46
+
 **Ziel:** Progressive Web App für Außendienst: Aufmaß, Fotos, Installationscheckliste, automatisches Protokoll.
 
 **Features:**
@@ -473,6 +596,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 48 – ERP-Anbindung & Lieferantenportal
 
+**Meta:** Status: `planned` · Owner: Backend-Lead · ETA: Phase 6 · Abhängigkeiten: S47, S46
+
 **Ziel:** Bestehende `PurchaseOrder` (Sprint 46) um ERP-Konnektoren erweitern: automatische Übertragung an externe Systeme, Webhook-Rückmeldung, Lieferantenportal.
 
 **Features:**
@@ -493,6 +618,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 49 – Erweiterte Analytics & individuelle Reports
+
+**Meta:** Status: `planned` · Owner: Backend-Lead · ETA: Phase 6 · Abhängigkeiten: S48, S28
 
 **Ziel:** Report-Builder mit Drill-down, Trichteranalyse und geplanter E-Mail-Verteilung.
 
@@ -515,6 +642,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 50 – Compliance, Plattformhärtung & SLA-Management
+
+**Meta:** Status: `planned` · Owner: Security-Lead · ETA: Phase 6 · Abhängigkeiten: S49, S23
 
 **Ziel:** DSGVO-Tooling, SSO/SAML 2.0, granulares RBAC, SLA-Monitoring.
 
@@ -565,6 +694,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 51 – GLTF/GLB Export & 3D-Render-Pipeline
 
+**Meta:** Status: `planned` · Owner: Frontend-Lead · ETA: Phase 7 · Abhängigkeiten: S50, S14
+
 **Ziel:** Planung als GLTF/GLB exportieren für externe Renderer, AR/VR-Viewer und Kundenvisualisierung.
 
 **Hintergrund:** Three.js (bereits im Frontend) liest GLTF nativ. GLTF/GLB ist der offene Industriestandard für Web-3D (Khronos Group). Ermöglicht Export in AR-Apps, externe Renderer und Kunden-Viewer ohne proprietäre Formate.
@@ -585,6 +716,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 52 – IFC Import/Export (BIM-Integration)
+
+**Meta:** Status: `planned` · Owner: Interop-Lead · ETA: Phase 7 · Abhängigkeiten: S51, S3.5
 
 **Ziel:** IFC 2×3 und IFC 4 Import/Export für Austausch mit Architekten, Planungsbüros und BIM-Software (Revit, ArchiCAD, Allplan).
 
@@ -609,6 +742,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 
 ### Sprint 53 – DWG-Vollimplementierung, SKP-Export & CAD-Parität
 
+**Meta:** Status: `planned` · Owner: Interop-Lead · ETA: Phase 7 · Abhängigkeiten: S52, S19
+
 **Ziel:** Bestehende Stubs (DWG, SKP) vollständig implementieren; pCon.planner-Interop-Parität erreichen.
 
 **Hintergrund:** DWG-Stubs (`interop-cad/dwg-import`, `dwg-export`) und SKP-Export-Stub (`interop-sketchup/skp-export`) existieren bereits im Repo ohne Implementierung.
@@ -627,6 +762,8 @@ Sprint-Planung für MVP (Sprints 0-19), Phase 2 (Sprints 20-24) und Phase 3 (Spr
 ---
 
 ### Sprint 54 – Konfigurierbare Artikel & Abhängigkeitslogik (OFML-Parität)
+
+**Meta:** Status: `planned` · Owner: Backend-Lead · ETA: Phase 7 · Abhängigkeiten: S53, S20
 
 **Ziel:** Katalog-Artikel erhalten eine Abhängigkeitslogik zwischen Eigenschaften – ähnlich dem OFML-Standard (Office Furniture Modelling Language). Variante A → Preis und verfügbare Optionen ändern sich automatisch.
 
@@ -653,6 +790,8 @@ user_profiles               – (user_id, tenant_id, name, article_id, property_
 ---
 
 ### Sprint 55 – Raumakustik-Plugin (Voxel-Grid Import & Visualisierung)
+
+**Meta:** Status: `planned` · Owner: Full-Stack · ETA: Phase 7 · Abhängigkeiten: S54, S14
 
 **Ziel:** Akustische Planung durch Import externer Akustikberechnungen (CNIVG-Format) und Visualisierung als Voxel-Grid in der 2D/3D-Ansicht.
 
