@@ -26,6 +26,13 @@ import { validateV2Routes } from './routes/validateV2.js'
 import { biRoutes } from './routes/bi.js'
 import { leadRoutes } from './routes/leads.js'
 import { contactRoutes } from './routes/contacts.js'
+import { wallRoutes } from './routes/walls.js'
+import { worktopRoutes } from './routes/worktops.js'
+import { annotationRoutes } from './routes/annotations.js'
+import { roomDecorationRoutes } from './routes/roomDecoration.js'
+import { lightingRoutes } from './routes/lighting.js'
+import { quoteLineRoutes } from './routes/quotelines.js'
+import { macroRoutes } from './routes/macros.js'
 import { tenantMiddleware } from './tenantMiddleware.js'
 import { prisma } from './db.js'
 
@@ -65,6 +72,13 @@ await app.register(validateV2Routes, { prefix: '/api/v1' })
 await app.register(biRoutes, { prefix: '/api/v1' })
 await app.register(leadRoutes, { prefix: '/api/v1' })
 await app.register(contactRoutes, { prefix: '/api/v1' })
+await app.register(wallRoutes, { prefix: '/api/v1' })
+await app.register(worktopRoutes, { prefix: '/api/v1' })
+await app.register(annotationRoutes, { prefix: '/api/v1' })
+await app.register(roomDecorationRoutes, { prefix: '/api/v1' })
+await app.register(lightingRoutes, { prefix: '/api/v1' })
+await app.register(quoteLineRoutes, { prefix: '/api/v1' })
+await app.register(macroRoutes, { prefix: '/api/v1' })
 
 // Health check
 app.get('/health', async () => ({ status: 'ok' }))

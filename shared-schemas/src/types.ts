@@ -38,6 +38,9 @@ export interface WallSegment {
   end_vertex_id?: string;
   length_mm: number;
   inner_normal?: Vector2D;
+  thickness_mm?: number;
+  is_inner_wall?: boolean;
+  is_hidden?: boolean;
 }
 
 export interface WallSegment2D {
@@ -374,4 +377,205 @@ export interface SkpReferenceModel {
   raw_geometry_url: string;
   bounding_box: BoundingBox3D;
   created_at: string;
+}
+
+// Sprint 32 - WallObject
+export interface WallObject {
+  id: string;
+  wall_id: string;
+  room_id?: string;
+  type: 'door_single' | 'door_double' | 'pass_through' | 'window_single' | 'window_double' | 'window_casement';
+  offset_mm: number;
+  width_mm: number;
+  height_mm?: number;
+  sill_height_mm?: number;
+  hinge_side?: 'left' | 'right';
+  door_direction?: 'inward' | 'outward';
+  frame_type?: string;
+  leibung_depth_mm?: number;
+  show_in_plan?: boolean;
+  show_in_view?: boolean;
+}
+
+// Sprint 33 - Installation
+export interface WallInstallation {
+  id: string;
+  wall_id: string;
+  room_id?: string;
+  installation_type: 'socket_single' | 'socket_double' | 'socket_triple' | 'water' | 'drain' | 'gas' | '400v_floor';
+  offset_mm: number;
+  height_from_floor_mm?: number;
+  floor_object?: boolean;
+  offset_from_wall2_mm?: number;
+  show_in_plan?: boolean;
+  show_in_view?: boolean;
+  symbol_type?: 'installation_symbol' | 'installation_object';
+}
+
+// Sprint 34 - PlanningCursor
+export interface PlanningCursor {
+  wall_id: string;
+  offset_mm: number;
+  direction_deg: number;
+}
+
+export interface SnapPoint {
+  type: 'midpoint' | 'front_corner' | 'back_corner' | 'front_edge' | 'grid';
+  placement_id?: string;
+  position: Point2D;
+}
+
+export interface GridSettings {
+  step_mm: number;
+  angle_step_deg: number;
+}
+
+// Sprint 35 - Articles/Macros
+export interface LinkedArticle {
+  id: string;
+  parent_placement_id: string;
+  catalog_item_id: string;
+  catalog_article_id?: string;
+  description?: string;
+  qty: number;
+  list_price_net?: number;
+  dealer_price_net?: number;
+  tax_group_id?: string;
+}
+
+export interface Macro {
+  id: string;
+  name: string;
+  placements: Placement[];
+  created_at?: string;
+}
+
+// Sprint 36 - Worktop Schema
+export type EdgeType = 'none' | 'straight' | 'rounded' | 'profiled';
+
+export interface WorktopEdge {
+  edge_index: number;
+  type: EdgeType;
+  article_number?: string;
+}
+
+export interface WorktopSchema {
+  id: string;
+  room_id: string;
+  polygon: Point2D[];
+  edges: WorktopEdge[];
+  article_number?: string;
+  thickness_mm?: number;
+  overhang_mm?: number;
+  generated?: boolean;
+  created_at?: string;
+}
+
+// Sprint 37 - Dimensions/Sections/Comments
+export interface MeasureLine {
+  id: string;
+  room_id: string;
+  points: Point2D[];
+  label?: string;
+  is_chain?: boolean;
+}
+
+export interface SectionLine {
+  id: string;
+  room_id: string;
+  start: Point2D;
+  end: Point2D;
+  label?: string;
+}
+
+export interface Comment {
+  id: string;
+  room_id: string;
+  position: Point2D;
+  text: string;
+  image_url?: string;
+  font_size?: number;
+  background_color?: string;
+  show_in_plan?: boolean;
+  show_in_perspective?: boolean;
+  arrow_target?: Point2D;
+}
+
+// Sprint 38 - Room Colors
+export interface RoomSurfaceColor {
+  surface: 'floor' | 'ceiling' | 'wall_north' | 'wall_south' | 'wall_east' | 'wall_west';
+  color_hex?: string;
+  material_id?: string;
+  texture_url?: string;
+}
+
+export interface RoomColoring {
+  id: string;
+  room_id: string;
+  surfaces: RoomSurfaceColor[];
+}
+
+export interface DecoObject {
+  id: string;
+  room_id: string;
+  catalog_item_id: string;
+  position: Point2D;
+  rotation_deg: number;
+  width_mm?: number;
+  height_mm?: number;
+  depth_mm?: number;
+}
+
+// Sprint 39 - Lighting
+export type LightingProfileType = 'general' | 'spotlights' | 'ambient' | 'task';
+
+export interface LightSource {
+  id: string;
+  type: LightingProfileType;
+  position: Point3D;
+  intensity: number;
+  color_temp_k?: number;
+}
+
+export interface LightingProfile {
+  id: string;
+  room_id: string;
+  name: string;
+  lights: LightSource[];
+}
+
+// Sprint 40 - Quote mode
+export type QuoteLineType = 'standard' | 'custom' | 'text';
+
+export interface QuoteLine {
+  id: string;
+  project_id: string;
+  parent_id?: string;
+  type: QuoteLineType;
+  catalog_item_id?: string;
+  description: string;
+  qty: number;
+  unit: 'stk' | 'm' | 'm2' | 'pauschal';
+  list_price_net: number;
+  dealer_price_net?: number;
+  position_discount_pct: number;
+  pricing_group_id?: string;
+  exclude_from_order?: boolean;
+  exclude_from_quote?: boolean;
+  sort_order?: number;
+}
+
+export interface PricingGroup {
+  id: string;
+  project_id: string;
+  name: string;
+  discount_pct: number;
+}
+
+export interface BWASummary {
+  project_id: string;
+  total_list_net: number;
+  total_dealer_net: number;
+  contribution_margin: number;
+  markup_pct: number;
 }

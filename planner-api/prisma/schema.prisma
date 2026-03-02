@@ -67,6 +67,9 @@ model Project {
   customer_discounts CustomerDiscount[]
   project_line_items ProjectLineItem[]
   project_block_evaluations ProjectBlockEvaluation[]
+  quote_lines         Json      @default("[]")
+  pricing_groups_json Json      @default("[]")
+  macros              Json      @default("[]")
 
   @@map("projects")
 }
@@ -137,6 +140,13 @@ model Room {
   ceiling_constraints Json      @default("[]")
   openings            Json      @default("[]")
   placements          Json      @default("[]")
+  worktop_schemas     Json      @default("[]")
+  measure_lines       Json      @default("[]")
+  section_lines       Json      @default("[]")
+  comments            Json      @default("[]")
+  coloring            Json      @default("{\"surfaces\":[]}")
+  deco_objects        Json      @default("[]")
+  lighting_profiles   Json      @default("[]")
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
 
