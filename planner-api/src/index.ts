@@ -38,6 +38,8 @@ import { prisma } from './db.js'
 // Phase 4
 import { areaRoutes } from './routes/areas.js'
 import { workspaceLayoutRoutes } from './routes/workspaceLayout.js'
+// Phase 5
+import { fillerPiecesRoutes } from './routes/fillerPieces.js'
 
 const app = Fastify({ logger: true })
 
@@ -85,6 +87,8 @@ await app.register(macroRoutes, { prefix: '/api/v1' })
 // Phase 4 Routes
 await app.register(areaRoutes, { prefix: '/api/v1' })
 await app.register(workspaceLayoutRoutes, { prefix: '/api/v1' })
+// Phase 5 Routes
+await app.register(fillerPiecesRoutes, { prefix: '/api/v1' })
 
 // Health check
 app.get('/health', async () => ({ status: 'ok' }))
