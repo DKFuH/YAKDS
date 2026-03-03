@@ -17,7 +17,11 @@ New-Item -ItemType Directory -Force -Path $failedDir | Out-Null
 if (-not (Test-Path $logFile)) { '' | Out-File -FilePath $logFile -Encoding utf8 }
 
 function Write-Log([string]$msg) {
-  Add-Content -Path $logFile -Value "$(Get-Date -Format o) $msg"
+  try {
+    Add-Content -Path $logFile -Value "$(Get-Date -Format o) $msg" -ErrorAction Stop
+  } catch {
+    # avoid hard-fail when file is temporarily locked by another process
+  }
 }
 
 Write-Log "Runner started. Queue=$queueDir PollSeconds=$PollSeconds"

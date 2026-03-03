@@ -21,16 +21,50 @@ if (-not (Test-Path $logFile)) {
 
 function Write-Log([string]$msg) {
   $line = "$(Get-Date -Format o) $msg"
-  Add-Content -Path $logFile -Value $line
+  try {
+    Add-Content -Path $logFile -Value $line -ErrorAction Stop
+  } catch {
+    # avoid hard-fail when file is temporarily locked by another process
+  }
+}
+
+function ConvertTo-Hashtable($obj) {
+  if ($null -eq $obj) { return @{} }
+
+  if ($obj -is [System.Collections.IDictionary]) {
+    $ht = @{}
+    foreach ($k in $obj.Keys) {
+      $ht[$k] = ConvertTo-Hashtable $obj[$k]
+    }
+    return $ht
+  }
+
+  if ($obj -is [System.Collections.IEnumerable] -and -not ($obj -is [string])) {
+    $arr = @()
+    foreach ($item in $obj) {
+      $arr += ,(ConvertTo-Hashtable $item)
+    }
+    return $arr
+  }
+
+  if ($obj.PSObject -and $obj.PSObject.Properties.Count -gt 0) {
+    $ht = @{}
+    foreach ($p in $obj.PSObject.Properties) {
+      $ht[$p.Name] = ConvertTo-Hashtable $p.Value
+    }
+    return $ht
+  }
+
+  return $obj
 }
 
 function Load-State {
   try {
     $raw = Get-Content -Path $stateFile -Raw -Encoding UTF8
     if ([string]::IsNullOrWhiteSpace($raw)) { return @{} }
-    $obj = $raw | ConvertFrom-Json -AsHashtable
+    $obj = $raw | ConvertFrom-Json
     if ($null -eq $obj) { return @{} }
-    return $obj
+    return (ConvertTo-Hashtable $obj)
   } catch {
     Write-Log "WARN state parse failed, resetting: $($_.Exception.Message)"
     return @{}
@@ -43,16 +77,20 @@ function Save-State([hashtable]$state) {
 
 Write-Log "Watcher started. Directory=$sprintsDir PollSeconds=$PollSeconds"
 
+$state = Load-State
+if (-not ($state -is [System.Collections.IDictionary])) { $state = @{} }
+
 while ($true) {
   try {
-    $state = Load-State
     $files = Get-ChildItem -Path $sprintsDir -Filter 'S*.md' -File | Where-Object { $_.Name -match '^S\d+-.+\.md$' }
 
     foreach ($f in $files) {
       $key = $f.FullName
       $stamp = $f.LastWriteTimeUtc.ToString('o')
+      $known = $state.Contains($key)
+      $current = if ($known) { $state[$key] } else { $null }
 
-      if (-not $state.ContainsKey($key) -or $state[$key] -ne $stamp) {
+      if (-not $known -or $current -ne $stamp) {
         $state[$key] = $stamp
         Save-State $state
 
