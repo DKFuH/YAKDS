@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Sprint-Planung für MVP (Sprints 0–19), Phase 2 (Sprints 20–24), Phase 3 (Sprints 25–30), Phase 4 (Sprints 31–40), Phase 5 (Sprints 41–45), Phase 6 (Sprints 46–50), Phase 7 (Sprints 51–55) und Phase 8 (Sprints 56–60) inkl. aktuellem Fortschritt. Stand: 2026-03-02.
+Sprint-Planung für MVP (Sprints 0–19), Phase 2 (Sprints 20–24), Phase 3 (Sprints 25–30), Phase 4 (Sprints 31–40), Phase 5 (Sprints 41–45), Phase 6 (Sprints 46–50), Phase 7 (Sprints 51–55), Phase 8 (Sprints 56–60) und Phase 9 (Infrastruktur & Integration) inkl. aktuellem Fortschritt. Stand: 2026-03-03.
 
 ---
 
@@ -1018,3 +1018,84 @@ catalog_macros: id, tenant_id, name, positions JSON (wall_id, offset_mm, article
 4. Kitchen-Assistant-Layouts müssen bei ungewöhnlichen Raumformen graceful degradieren – Fallback: „Kein Vorschlag möglich".
 5. Frontansichts-Generator muss Dachschrägen-Constraints (Sprint 6) berücksichtigen – Höhenlinien dürfen nicht ignoriert werden.
 6. `opening_type`-Enum-Erweiterung muss mit bestehenden Öffnungsdaten und der Prüf-Engine (Sprint 22) abgestimmt werden.
+
+---
+
+## Phase 9 – Infrastruktur & Integration (hotfix/parallel zu Phase 8)
+
+Diese Phase umfasst Infrastruktur-Features, die parallel zu Phase 8 durch GitHub-Copilot-Agenten entstanden und in `main` gemergt wurden.
+
+### Sprint 9-UI – Frontend-Modernisierung
+
+**Meta:** Status: `done` · Owner: Copilot Agent (PR #16) · Datum: 2026-03-02
+
+**Was:** Komplette Überarbeitung der Editor- und Projektlisten-UI.
+
+- **Editor:** Workflow-Steps-Leiste (Aufmaß → Planung → Angebot → Produktion), Nav-Strip mit Schnellzugriff, überarbeitetes Layout
+- **Editor:** Flyout-Menü mit kontextbezogenen Aktionen
+- **LeftSidebar:** Neue CSS-Module für Kategorieblöcke
+- **ProjectList:** Kanban-Board-Ansicht nach Projektstatus, Prioritätslabels, Gantt-Vorbereitung
+
+**Dateien:** `Editor.tsx`, `Editor.module.css`, `ProjectList.tsx`, `ProjectList.module.css`, `LeftSidebar.tsx`, `LeftSidebar.module.css`
+
+---
+
+### Sprint 9-PS – Plugin-System (Branche-Plugins)
+
+**Meta:** Status: `done` · Owner: Copilot Agent (branch: develop-plugins-for-acoustics-fengshui) · Datum: 2026-03-03
+
+**Was:** Zentrales `OkpPlugin`-Interface und Plugin-Registry für erweiterbare Branche-Plugins.
+
+**Architektur:**
+```
+planner-api/src/plugins/
+  pluginRegistry.ts   – registerPlugin / getPlugins / clearPlugins
+  index.ts            – bootstrapPlugins() (Raumakustik + FengShui)
+  raumakustik.ts      – acousticsRoutes als OkpPlugin
+  fengshui.ts         – fengshuiRoutes als OkpPlugin
+```
+
+**Vorher:** `acousticsRoutes` und `fengshuiRoutes` direkt in `index.ts` importiert.  
+**Nachher:** `bootstrapPlugins()` + `for...of getPlugins()` Loop – neue Plugins ohne `index.ts`-Anpassung registrierbar.
+
+**Tests:** 5 Unit-Tests in `pluginRegistry.test.ts` (immutable snapshot, Duplikat-Guard, etc.)
+
+**DoD:** Plugin-Registry wirft bei doppelter ID; `getPlugins()` gibt unveränderlichen Snapshot zurück; alle Bestandsrouten funktionieren unverändert über Plugin-Loop.
+
+---
+
+### Sprint 9-MCP – MCP-Server für externe Systeme
+
+**Meta:** Status: `done` · Owner: Copilot Agent (branch: entwickeln-mcp-fuer-externe-systeme) · Datum: 2026-03-03
+
+**Was:** JSON-RPC 2.0 MCP-Endpunkt (`/api/v1/mcp`) für KI-basierte externe Integration.
+
+**Ermöglicht:** Claude, Copilot und andere KI-Systeme können als MCP-Client auf den Planner zugreifen.
+
+**MCP-Tools:**
+| Tool | Beschreibung |
+|------|-------------|
+| `list_projects` | Projekte auflisten (mit Paginierung + Tenant-Filter) |
+| `get_project` | Einzelnes Projekt mit allen Metadaten |
+| `suggest_kitchen_layout` | Küchenlayout vorschlagen (L/U/Einzeiler/Insel) aus Wandsegmenten |
+| `get_catalog_articles` | Katalog durchsuchen (Collection, Family, Freitext) |
+| `get_bom` | Stückliste eines Projekts abrufen |
+
+**Protokoll:** MCP/1.0 + `protocolVersion: 2024-11-05` (Model Context Protocol)
+
+**Dateien:**
+- `planner-api/src/routes/mcp.ts` – JSON-RPC Handler (initialize, tools/list, tools/call)
+- `planner-api/src/services/mcpService.ts` – Tool-Definitionen & Implementierungen (307 Zeilen)
+- `planner-api/src/routes/mcp.test.ts` – 330 Zeilen Tests
+
+**DoD:** `GET /api/v1/mcp` → Server-Info; `POST /api/v1/mcp` mit `tools/list` → 5 Tools; `tools/call suggest_kitchen_layout` → Vorschläge; Fehler-Handling via JSON-RPC error codes.
+
+---
+
+### Meilenstein Phase 9
+
+| Feature | Ergebnis |
+|---------|----------|
+| UI-Modernisierung | Editor und Projektliste mit Workflow-UX, Flyout, Kanban |
+| Plugin-System | Erweiterbare Plugin-Architektur für Branche-Features |
+| MCP-Server | KI-Systeme können Planner-Daten lesen und Layout-Vorschläge abrufen |
