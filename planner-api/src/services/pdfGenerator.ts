@@ -16,6 +16,29 @@ type QuotePdfSnapshot = {
   total_gross?: number
 } | null | undefined
 
+export type PdfSender = {
+  company_name: string
+  street?: string
+  zip?: string
+  city?: string
+  phone?: string
+  email?: string
+  web?: string
+  vat_id?: string
+  tax_number?: string
+  iban?: string
+  bic?: string
+  bank_name?: string
+}
+
+export type PdfRecipient = {
+  name: string
+  street?: string
+  zip?: string
+  city?: string
+  email?: string
+}
+
 export type QuotePdfInput = {
   quote_number: string
   version: number
@@ -24,6 +47,8 @@ export type QuotePdfInput = {
   footer_text: string | null
   items: QuotePdfItem[]
   price_snapshot?: QuotePdfSnapshot
+  sender?: PdfSender
+  recipient?: PdfRecipient
 }
 
 type PdfLine = {
@@ -142,12 +167,38 @@ function renderItemLines(item: QuotePdfItem): PdfLine[] {
 function renderQuoteLines(input: QuotePdfInput): PdfLine[] {
   const visibleItems = toVisibleItems(input.items)
   const totals = resolveTotals(visibleItems, input.price_snapshot)
-  const lines: PdfLine[] = [
-    { text: `Angebot ${input.quote_number}`, size: 16 },
-    { text: `Version ${input.version}`, size: 11 },
-    { text: `Gueltig bis: ${formatDate(input.valid_until)}`, size: 11 },
-    { text: '', size: 11 },
-  ]
+  const lines: PdfLine[] = []
+
+  // Kopfzeile mit Firmendaten (links) und Angebotsdaten (rechts)
+  if (input.sender) {
+    lines.push({ text: input.sender.company_name, size: 18 })
+    const addrParts: string[] = []
+    if (input.sender.street) addrParts.push(input.sender.street)
+    const cityLine = [input.sender.zip, input.sender.city].filter(Boolean).join(' ')
+    if (cityLine) addrParts.push(cityLine)
+    if (input.sender.phone) addrParts.push(`Tel: ${input.sender.phone}`)
+    if (input.sender.web) addrParts.push(input.sender.web)
+    addrParts.forEach((part) => lines.push({ text: part, size: 9 }))
+    lines.push({ text: '', size: 9 })
+  }
+
+  lines.push({ text: `ANGEBOT ${input.quote_number}`, size: 16 })
+  lines.push({ text: `Version ${input.version}`, size: 11 })
+  lines.push({ text: `Gueltig bis: ${formatDate(input.valid_until)}`, size: 11 })
+  lines.push({ text: '', size: 11 })
+
+  // Empfängerblock
+  if (input.recipient) {
+    if (input.sender) {
+      const senderMini = [input.sender.company_name, input.sender.street, [input.sender.zip, input.sender.city].filter(Boolean).join(' ')].filter(Boolean).join(' · ')
+      lines.push({ text: senderMini, size: 7 })
+    }
+    lines.push({ text: input.recipient.name, size: 10 })
+    if (input.recipient.street) lines.push({ text: input.recipient.street, size: 10 })
+    const recipientCity = [input.recipient.zip, input.recipient.city].filter(Boolean).join(' ')
+    if (recipientCity) lines.push({ text: recipientCity, size: 10 })
+    lines.push({ text: '', size: 10 })
+  }
 
   wrapText(input.free_text ?? '', 88).forEach((line) => {
     lines.push({ text: line, size: 11 })
@@ -169,10 +220,31 @@ function renderQuoteLines(input: QuotePdfInput): PdfLine[] {
 
   lines.push({ text: '', size: 11 })
   lines.push({ text: `Zwischensumme netto: ${formatAmount(totals.subtotalNet)}`, size: 11 })
-  lines.push({ text: `MwSt: ${formatAmount(totals.vatAmount)}`, size: 11 })
-  lines.push({ text: `Gesamt brutto: ${formatAmount(totals.totalGross)}`, size: 12 })
+  lines.push({ text: `MwSt 19%: ${formatAmount(totals.vatAmount)}`, size: 11 })
+  lines.push({ text: `Gesamtbetrag brutto: ${formatAmount(totals.totalGross)}`, size: 12 })
 
-  const footerLines = wrapText(input.footer_text ?? '', 88)
+  // Fußzeile: Bankverbindung + USt + quote_footer / footer_text
+  const hasBankInfo = input.sender && (input.sender.bank_name || input.sender.iban || input.sender.bic)
+  const hasTaxInfo = input.sender && (input.sender.vat_id || input.sender.tax_number)
+  if (hasBankInfo || hasTaxInfo) {
+    lines.push({ text: '', size: 11 })
+    if (hasBankInfo && input.sender) {
+      const bankParts: string[] = []
+      if (input.sender.bank_name) bankParts.push(input.sender.bank_name)
+      if (input.sender.iban) bankParts.push(`IBAN ${input.sender.iban}`)
+      if (input.sender.bic) bankParts.push(`BIC ${input.sender.bic}`)
+      lines.push({ text: bankParts.join(' · '), size: 9 })
+    }
+    if (hasTaxInfo && input.sender) {
+      const taxParts: string[] = []
+      if (input.sender.vat_id) taxParts.push(`USt-IdNr: ${input.sender.vat_id}`)
+      if (input.sender.tax_number) taxParts.push(`St-Nr: ${input.sender.tax_number}`)
+      lines.push({ text: taxParts.join(' | '), size: 9 })
+    }
+  }
+
+  const effectiveFooter = input.footer_text ?? null
+  const footerLines = wrapText(effectiveFooter ?? '', 88)
   if (footerLines.length > 0) {
     lines.push({ text: '', size: 11 })
     footerLines.forEach((line) => {

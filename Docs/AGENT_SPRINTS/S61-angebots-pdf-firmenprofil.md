@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-61-pdf-firmenprofil`
 **Gruppe:** A (unabhängig)
-**Status:** `planned`
+**Status:** `done`
 **Abhängigkeiten:** S13 (Angebotsmanagement), Phase 9 (TenantSetting)
 
 ---

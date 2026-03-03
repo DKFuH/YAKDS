@@ -731,6 +731,19 @@ model TenantSetting {
   currency_code      String   @default("EUR")
   email_from_name    String?
   email_from_address String?
+  company_name       String?  @db.VarChar(200)
+  company_street     String?  @db.VarChar(200)
+  company_zip        String?  @db.VarChar(20)
+  company_city       String?  @db.VarChar(100)
+  company_phone      String?  @db.VarChar(50)
+  company_email      String?  @db.VarChar(200)
+  company_web        String?  @db.VarChar(200)
+  iban               String?  @db.VarChar(50)
+  bic                String?  @db.VarChar(20)
+  bank_name          String?  @db.VarChar(100)
+  vat_id             String?  @db.VarChar(30)
+  tax_number         String?  @db.VarChar(30)
+  quote_footer       String?
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 

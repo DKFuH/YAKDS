@@ -6,6 +6,8 @@ const { prismaMock } = vi.hoisted(() => {
     project: { findUnique: vi.fn() },
     quote: { findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn() },
     quoteSettings: { findUnique: vi.fn() },
+    tenantSetting: { findUnique: vi.fn() },
+    lead: { findFirst: vi.fn() },
     $transaction: vi.fn(),
   }
   mock.$transaction.mockImplementation(async (cb: (tx: typeof mock) => Promise<unknown>) => cb(mock))
@@ -30,6 +32,8 @@ describe('quoteRoutes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     registerProjectDocumentMock.mockResolvedValue({ id: 'doc-1' })
+    prismaMock.tenantSetting.findUnique.mockResolvedValue(null)
+    prismaMock.lead.findFirst.mockResolvedValue(null)
   })
 
   it('creates a new quote with incremented version and items', async () => {
