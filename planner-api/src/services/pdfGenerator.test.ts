@@ -34,7 +34,7 @@ describe('buildQuotePdf', () => {
     expect(content.startsWith('%PDF-1.4')).toBe(true)
     expect(content).toContain('ANG-2026-0004')
     expect(content).toContain('Zwischensumme netto: 500.00 EUR')
-    expect(content).toContain('Gesamt brutto: 595.00 EUR')
+    expect(content).toContain('Gesamtbetrag brutto: 595.00 EUR')
     expect(content).toContain('Unterschrank 60')
   })
 

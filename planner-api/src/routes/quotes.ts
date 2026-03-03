@@ -5,7 +5,7 @@ import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound, sendServerError } from '../errors.js'
 import { registerProjectDocument } from '../services/documentRegistry.js'
 import { queueNotification } from '../services/notificationService.js'
-import { buildQuotePdf } from '../services/pdfGenerator.js'
+import { buildQuotePdf, type PdfSender, type PdfRecipient } from '../services/pdfGenerator.js'
 
 const QuoteParamsSchema = z.object({
   id: z.string().uuid(),
@@ -210,14 +210,56 @@ export async function quoteRoutes(app: FastifyInstance) {
       return sendNotFound(reply, 'Quote not found')
     }
 
+    const settings = await prisma.tenantSetting.findUnique({
+      where: { tenant_id: quote.project.tenant_id ?? '' },
+    })
+
+    const sender: PdfSender | undefined = settings?.company_name
+      ? {
+          company_name: settings.company_name,
+          street: settings.company_street ?? undefined,
+          zip: settings.company_zip ?? undefined,
+          city: settings.company_city ?? undefined,
+          phone: settings.company_phone ?? undefined,
+          email: settings.company_email ?? undefined,
+          web: settings.company_web ?? undefined,
+          vat_id: settings.vat_id ?? undefined,
+          tax_number: settings.tax_number ?? undefined,
+          iban: settings.iban ?? undefined,
+          bic: settings.bic ?? undefined,
+          bank_name: settings.bank_name ?? undefined,
+        }
+      : undefined
+
+    const lead = await prisma.lead.findFirst({
+      where: { promoted_to_project_id: quote.project.id },
+      select: { contact_json: true },
+    })
+
+    let recipient: PdfRecipient | undefined
+    if (lead) {
+      const contactJson = lead.contact_json as { name?: string; email?: string; street?: string; zip?: string; city?: string } | null
+      if (contactJson?.name) {
+        recipient = {
+          name: contactJson.name,
+          email: contactJson.email ?? undefined,
+          street: contactJson.street ?? undefined,
+          zip: contactJson.zip ?? undefined,
+          city: contactJson.city ?? undefined,
+        }
+      }
+    }
+
     const pdf = buildQuotePdf({
       quote_number: quote.quote_number,
       version: quote.version,
       valid_until: quote.valid_until,
       free_text: quote.free_text,
-      footer_text: quote.footer_text,
+      footer_text: settings?.quote_footer ?? quote.footer_text ?? null,
       items: quote.items,
       price_snapshot: (quote.price_snapshot as { subtotal_net?: number; vat_amount?: number; total_gross?: number } | null | undefined),
+      sender,
+      recipient,
     })
     const safeQuoteNumber = quote.quote_number.toLowerCase().replace(/[^a-z0-9-]+/g, '-')
     const filename = `${safeQuoteNumber || `quote-v${quote.version}`}.pdf`

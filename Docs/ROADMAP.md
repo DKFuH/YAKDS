@@ -1110,7 +1110,7 @@ planner-api/src/plugins/
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
-| 61 | `planned` | Angebots-PDF mit Firmenprofil | TenantSetting erweitert, PDF mit Absender/Empfänger/Bank/USt, Frontend-Download, Firmenprofil-Seite |
+| 61 | `done` | Angebots-PDF mit Firmenprofil | TenantSetting erweitert, PDF mit Absender/Empfänger/Bank/USt, Frontend-Download, Firmenprofil-Seite |
 | 62 | `planned` | MCP: Claude als Planungsassistent | 10 neue Tools (Read+Write), Räume/Placements/Angebote via MCP, MCP-Info-Seite |
 
 ### Sprint-Metadaten
