@@ -16,7 +16,11 @@ import { ReportsPage } from './pages/ReportsPage.js'
 import { CompliancePage } from './pages/CompliancePage.js'
 import { McpInfoPage } from './pages/McpInfoPage.js'
 import { TenantSettingsPage } from './pages/TenantSettingsPage.js'
+import { CutlistPage } from './pages/CutlistPage'
 import './global.css'
+
+const tischlerPluginFlag = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_ENABLE_TISCHLER_PLUGIN
+const tischlerPluginEnabled = String(tischlerPluginFlag ?? 'true').toLowerCase() !== 'false'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null }
@@ -56,6 +60,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/supplier-portal" element={<SupplierPortalPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings/mcp" element={<McpInfoPage />} />
+        {tischlerPluginEnabled && <Route path="/projects/:id/cutlist" element={<CutlistPage />} />}
         <Route path="/compliance" element={<CompliancePage />} />
         <Route path="/settings/company" element={<TenantSettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

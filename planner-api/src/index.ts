@@ -59,6 +59,7 @@ import { articleConfiguratorRoutes } from './routes/articleConfigurator.js'
 import { dimensionRoutes } from './routes/dimensions.js'
 import { kitchenAssistantRoutes } from './routes/kitchenAssistant.js'
 import { layoutSheetRoutes } from './routes/layoutSheets.js'
+import { cutlistRoutes } from './routes/cutlist.js'
 // Sprint 61
 import { tenantSettingsRoutes } from './routes/tenantSettings.js'
 // Plugin-System
@@ -133,6 +134,7 @@ await app.register(articleConfiguratorRoutes, { prefix: '/api/v1' })
 await app.register(dimensionRoutes, { prefix: '/api/v1' })
 await app.register(layoutSheetRoutes, { prefix: '/api/v1' })
 await app.register(kitchenAssistantRoutes, { prefix: '/api/v1' })
+await app.register(cutlistRoutes, { prefix: '/api/v1' })
 await app.register(tenantSettingsRoutes, { prefix: '/api/v1' })
 
 // Branche-Plugins bootstrappen und einhängen

@@ -36,3 +36,26 @@ export const macrosApi = {
   delete: (projectId: string, macroId: string) =>
     api.delete(`/projects/${projectId}/macros/${macroId}`),
 }
+
+type CutlistRecord = {
+  id: string
+  project_id: string
+  room_id: string | null
+  generated_at: string
+  parts: unknown
+  summary: unknown
+}
+
+export const cutlistApi = {
+  list: (projectId: string) =>
+    api.get<CutlistRecord[]>(`/projects/${projectId}/cutlists`),
+
+  generate: (projectId: string, payload: { room_id?: string } = {}) =>
+    api.post<CutlistRecord>(`/projects/${projectId}/cutlists`, payload),
+
+  get: (cutlistId: string) =>
+    api.get<CutlistRecord>(`/cutlists/${cutlistId}`),
+
+  remove: (cutlistId: string) =>
+    api.delete(`/cutlists/${cutlistId}`),
+}

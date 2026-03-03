@@ -1,0 +1,94 @@
+.page {
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.section {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid currentColor;
+  text-align: left;
+  padding: 8px;
+}
+
+.activeRow {
+  font-weight: 600;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.filters label {
+  display: grid;
+  gap: 4px;
+}
+
+.filters select {
+  min-width: 160px;
+}
+
+.summary {
+  margin-top: 12px;
+}
+
+.error {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.btnPrimary,
+.btnSecondary,
+.btnDanger,
+.linkBtn {
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.btnPrimary {
+  font-weight: 600;
+}
+
+.linkBtn {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
