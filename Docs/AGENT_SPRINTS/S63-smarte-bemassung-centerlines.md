@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-63-smarte-bemassung`
 **Gruppe:** A (unabhängig)
-**Status:** `planned`
+**Status:** `done`
 **Abhängigkeiten:** S59 (Bemaßung/Frontansicht), S4 (Präzisionsbearbeitung)
 
 ---

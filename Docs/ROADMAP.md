@@ -1102,7 +1102,7 @@ planner-api/src/plugins/
 
 ---
 
-## Phase 10 – Professionalisierung (Sprints 61–62)
+## Phase 10 – Professionalisierung (Sprints 61–63)
 
 **Ziel:** Vertriebsreife Features — professionelle Kundendokumente und KI-gestützter Planungsassistent.
 
@@ -1112,6 +1112,7 @@ planner-api/src/plugins/
 |--------|--------|-------|--------------|
 | 61 | `done` | Angebots-PDF mit Firmenprofil | TenantSetting erweitert, PDF mit Absender/Empfänger/Bank/USt, Frontend-Download, Firmenprofil-Seite |
 | 62 | `planned` | MCP: Claude als Planungsassistent | 10 neue Tools (Read+Write), Räume/Placements/Angebote via MCP, MCP-Info-Seite |
+| 63 | `done` | Smarte Bemaßung & Centerlines | PUT /dimensions/:id, POST /rooms/:id/dimensions/smart (Maßkette), Centerlines im Canvas |
 
 ### Sprint-Metadaten
 
@@ -1119,6 +1120,7 @@ planner-api/src/plugins/
 |--------|-------|-----|----------------|-----------------|
 | 61 | Full-Stack | Phase 10 | S13, TenantSetting | PDF mit Firmenbriefkopf downloadbar; Firmenprofil in UI pflegbar |
 | 62 | Backend | Phase 10 | S9-MCP | 15 MCP-Tools; Claude kann Projekte, Räume, Placements und Angebote verwalten |
+| 63 | Full-Stack | Phase 10 | S59 | Bemaßungs-Update, smarte Maßkette, Centerlines im Grundriss |
 
 ### Meilenstein Phase 10
 
@@ -1137,7 +1139,7 @@ smarte Bemaßung, Layout-Sheets, Cutlists und pragmatisches CNC-Nesting.
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
-| 63 | `planned` | Smarte Bemaßung & Centerlines | Referenzierte Maße, Quick-Dim, Achslinien |
+| 63 | `done` | Smarte Bemaßung & Centerlines | Referenzierte Maße, Quick-Dim, Achslinien |
 | 64 | `planned` | Layout-Sheets & Detail-Views | Zeichnungsblaetter, Detail- und Schnittansichten |
 | 65 | `planned` | Zuschnittliste (Cutlist) | Teilelisten aus Platzierungen, PDF/CSV-Export |
 | 66 | `planned` | CNC-Nesting & DXF-Export | Rohplattenbelegung, Verschnitt-KPIs, DXF fuer Werkstatt |

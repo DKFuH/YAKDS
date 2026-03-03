@@ -34,6 +34,7 @@ export function CanvasArea({ room, onRoomUpdated, editor, openings, selectedOpen
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 })
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [showCenterlines, setShowCenterlines] = useState(false)
 
   // Ref-Trick: stabile handleSave ohne stale closure auf editor.state
   const editorRef = useRef(editor)
@@ -108,6 +109,8 @@ export function CanvasArea({ room, onRoomUpdated, editor, openings, selectedOpen
             onAddOpening={onAddOpening}
             placements={placements}
             dimensions={dimensions}
+            showCenterlines={showCenterlines}
+            onToggleCenterlines={() => setShowCenterlines((value) => !value)}
             selectedPlacementId={selectedPlacementId}
             onSelectPlacement={onSelectPlacement}
             canAddPlacement={canAddPlacement}

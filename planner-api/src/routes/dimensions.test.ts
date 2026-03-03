@@ -14,6 +14,7 @@ const { prismaMock } = vi.hoisted(() => ({
       create: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
     },
@@ -81,6 +82,9 @@ describe('dimensionRoutes', () => {
 
     prismaMock.dimension.delete.mockResolvedValue({ id: dimensionId })
     prismaMock.dimension.deleteMany.mockResolvedValue({ count: 2 })
+    prismaMock.dimension.update.mockImplementation(async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+      return { ...createDimensionFixture({ id: where.id }), ...data }
+    })
   })
 
   it('POST /dimensions linear returns 201', async () => {
@@ -243,6 +247,207 @@ describe('dimensionRoutes', () => {
     })
 
     expect(response.statusCode).toBe(404)
+    await app.close()
+  })
+
+  // ── Sprint 63: PUT /dimensions/:id ─────────────────────────────────────────
+
+  it('PUT /dimensions/:id with label returns 200 and updated label', async () => {
+    const app = await createApp()
+
+    prismaMock.dimension.update.mockResolvedValueOnce(createDimensionFixture({ label: 'Override' }))
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/dimensions/${dimensionId}`,
+      payload: { label: 'Override' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({ label: 'Override' })
+    await app.close()
+  })
+
+  it('PUT /dimensions/:id with style returns 200 and updated style', async () => {
+    const app = await createApp()
+
+    const updatedStyle = { unit: 'cm', offset_mm: 200 }
+    prismaMock.dimension.update.mockResolvedValueOnce(createDimensionFixture({ style: updatedStyle }))
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/dimensions/${dimensionId}`,
+      payload: { style: updatedStyle },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({ style: updatedStyle })
+    await app.close()
+  })
+
+  it('PUT /dimensions/:id unknown dimension returns 404', async () => {
+    const app = await createApp()
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/dimensions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      payload: { label: 'X' },
+    })
+
+    expect(response.statusCode).toBe(404)
+    await app.close()
+  })
+
+  it('PUT /dimensions/:id with invalid style (fontSize > 24) returns 400', async () => {
+    const app = await createApp()
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/dimensions/${dimensionId}`,
+      payload: { style: { fontSize: 99 } },
+    })
+
+    expect(response.statusCode).toBe(400)
+    await app.close()
+  })
+
+  // ── Sprint 63: POST /rooms/:id/dimensions/smart ────────────────────────────
+
+  it('POST /rooms/:id/dimensions/smart returns 201 and creates wall + placement dimensions', async () => {
+    const app = await createApp()
+
+    const createdDimensions = [
+      createDimensionFixture({ id: 'smart-1' }),
+      createDimensionFixture({ id: 'smart-2' }),
+      createDimensionFixture({ id: 'smart-3' }),
+      createDimensionFixture({ id: 'smart-4' }),
+      createDimensionFixture({ id: 'smart-5' }),
+    ]
+    createdDimensions.forEach((d, i) => {
+      prismaMock.dimension.create.mockResolvedValueOnce(createdDimensions[i])
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${roomId}/dimensions/smart`,
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body = response.json()
+    expect(Array.isArray(body)).toBe(true)
+    expect(body.length).toBeGreaterThanOrEqual(1)
+    await app.close()
+  })
+
+  it('POST /rooms/:id/dimensions/smart unknown room returns 404', async () => {
+    const app = await createApp()
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${missingRoomId}/dimensions/smart`,
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(404)
+    await app.close()
+  })
+
+  it('POST /rooms/:id/dimensions/smart room without boundary returns 400', async () => {
+    const app = await createApp()
+
+    const noBoundaryRoomId = '33333333-3333-3333-3333-333333333333'
+    prismaMock.room.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) => {
+      if (where.id === roomId) return roomFixture
+      if (where.id === noBoundaryRoomId) return { ...roomFixture, id: noBoundaryRoomId, boundary: {} }
+      return null
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${noBoundaryRoomId}/dimensions/smart`,
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(400)
+    await app.close()
+  })
+
+  it('POST /rooms/:id/dimensions/smart deletes existing dimensions first', async () => {
+    const app = await createApp()
+
+    prismaMock.dimension.create.mockResolvedValue(createDimensionFixture())
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${roomId}/dimensions/smart`,
+      payload: {},
+    })
+
+    expect(prismaMock.dimension.deleteMany).toHaveBeenCalledWith({ where: { room_id: roomId } })
+    await app.close()
+  })
+
+  it('POST /rooms/:id/dimensions/smart with placement creates at least wall + placement dimensions', async () => {
+    const app = await createApp()
+
+    const roomWithTwoPlacements = {
+      ...roomFixture,
+      placements: [
+        { id: 'pl-1', wall_id: 'wall-1', offset_mm: 0, width_mm: 600, depth_mm: 560 },
+        { id: 'pl-2', wall_id: 'wall-1', offset_mm: 700, width_mm: 900, depth_mm: 560 },
+      ],
+    }
+    prismaMock.room.findUnique.mockResolvedValueOnce(roomWithTwoPlacements)
+
+    const dims = [
+      createDimensionFixture({ id: 'd1' }),
+      createDimensionFixture({ id: 'd2', label: '600 mm' }),
+      createDimensionFixture({ id: 'd3', label: '900 mm' }),
+      createDimensionFixture({ id: 'd4' }),
+      createDimensionFixture({ id: 'd5' }),
+      createDimensionFixture({ id: 'd6' }),
+    ]
+    dims.forEach(d => prismaMock.dimension.create.mockResolvedValueOnce(d))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${roomId}/dimensions/smart`,
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body = response.json()
+    expect(body.length).toBeGreaterThanOrEqual(3)
+    await app.close()
+  })
+
+  it('POST /rooms/:id/dimensions/smart wall without placements creates only wall dimension', async () => {
+    const app = await createApp()
+
+    const roomWithNoWallPlacements = {
+      ...roomFixture,
+      placements: [],
+    }
+    prismaMock.room.findUnique.mockResolvedValueOnce(roomWithNoWallPlacements)
+
+    const wallDims = [
+      createDimensionFixture({ id: 'w1' }),
+      createDimensionFixture({ id: 'w2' }),
+      createDimensionFixture({ id: 'w3' }),
+      createDimensionFixture({ id: 'w4' }),
+    ]
+    wallDims.forEach(d => prismaMock.dimension.create.mockResolvedValueOnce(d))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${roomId}/dimensions/smart`,
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body = response.json()
+    expect(body.length).toBe(4)
     await app.close()
   })
 })

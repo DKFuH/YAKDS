@@ -36,8 +36,14 @@ export const dimensionsApi = {
   create: (data: CreateDimensionInput): Promise<Dimension> =>
     api.post<Dimension>('/dimensions', data),
 
+  update: (id: string, data: { label?: string | null; style?: CreateDimensionInput['style'] }): Promise<Dimension> =>
+    api.put<Dimension>(`/dimensions/${id}`, data),
+
   autoGenerate: (roomId: string): Promise<Dimension[]> =>
     api.post<Dimension[]>(`/rooms/${roomId}/dimensions/auto`, {}),
+
+  smartGenerate: (roomId: string): Promise<Dimension[]> =>
+    api.post<Dimension[]>(`/rooms/${roomId}/dimensions/smart`, {}),
 
   delete: (id: string): Promise<void> =>
     api.delete(`/dimensions/${id}`),

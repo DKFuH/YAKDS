@@ -20,6 +20,11 @@ const CreateDimensionSchema = z.object({
   label: z.string().max(100).nullable().optional(),
 })
 
+const UpdateDimensionSchema = z.object({
+  label: z.string().max(100).nullable().optional(),
+  style: StyleSchema,
+})
+
 type RoomBoundary = {
   wall_segments?: Array<{ id: string; x0_mm: number; y0_mm: number; x1_mm: number; y1_mm: number }>
 } | null
@@ -73,6 +78,25 @@ export async function dimensionRoutes(app: FastifyInstance) {
     return reply.status(204).send()
   })
 
+  app.put<{ Params: { id: string } }>('/dimensions/:id', async (request, reply) => {
+    const existing = await prisma.dimension.findUnique({ where: { id: request.params.id } })
+    if (!existing) return sendNotFound(reply, 'Dimension not found')
+
+    const parsed = UpdateDimensionSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return sendBadRequest(reply, parsed.error.errors[0]?.message ?? 'Invalid')
+    }
+
+    const updated = await prisma.dimension.update({
+      where: { id: request.params.id },
+      data: {
+        ...(parsed.data.label !== undefined ? { label: parsed.data.label } : {}),
+        ...(parsed.data.style !== undefined ? { style: parsed.data.style ?? {} } : {}),
+      },
+    })
+    return reply.send(updated)
+  })
+
   app.post<{ Params: { id: string } }>('/rooms/:id/dimensions/auto', async (request, reply) => {
     const room = await prisma.room.findUnique({ where: { id: request.params.id } })
     if (!room) return sendNotFound(reply, 'Room not found')
@@ -107,6 +131,71 @@ export async function dimensionRoutes(app: FastifyInstance) {
     )
 
     return reply.status(201).send(created)
+  })
+
+  app.post<{ Params: { id: string } }>('/rooms/:id/dimensions/smart', async (request, reply) => {
+    const room = await prisma.room.findUnique({ where: { id: request.params.id } })
+    if (!room) return sendNotFound(reply, 'Room not found')
+
+    const boundary = room.boundary as RoomBoundary
+    if (!boundary?.wall_segments?.length) {
+      return sendBadRequest(reply, 'Room has no boundary')
+    }
+
+    const placements = (room.placements as RoomPlacement[] | null) ?? []
+    await prisma.dimension.deleteMany({ where: { room_id: request.params.id } })
+
+    const OUTER_OFFSET_MM = 300
+    const INNER_OFFSET_MM = 150
+    const results: Awaited<ReturnType<typeof prisma.dimension.create>>[] = []
+
+    for (const wall of boundary.wall_segments) {
+      const dx = wall.x1_mm - wall.x0_mm
+      const dy = wall.y1_mm - wall.y0_mm
+      const len = Math.hypot(dx, dy)
+      if (len < 50) continue
+
+      const dirX = dx / len
+      const dirY = dy / len
+
+      results.push(await prisma.dimension.create({
+        data: {
+          room_id: request.params.id,
+          type: 'linear',
+          points: [
+            { x_mm: wall.x0_mm, y_mm: wall.y0_mm },
+            { x_mm: wall.x1_mm, y_mm: wall.y1_mm },
+          ],
+          style: { unit: 'mm', offset_mm: OUTER_OFFSET_MM },
+          label: null,
+        },
+      }))
+
+      const wallPlacements = placements
+        .filter(p => p.wall_id === wall.id)
+        .sort((a, b) => a.offset_mm - b.offset_mm)
+
+      for (const placement of wallPlacements) {
+        const startX = wall.x0_mm + dirX * placement.offset_mm
+        const startY = wall.y0_mm + dirY * placement.offset_mm
+        const endX = wall.x0_mm + dirX * (placement.offset_mm + placement.width_mm)
+        const endY = wall.y0_mm + dirY * (placement.offset_mm + placement.width_mm)
+        results.push(await prisma.dimension.create({
+          data: {
+            room_id: request.params.id,
+            type: 'linear',
+            points: [
+              { x_mm: startX, y_mm: startY },
+              { x_mm: endX, y_mm: endY },
+            ],
+            style: { unit: 'mm', offset_mm: INNER_OFFSET_MM },
+            label: `${Math.round(placement.width_mm)} mm`,
+          },
+        }))
+      }
+    }
+
+    return reply.status(201).send(results)
   })
 
   app.get<{ Params: { id: string; wallIndex: string } }>(
