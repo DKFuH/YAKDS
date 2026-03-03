@@ -21,11 +21,13 @@ export async function mcpRoutes(app: FastifyInstance) {
   app.get('/mcp', async (_request, reply) => {
     return reply.send({
       name: 'open-kitchen-planner',
-      version: '1.0.0',
-      description: 'MCP-Server für den Open Kitchen Planner – Küchen planen mit KI und externen Systemen',
+      version: '2.0.0',
+      description: 'MCP-Server für den Open Kitchen Planner – Küchen planen, Angebote erstellen, Projekte verwalten',
       protocol: 'MCP/1.0',
       capabilities: {
         tools: true,
+        read_tools: ['list_projects', 'get_project', 'get_rooms', 'get_room_detail', 'get_placements', 'get_quote', 'search_contacts', 'get_catalog_articles', 'get_bom', 'suggest_kitchen_layout'],
+        write_tools: ['create_project', 'update_project_status', 'add_placement', 'remove_placement', 'create_quote_from_bom'],
       },
     })
   })

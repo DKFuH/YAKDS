@@ -3,18 +3,43 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const projectId = '11111111-1111-1111-1111-111111111111'
 
+const roomId = '22222222-2222-2222-2222-222222222222'
+const placementId = '33333333-3333-3333-3333-333333333333'
+const articleId = '44444444-4444-4444-4444-444444444444'
+const quoteId = '55555555-5555-5555-5555-555555555555'
+const contactId = '66666666-6666-6666-6666-666666666666'
+
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     project: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
     },
     catalogArticle: {
       findMany: vi.fn(),
       count: vi.fn(),
+      findUnique: vi.fn(),
     },
     projectLineItem: {
+      findMany: vi.fn(),
+    },
+    room: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+    },
+    placement: {
+      findMany: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+    },
+    quote: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+    },
+    lead: {
       findMany: vi.fn(),
     },
   },
@@ -55,9 +80,23 @@ describe('mcpRoutes', () => {
     })
     prismaMock.project.findMany.mockResolvedValue([PROJECT_FIXTURE])
     prismaMock.project.count.mockResolvedValue(1)
+    prismaMock.project.create.mockResolvedValue({ id: projectId, name: 'New Project', project_status: 'lead' })
+    prismaMock.project.update.mockResolvedValue({ id: projectId, name: 'Musterküche EG', project_status: 'planning' })
     prismaMock.catalogArticle.findMany.mockResolvedValue([])
     prismaMock.catalogArticle.count.mockResolvedValue(0)
+    prismaMock.catalogArticle.findUnique.mockResolvedValue({ id: articleId, width_mm: 600, depth_mm: 600, height_mm: 720 })
     prismaMock.projectLineItem.findMany.mockResolvedValue([])
+    prismaMock.room.findMany.mockResolvedValue([{ id: roomId, name: 'Küche', area_sqm: 15.12, ceiling_height_mm: 2600, created_at: new Date() }])
+    prismaMock.room.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) => {
+      if (where.id === roomId) return { id: roomId, name: 'Küche', walls: [], placements: [] }
+      return null
+    })
+    prismaMock.placement.findMany.mockResolvedValue([])
+    prismaMock.placement.create.mockResolvedValue({ id: placementId })
+    prismaMock.placement.delete.mockResolvedValue({ id: placementId })
+    prismaMock.quote.findFirst.mockResolvedValue({ id: quoteId, version: 1, lines: [] })
+    prismaMock.quote.create.mockResolvedValue({ id: quoteId, version: 1, lines: [{ position: 1 }] })
+    prismaMock.lead.findMany.mockResolvedValue([{ id: contactId, name: 'Max Muster', email: 'max@example.com', phone: null, created_at: new Date() }])
   })
 
   // ── Server-Info ───────────────────────────────────────────────────────────
@@ -68,7 +107,10 @@ describe('mcpRoutes', () => {
     expect(res.statusCode).toBe(200)
     const body = res.json()
     expect(body.name).toBe('open-kitchen-planner')
+    expect(body.version).toBe('2.0.0')
     expect(body.capabilities.tools).toBe(true)
+    expect(Array.isArray(body.capabilities.read_tools)).toBe(true)
+    expect(Array.isArray(body.capabilities.write_tools)).toBe(true)
     await app.close()
   })
 
@@ -116,7 +158,7 @@ describe('mcpRoutes', () => {
 
   // ── tools/list ────────────────────────────────────────────────────────────
 
-  it('POST tools/list → 200 with tools array', async () => {
+  it('POST tools/list → 200 with 15 tools array', async () => {
     const app = await createApp()
     const res = await app.inject({
       method: 'POST',
@@ -126,12 +168,23 @@ describe('mcpRoutes', () => {
     expect(res.statusCode).toBe(200)
     const body = res.json()
     expect(Array.isArray(body.result.tools)).toBe(true)
+    expect(body.result.tools).toHaveLength(15)
     const names = (body.result.tools as Array<{ name: string }>).map((t) => t.name)
     expect(names).toContain('list_projects')
     expect(names).toContain('get_project')
     expect(names).toContain('suggest_kitchen_layout')
     expect(names).toContain('get_catalog_articles')
     expect(names).toContain('get_bom')
+    expect(names).toContain('get_rooms')
+    expect(names).toContain('get_room_detail')
+    expect(names).toContain('get_placements')
+    expect(names).toContain('get_quote')
+    expect(names).toContain('search_contacts')
+    expect(names).toContain('create_project')
+    expect(names).toContain('update_project_status')
+    expect(names).toContain('add_placement')
+    expect(names).toContain('remove_placement')
+    expect(names).toContain('create_quote_from_bom')
     await app.close()
   })
 
@@ -325,6 +378,234 @@ describe('mcpRoutes', () => {
     })
     expect(res.statusCode).toBe(400)
     expect(res.json().error.code).toBe(-32601)
+    await app.close()
+  })
+
+  // ── tools/call – get_rooms ────────────────────────────────────────────────
+
+  it('tools/call get_rooms with valid project_id → rooms array', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 20,
+        method: 'tools/call',
+        params: { name: 'get_rooms', arguments: { project_id: projectId } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const data = JSON.parse(res.json().result.content[0].text)
+    expect(Array.isArray(data.rooms)).toBe(true)
+    expect(data.count).toBe(1)
+    await app.close()
+  })
+
+  it('tools/call get_rooms with unknown project_id → empty array', async () => {
+    prismaMock.room.findMany.mockResolvedValue([])
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 21,
+        method: 'tools/call',
+        params: { name: 'get_rooms', arguments: { project_id: '00000000-0000-0000-0000-000000000000' } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const data = JSON.parse(res.json().result.content[0].text)
+    expect(data.rooms).toHaveLength(0)
+    expect(res.json().result.isError).toBeUndefined()
+    await app.close()
+  })
+
+  // ── tools/call – get_room_detail ──────────────────────────────────────────
+
+  it('tools/call get_room_detail → walls + openings + placements', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 22,
+        method: 'tools/call',
+        params: { name: 'get_room_detail', arguments: { room_id: roomId } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const data = JSON.parse(res.json().result.content[0].text)
+    expect(data.id).toBe(roomId)
+    expect(Array.isArray(data.walls)).toBe(true)
+    expect(Array.isArray(data.placements)).toBe(true)
+    await app.close()
+  })
+
+  it('tools/call get_room_detail unknown room → isError true', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 23,
+        method: 'tools/call',
+        params: { name: 'get_room_detail', arguments: { room_id: '00000000-0000-0000-0000-000000000000' } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().result.isError).toBe(true)
+    await app.close()
+  })
+
+  // ── tools/call – get_quote ────────────────────────────────────────────────
+
+  it('tools/call get_quote → current quote with lines', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 24,
+        method: 'tools/call',
+        params: { name: 'get_quote', arguments: { project_id: projectId } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const data = JSON.parse(res.json().result.content[0].text)
+    expect(data.id).toBe(quoteId)
+    expect(Array.isArray(data.lines)).toBe(true)
+    await app.close()
+  })
+
+  // ── tools/call – search_contacts ──────────────────────────────────────────
+
+  it('tools/call search_contacts with query → filtered contacts', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 25,
+        method: 'tools/call',
+        params: { name: 'search_contacts', arguments: { query: 'Max' } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const data = JSON.parse(res.json().result.content[0].text)
+    expect(Array.isArray(data.contacts)).toBe(true)
+    expect(data.count).toBe(1)
+    await app.close()
+  })
+
+  // ── tools/call – create_project ───────────────────────────────────────────
+
+  it('tools/call create_project → project_id returned', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 26,
+        method: 'tools/call',
+        params: { name: 'create_project', arguments: { name: 'New Project', tenant_id: 'tenant-1' } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const data = JSON.parse(res.json().result.content[0].text)
+    expect(data.project_id).toBeDefined()
+    await app.close()
+  })
+
+  // ── tools/call – update_project_status ───────────────────────────────────
+
+  it('tools/call update_project_status with invalid status → isError true', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 27,
+        method: 'tools/call',
+        params: { name: 'update_project_status', arguments: { project_id: projectId, status: 'invalid_status' } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().result.isError).toBe(true)
+    await app.close()
+  })
+
+  // ── tools/call – add_placement ────────────────────────────────────────────
+
+  it('tools/call add_placement → placement_id returned', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 28,
+        method: 'tools/call',
+        params: {
+          name: 'add_placement',
+          arguments: { room_id: roomId, article_id: articleId, wall_id: 'wall-1', offset_mm: 100 },
+        },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const data = JSON.parse(res.json().result.content[0].text)
+    expect(data.placement_id).toBeDefined()
+    await app.close()
+  })
+
+  // ── tools/call – remove_placement ────────────────────────────────────────
+
+  it('tools/call remove_placement → removed key returned', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 29,
+        method: 'tools/call',
+        params: { name: 'remove_placement', arguments: { placement_id: placementId } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const data = JSON.parse(res.json().result.content[0].text)
+    expect(data.removed).toBe(placementId)
+    await app.close()
+  })
+
+  // ── tools/call – create_quote_from_bom ───────────────────────────────────
+
+  it('tools/call create_quote_from_bom → quote_id + lines.length returned', async () => {
+    prismaMock.projectLineItem.findMany.mockResolvedValue([
+      { name: 'Unterschrank', quantity: 2, unit_price: 299, total_price: 598 },
+    ])
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/mcp',
+      payload: {
+        jsonrpc: '2.0',
+        id: 30,
+        method: 'tools/call',
+        params: { name: 'create_quote_from_bom', arguments: { project_id: projectId } },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const data = JSON.parse(res.json().result.content[0].text)
+    expect(data.quote_id).toBeDefined()
+    expect(typeof data.lines).toBe('number')
     await app.close()
   })
 })

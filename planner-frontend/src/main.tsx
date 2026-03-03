@@ -14,6 +14,7 @@ import { SiteSurveyPage } from './pages/SiteSurveyPage.js'
 import { SupplierPortalPage } from './pages/SupplierPortalPage.js'
 import { ReportsPage } from './pages/ReportsPage.js'
 import { CompliancePage } from './pages/CompliancePage.js'
+import { McpInfoPage } from './pages/McpInfoPage.js'
 import './global.css'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -54,6 +55,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/supplier-portal" element={<SupplierPortalPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/compliance" element={<CompliancePage />} />
+        <Route path="/settings/mcp" element={<McpInfoPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

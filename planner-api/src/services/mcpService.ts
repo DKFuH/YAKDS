@@ -96,6 +96,159 @@ export const MCP_TOOLS: McpToolDefinition[] = [
       additionalProperties: false,
     },
   },
+
+  // ── get_rooms ────────────────────────────────────────────────────────────────
+  {
+    name: 'get_rooms',
+    description: 'Listet alle Räume eines Projekts mit Name, Fläche und Deckenhöhe.',
+    inputSchema: {
+      type: 'object',
+      required: ['project_id'],
+      properties: {
+        project_id: { type: 'string', description: 'UUID des Projekts' },
+      },
+      additionalProperties: false,
+    },
+  },
+
+  // ── get_room_detail ──────────────────────────────────────────────────────────
+  {
+    name: 'get_room_detail',
+    description: 'Gibt Raumpolygon, Wände (mit Längen), Öffnungen (Türen/Fenster) und platzierte Artikel zurück.',
+    inputSchema: {
+      type: 'object',
+      required: ['room_id'],
+      properties: {
+        room_id: { type: 'string', description: 'UUID des Raums' },
+      },
+      additionalProperties: false,
+    },
+  },
+
+  // ── get_placements ───────────────────────────────────────────────────────────
+  {
+    name: 'get_placements',
+    description: 'Gibt alle platzierten Artikel in einem Raum zurück (Artikel-ID, Name, Position, Abmessungen).',
+    inputSchema: {
+      type: 'object',
+      required: ['room_id'],
+      properties: {
+        room_id: { type: 'string', description: 'UUID des Raums' },
+      },
+      additionalProperties: false,
+    },
+  },
+
+  // ── get_quote ────────────────────────────────────────────────────────────────
+  {
+    name: 'get_quote',
+    description: 'Gibt das aktuelle Angebot eines Projekts zurück (Positionen, Netto/Brutto-Summen, Status).',
+    inputSchema: {
+      type: 'object',
+      required: ['project_id'],
+      properties: {
+        project_id: { type: 'string', description: 'UUID des Projekts' },
+      },
+      additionalProperties: false,
+    },
+  },
+
+  // ── search_contacts ──────────────────────────────────────────────────────────
+  {
+    name: 'search_contacts',
+    description: 'Sucht nach Kunden/Leads anhand von Name oder E-Mail.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query:     { type: 'string', description: 'Name oder E-Mail-Fragment' },
+        tenant_id: { type: 'string', description: 'Optionale Tenant-ID' },
+        limit:     { type: 'number', default: 10 },
+      },
+      additionalProperties: false,
+    },
+  },
+
+  // ── create_project ───────────────────────────────────────────────────────────
+  {
+    name: 'create_project',
+    description: 'Legt ein neues Planungsprojekt an.',
+    inputSchema: {
+      type: 'object',
+      required: ['name', 'tenant_id'],
+      properties: {
+        name:        { type: 'string', description: 'Projektname' },
+        tenant_id:   { type: 'string', description: 'Tenant-UUID' },
+        description: { type: 'string', description: 'Optionale Beschreibung' },
+        lead_id:     { type: 'string', description: 'Optionale Lead/Kunden-UUID' },
+      },
+      additionalProperties: false,
+    },
+  },
+
+  // ── update_project_status ────────────────────────────────────────────────────
+  {
+    name: 'update_project_status',
+    description: 'Schaltet den Status eines Projekts weiter (lead → planning → quoted → contract → production → installed).',
+    inputSchema: {
+      type: 'object',
+      required: ['project_id', 'status'],
+      properties: {
+        project_id: { type: 'string' },
+        status: {
+          type: 'string',
+          enum: ['lead', 'planning', 'quoted', 'contract', 'production', 'installed'],
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+
+  // ── add_placement ────────────────────────────────────────────────────────────
+  {
+    name: 'add_placement',
+    description: 'Platziert einen Katalogartikel in einem Raum an einer Wand.',
+    inputSchema: {
+      type: 'object',
+      required: ['room_id', 'article_id', 'wall_id', 'offset_mm'],
+      properties: {
+        room_id:    { type: 'string', description: 'UUID des Raums' },
+        article_id: { type: 'string', description: 'UUID des Katalogartikels' },
+        wall_id:    { type: 'string', description: 'UUID der Wand' },
+        offset_mm:  { type: 'number', description: 'Abstand vom Wand-Startpunkt in mm' },
+      },
+      additionalProperties: false,
+    },
+  },
+
+  // ── remove_placement ─────────────────────────────────────────────────────────
+  {
+    name: 'remove_placement',
+    description: 'Entfernt eine Platzierung aus einem Raum.',
+    inputSchema: {
+      type: 'object',
+      required: ['placement_id'],
+      properties: {
+        placement_id: { type: 'string', description: 'UUID der Platzierung' },
+      },
+      additionalProperties: false,
+    },
+  },
+
+  // ── create_quote_from_bom ────────────────────────────────────────────────────
+  {
+    name: 'create_quote_from_bom',
+    description: 'Erzeugt ein neues Angebot aus der aktuellen Stückliste des Projekts.',
+    inputSchema: {
+      type: 'object',
+      required: ['project_id'],
+      properties: {
+        project_id:  { type: 'string' },
+        valid_days:  { type: 'number', description: 'Gültigkeitsdauer in Tagen (default 30)', default: 30 },
+        free_text:   { type: 'string', description: 'Optionaler Angebotstext' },
+      },
+      additionalProperties: false,
+    },
+  },
 ]
 
 // ─────────────────────────────────────────
@@ -296,6 +449,159 @@ export async function callMcpTool(
       return {
         content: [{ type: 'text', text: JSON.stringify({ project_id: projectId, items }) }],
       }
+    }
+
+    case 'get_rooms': {
+      const projectId = args.project_id as string
+      if (!projectId) return { content: [{ type: 'text', text: 'project_id required' }], isError: true }
+      const rooms = await anyDb.room.findMany({
+        where: { project_id: projectId },
+        select: { id: true, name: true, area_sqm: true, ceiling_height_mm: true, created_at: true },
+        orderBy: { created_at: 'asc' },
+      })
+      return { content: [{ type: 'text', text: JSON.stringify({ rooms, count: rooms.length }) }] }
+    }
+
+    case 'get_room_detail': {
+      const roomId = args.room_id as string
+      if (!roomId) return { content: [{ type: 'text', text: 'room_id required' }], isError: true }
+      const room = await anyDb.room.findUnique({
+        where: { id: roomId },
+        include: {
+          walls: { include: { openings: true } },
+          placements: { include: { catalog_article: { select: { name: true, sku: true, width_mm: true, depth_mm: true, height_mm: true } } } },
+        },
+      })
+      if (!room) return { content: [{ type: 'text', text: `Room ${roomId} not found` }], isError: true }
+      return { content: [{ type: 'text', text: JSON.stringify(room) }] }
+    }
+
+    case 'get_placements': {
+      const roomId = args.room_id as string
+      if (!roomId) return { content: [{ type: 'text', text: 'room_id required' }], isError: true }
+      const placements = await anyDb.placement.findMany({
+        where: { room_id: roomId },
+        include: { catalog_article: { select: { name: true, sku: true, width_mm: true, depth_mm: true } } },
+      })
+      return { content: [{ type: 'text', text: JSON.stringify({ placements, count: placements.length }) }] }
+    }
+
+    case 'get_quote': {
+      const projectId = args.project_id as string
+      if (!projectId) return { content: [{ type: 'text', text: 'project_id required' }], isError: true }
+      const quote = await anyDb.quote.findFirst({
+        where: { project_id: projectId },
+        orderBy: { version: 'desc' },
+        include: { lines: { orderBy: { position: 'asc' } } },
+      })
+      if (!quote) return { content: [{ type: 'text', text: 'No quote found for project' }], isError: true }
+      return { content: [{ type: 'text', text: JSON.stringify(quote) }] }
+    }
+
+    case 'search_contacts': {
+      const query = args.query as string | undefined
+      const limit = Math.min(50, Number(args.limit ?? 10))
+      const where: Record<string, unknown> = {}
+      if (args.tenant_id) where.tenant_id = args.tenant_id
+      if (query) {
+        where.OR = [
+          { name: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+        ]
+      }
+      const contacts = await anyDb.lead.findMany({
+        where, take: limit,
+        select: { id: true, name: true, email: true, phone: true, created_at: true },
+      })
+      return { content: [{ type: 'text', text: JSON.stringify({ contacts, count: contacts.length }) }] }
+    }
+
+    case 'create_project': {
+      const { name, tenant_id, description, lead_id } = args as Record<string, string>
+      if (!name || !tenant_id) return { content: [{ type: 'text', text: 'name and tenant_id required' }], isError: true }
+      const project = await anyDb.project.create({
+        data: { name, tenant_id, description: description ?? null, lead_id: lead_id ?? null, project_status: 'lead' },
+      })
+      return { content: [{ type: 'text', text: JSON.stringify({ project_id: project.id, name: project.name, status: project.project_status }) }] }
+    }
+
+    case 'update_project_status': {
+      const projectId = args.project_id as string
+      const status = args.status as string
+      const validStatuses = ['lead', 'planning', 'quoted', 'contract', 'production', 'installed']
+      if (!validStatuses.includes(status)) {
+        return { content: [{ type: 'text', text: `Invalid status. Allowed: ${validStatuses.join(', ')}` }], isError: true }
+      }
+      const project = await anyDb.project.update({
+        where: { id: projectId },
+        data: { project_status: status as never },
+        select: { id: true, name: true, project_status: true },
+      })
+      return { content: [{ type: 'text', text: JSON.stringify(project) }] }
+    }
+
+    case 'add_placement': {
+      const { room_id, article_id, wall_id, offset_mm } = args as Record<string, unknown>
+      if (!room_id || !article_id || !wall_id) {
+        return { content: [{ type: 'text', text: 'room_id, article_id and wall_id required' }], isError: true }
+      }
+      const article = await anyDb.catalogArticle.findUnique({ where: { id: article_id as string } })
+      if (!article) return { content: [{ type: 'text', text: `Article ${article_id} not found` }], isError: true }
+      const placement = await anyDb.placement.create({
+        data: {
+          room_id: room_id as string,
+          article_id: article_id as string,
+          wall_id: wall_id as string,
+          offset_mm: Number(offset_mm ?? 0),
+          width_mm: article.width_mm,
+          depth_mm: article.depth_mm,
+          height_mm: article.height_mm,
+        },
+      })
+      return { content: [{ type: 'text', text: JSON.stringify({ placement_id: placement.id }) }] }
+    }
+
+    case 'remove_placement': {
+      const placementId = args.placement_id as string
+      await anyDb.placement.delete({ where: { id: placementId } }).catch(() => null)
+      return { content: [{ type: 'text', text: JSON.stringify({ removed: placementId }) }] }
+    }
+
+    case 'create_quote_from_bom': {
+      const projectId = args.project_id as string
+      if (!projectId) return { content: [{ type: 'text', text: 'project_id required' }], isError: true }
+      const validDays = Number(args.valid_days ?? 30)
+      const freeText = args.free_text as string | undefined
+
+      const bom = await anyDb.projectLineItem.findMany({ where: { project_id: projectId } })
+      if (bom.length === 0) return { content: [{ type: 'text', text: 'No BOM items found' }], isError: true }
+
+      const existing = await anyDb.quote.findFirst({ where: { project_id: projectId }, orderBy: { version: 'desc' } })
+      const version = (existing?.version ?? 0) + 1
+      const validUntil = new Date(Date.now() + validDays * 86_400_000)
+
+      const quote = await anyDb.quote.create({
+        data: {
+          project_id: projectId,
+          version,
+          valid_until: validUntil,
+          free_text: freeText ?? null,
+          lines: {
+            create: bom.map((item: Record<string, unknown>, idx: number) => ({
+              position: idx + 1,
+              description: item.name,
+              qty: item.quantity,
+              unit: 'Stk',
+              unit_price_net: item.unit_price ?? 0,
+              line_net: item.total_price ?? 0,
+              tax_rate: 19,
+              show_on_quote: true,
+            })),
+          },
+        },
+        include: { lines: true },
+      })
+      return { content: [{ type: 'text', text: JSON.stringify({ quote_id: quote.id, version, lines: quote.lines.length }) }] }
     }
 
     default:
