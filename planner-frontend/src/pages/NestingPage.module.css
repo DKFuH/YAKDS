@@ -1,0 +1,90 @@
+.page {
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.section {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.formGrid label {
+  display: grid;
+  gap: 4px;
+}
+
+.kpis {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kpiCard {
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 8px 10px;
+  min-width: 140px;
+}
+
+.previewList {
+  display: grid;
+  gap: 12px;
+}
+
+.sheetPreview {
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.sheetSvg {
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  border: 1px solid currentColor;
+}
+
+.error {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.btnPrimary,
+.btnSecondary,
+.btnDanger {
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.btnPrimary {
+  font-weight: 600;
+}

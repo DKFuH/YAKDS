@@ -25,10 +25,28 @@ export interface TenantSettings extends TenantSettingsPayload {
   updated_at?: string
 }
 
+export interface TenantPluginInfo {
+  id: string
+  name: string
+}
+
+export interface TenantPluginsResponse {
+  available: TenantPluginInfo[]
+  enabled: string[]
+}
+
 export function getTenantSettings(): Promise<TenantSettings> {
   return api.get<TenantSettings>('/tenant/settings')
 }
 
 export function updateTenantSettings(payload: TenantSettingsPayload): Promise<TenantSettings> {
   return api.put<TenantSettings>('/tenant/settings', payload)
+}
+
+export function getTenantPlugins(): Promise<TenantPluginsResponse> {
+  return api.get<TenantPluginsResponse>('/tenant/plugins')
+}
+
+export function updateTenantPlugins(enabled: string[]): Promise<{ enabled: string[] }> {
+  return api.put<{ enabled: string[] }>('/tenant/plugins', { enabled })
 }

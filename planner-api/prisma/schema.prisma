@@ -861,6 +861,7 @@ model TenantSetting {
   vat_id             String?  @db.VarChar(30)
   tax_number         String?  @db.VarChar(30)
   quote_footer       String?
+  enabled_plugins    Json     @default("[]")
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 

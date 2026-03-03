@@ -53,7 +53,10 @@ export function TenantSettingsPage() {
           <p className={styles.subtitle}>Firmendaten für Angebots-PDF, Steuer- und Bankverbindung</p>
         </div>
         <div className={styles.headerActions}>
-          <button type="button" className={styles.btnSecondary} onClick={() => navigate('/')}>
+          <button type="button" className={styles.btnSecondary} onClick={() => navigate('/settings/plugins')}>
+            Plugins
+          </button>
+          <button type="button" className={styles.btnSecondary} onClick={() => navigate('/settings')}>
             ← Zurück
           </button>
         </div>

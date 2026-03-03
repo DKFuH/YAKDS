@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendBadRequest } from '../errors.js'
+import { getPlugins } from '../plugins/pluginRegistry.js'
 
 const TenantSettingBodySchema = z.object({
   company_name:   z.string().max(200).optional(),
@@ -20,6 +21,24 @@ const TenantSettingBodySchema = z.object({
   logo_url:       z.string().url().optional(),
   currency_code:  z.string().length(3).optional(),
 })
+
+const TenantPluginsBodySchema = z.object({
+  enabled: z.array(z.string().min(1)).default([]),
+})
+
+type TenantSettingsStore = {
+  findUnique: (args: unknown) => Promise<{ enabled_plugins?: unknown } | null>
+  upsert: (args: unknown) => Promise<{ enabled_plugins?: unknown }>
+}
+
+function getTenantSettingsStore(): TenantSettingsStore {
+  return (prisma as unknown as { tenantSetting: TenantSettingsStore }).tenantSetting
+}
+
+function normalizeEnabledPlugins(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+}
 
 export async function tenantSettingsRoutes(app: FastifyInstance) {
   app.get('/tenant/settings', async (request, reply) => {
@@ -55,5 +74,47 @@ export async function tenantSettingsRoutes(app: FastifyInstance) {
     })
 
     return reply.send(settings)
+  })
+
+  app.get('/tenant/plugins', async (request, reply) => {
+    const tenantId = (request as { tenantId?: string }).tenantId
+    if (!tenantId) {
+      return reply.status(403).send({ error: 'FORBIDDEN', message: 'Missing tenant scope' })
+    }
+
+    const available = getPlugins().map((plugin) => ({ id: plugin.id, name: plugin.name }))
+    const availableIds = new Set(available.map((plugin) => plugin.id))
+
+    const store = getTenantSettingsStore()
+    const settings = await store.findUnique({ where: { tenant_id: tenantId } })
+    const configured = normalizeEnabledPlugins(settings?.enabled_plugins)
+    const enabled = (configured.length > 0 ? configured : available.map((plugin) => plugin.id))
+      .filter((id) => availableIds.has(id))
+
+    return reply.send({ available, enabled })
+  })
+
+  app.put('/tenant/plugins', async (request, reply) => {
+    const tenantId = (request as { tenantId?: string }).tenantId
+    if (!tenantId) {
+      return reply.status(403).send({ error: 'FORBIDDEN', message: 'Missing tenant scope' })
+    }
+
+    const parsed = TenantPluginsBodySchema.safeParse(request.body)
+    if (!parsed.success) {
+      return sendBadRequest(reply, parsed.error.errors[0].message)
+    }
+
+    const availableIds = new Set(getPlugins().map((plugin) => plugin.id))
+    const normalized = [...new Set(parsed.data.enabled)].filter((id) => availableIds.has(id))
+
+    const store = getTenantSettingsStore()
+    const updated = await store.upsert({
+      where: { tenant_id: tenantId },
+      update: { enabled_plugins: normalized },
+      create: { tenant_id: tenantId, enabled_plugins: normalized },
+    })
+
+    return reply.send({ enabled: normalizeEnabledPlugins(updated.enabled_plugins) })
   })
 }

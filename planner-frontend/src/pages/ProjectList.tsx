@@ -232,6 +232,7 @@ export function ProjectList() {
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/contacts')}>Kontakte</button>
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/documents')}>Dokumente</button>
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/catalog')}>Katalog</button>
+        <button type="button" className={styles.topNavLink} onClick={() => navigate('/settings')}>Einstellungen</button>
         <button type="button" className={styles.topNavLink} onClick={() => void platformApi.exportProjectsCsv()}>CSV Export</button>
       </nav>
 
