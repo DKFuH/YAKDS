@@ -60,6 +60,7 @@ import { acousticsRoutes } from './routes/acoustics.js'
 import { dimensionRoutes } from './routes/dimensions.js'
 import { kitchenAssistantRoutes } from './routes/kitchenAssistant.js'
 import { fengshuiRoutes } from './routes/fengshui.js'
+import { mcpRoutes } from './routes/mcp.js'
 
 const app = Fastify({ logger: true })
 
@@ -129,6 +130,7 @@ await app.register(acousticsRoutes, { prefix: '/api/v1' })
 await app.register(dimensionRoutes, { prefix: '/api/v1' })
 await app.register(kitchenAssistantRoutes, { prefix: '/api/v1' })
 await app.register(fengshuiRoutes, { prefix: '/api/v1' })
+await app.register(mcpRoutes, { prefix: '/api/v1' })
 
 // Health check
 app.get('/health', async () => ({ status: 'ok' }))
