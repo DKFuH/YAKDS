@@ -1,4 +1,4 @@
-import { z } from '../../../planner-api/node_modules/zod/index.js'
+import { z } from 'zod'
 
 export const AlternativeLockRequestSchema = z.object({}).strict()
 

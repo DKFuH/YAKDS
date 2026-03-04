@@ -6,8 +6,8 @@ const env = {
 }
 
 const prismaCommand = process.platform === 'win32'
-  ? '.\\planner-api\\node_modules\\.bin\\prisma.cmd generate --schema=planner-api/prisma/schema.prisma'
-  : './planner-api/node_modules/.bin/prisma generate --schema=planner-api/prisma/schema.prisma'
+  ? '.\\node_modules\\.bin\\prisma.cmd generate --schema=planner-api/prisma/schema.prisma'
+  : './node_modules/.bin/prisma generate --schema=planner-api/prisma/schema.prisma'
 
 execSync(prismaCommand, {
   stdio: 'inherit',

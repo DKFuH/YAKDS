@@ -16,13 +16,13 @@
 import { describe, expect, it } from 'vitest';
 
 // ── Domain modules ────────────────────────────────────────────────────────────
-import { validatePlacement } from '@yakds/shared-schemas';
-import type { Opening, Placement, WallSegment } from '@yakds/shared-schemas';
+import { validatePlacement } from '@okp/shared-schemas';
+import type { Opening, Placement, WallSegment } from '@okp/shared-schemas';
 import { calculateBOM, sumBOMLines } from '@planner-api/services/bomCalculator.js';
 import { applyDiscount, calcLineNet, calculatePriceSummary } from '@planner-api/services/priceCalculator.js';
-import type { BOMLine, GlobalDiscountSettings, ProjectSnapshot } from '@yakds/shared-schemas';
+import type { BOMLine, GlobalDiscountSettings, ProjectSnapshot } from '@okp/shared-schemas';
 import { evaluateBlock, findBestBlock } from '@planner-api/services/blockEvaluator.js';
-import type { BlockDefinition, PriceSummary } from '@yakds/shared-schemas';
+import type { BlockDefinition, PriceSummary } from '@okp/shared-schemas';
 import {
   aggregateQuoteKPIs,
   calculateConversionRatio,

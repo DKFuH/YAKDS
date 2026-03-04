@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "shared-schemas",
+    "interop-cad/dxf-export",
+    "interop-cad/dxf-import",
+    "interop-sketchup/skp-import",
+    "planner-api",
+    "planner-frontend"
+  ],
   "scripts": {
     "db:generate": "node scripts/prisma-generate.mjs",
     "test": "npm run db:generate && vitest run",
