@@ -1,0 +1,125 @@
+.section {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.empty {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.levelButton {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.levelButton:hover {
+  background: var(--surface-hover);
+}
+
+.levelButtonActive {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.meta {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.visibilityToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.addButton,
+.confirmButton,
+.cancelButton {
+  width: 100%;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem;
+  font-size: 0.8rem;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.addButton:hover,
+.confirmButton:hover,
+.cancelButton:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.addForm {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fieldLabel {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+}
+
+.select,
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-default);
+  color: var(--text-primary);
+  padding: 0.3rem 0.45rem;
+  font-size: 0.8rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.confirmButton,
+.cancelButton {
+  width: auto;
+  flex: 1;
+}

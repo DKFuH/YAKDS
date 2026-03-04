@@ -71,6 +71,7 @@ import { getPlugins } from './plugins/pluginRegistry.js'
 import { bootstrapPlugins } from './plugins/index.js'
 import { mcpRoutes } from './routes/mcp.js'
 import { offlineSyncRoutes } from './routes/offlineSync.js'
+import { levelsRoutes } from './routes/levels.js'
 
 const app = Fastify({ logger: true })
 
@@ -146,6 +147,7 @@ await app.register(specificationPackageRoutes, { prefix: '/api/v1' })
 await app.register(kitchenAssistantRoutes, { prefix: '/api/v1' })
 await app.register(tenantSettingsRoutes, { prefix: '/api/v1' })
 await app.register(offlineSyncRoutes, { prefix: '/api/v1' })
+await app.register(levelsRoutes, { prefix: '/api/v1' })
 
 // Branche-Plugins bootstrappen und einhängen
 bootstrapPlugins()

@@ -20,6 +20,7 @@ export interface ReferenceImagePayload {
 export interface RoomPayload {
   id: string
   project_id: string
+  level_id?: string | null
   name: string
   ceiling_height_mm: number
   boundary: RoomBoundaryPayload
@@ -60,6 +61,7 @@ export const roomsApi = {
 
   create: async (data: {
     project_id: string
+    level_id?: string
     name: string
     ceiling_height_mm?: number
     boundary: RoomBoundaryPayload

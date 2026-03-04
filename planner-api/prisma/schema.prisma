@@ -76,6 +76,7 @@ model Project {
   purchase_orders   PurchaseOrder[]   // Phase 5 – Sprint 35: Bestellverwaltung
   site_surveys      SiteSurvey[]      // Phase 6 – Sprint 47: Aufmaß
   production_orders ProductionOrder[] // Phase 6 – Sprint 46: Produktionsaufträge
+  building_levels   BuildingLevel[]
   quote_lines         Json      @default("[]")
   pricing_groups_json Json      @default("[]")
   macros              Json      @default("[]")
@@ -143,6 +144,7 @@ model ProjectVersion {
 model Room {
   id                  String    @id @default(uuid())
   project_id          String
+  level_id            String?
   name                String
   ceiling_height_mm   Int       @default(2500)
   boundary            Json      // { vertices: Vertex[], wall_segments: WallSegment[] }
@@ -161,8 +163,31 @@ model Room {
   updated_at          DateTime  @updatedAt
 
   project             Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  level               BuildingLevel? @relation(fields: [level_id], references: [id], onDelete: SetNull)
+
+  @@index([project_id, level_id])
 
   @@map("rooms")
+}
+
+model BuildingLevel {
+  id               String   @id @default(uuid())
+  tenant_id        String
+  project_id       String
+  name             String   @db.VarChar(120)
+  elevation_mm     Int      @default(0)
+  height_mm        Int?
+  order_index      Int      @default(0)
+  visible          Boolean  @default(true)
+  config_json      Json     @default("{}")
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  project          Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  rooms            Room[]
+
+  @@index([tenant_id, project_id, order_index])
+  @@map("building_levels")
 }
 
 // ─────────────────────────────────────────

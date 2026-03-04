@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import type { Room } from '../../api/projects.js'
 import {
   catalogApi,
@@ -22,6 +22,7 @@ import { AssetImportDialog } from '../catalog/AssetImportDialog.js'
 import styles from './LeftSidebar.module.css'
 
 interface Props {
+  levelsPanel?: ReactNode
   rooms: Room[]
   selectedRoomId: string | null
   onSelectRoom: (id: string) => void
@@ -41,7 +42,7 @@ const TYPE_OPTIONS: Array<{ value: '' | CatalogItemType; label: string }> = [
   { value: 'accessory', label: 'Zubehör' },
 ]
 
-export function LeftSidebar({ rooms, selectedRoomId, onSelectRoom, onAddRoom, selectedCatalogItem, onSelectCatalogItem, workflowStep }: Props) {
+export function LeftSidebar({ levelsPanel, rooms, selectedRoomId, onSelectRoom, onAddRoom, selectedCatalogItem, onSelectCatalogItem, workflowStep }: Props) {
   const [addingRoom, setAddingRoom] = useState(false)
   const [newRoomName, setNewRoomName] = useState('')
   const [catalogMode, setCatalogMode] = useState<'standard' | 'manufacturer' | 'assets'>('standard')
@@ -201,6 +202,8 @@ export function LeftSidebar({ rooms, selectedRoomId, onSelectRoom, onAddRoom, se
 
   return (
     <aside className={styles.sidebar}>
+      {levelsPanel}
+
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>Räume</h3>
         {rooms.length === 0 ? (

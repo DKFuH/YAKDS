@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-81-multi-level-projects`
 **Gruppe:** A (startbar nach S74)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S58 (Bild-Nachzeichnen), S64 (Layout-Sheets), S74 (Split-View)
 
 ---
@@ -112,3 +112,14 @@ Funktionen:
 - Editor kann aktive Ebene wechseln
 - Layout/Sheet-Ansichten koennen nach Ebene filtern
 - Altprojekte bleiben lauffaehig
+
+---
+
+## Implementierungsstand (2026-03-04)
+
+- Prisma-Modell `BuildingLevel` ergänzt und `Room.level_id` eingeführt.
+- Migration mit Backfill umgesetzt: Default-Level `EG` pro Bestandsprojekt plus Room-Zuordnung.
+- Backend-Routen implementiert: `GET/POST /projects/:id/levels`, `PATCH/DELETE /levels/:id`, `POST /projects/:id/levels/bootstrap`.
+- Room-API erweitert: optionale Level-Filterung (`GET /projects/:projectId/rooms?level_id=...`) und Room-Erstellung auf aktiver/default Ebene.
+- Frontend ergänzt: `levelsApi`, `LevelsPanel` im Editor, aktive Ebenen-Umschaltung, neue Räume auf aktiver Ebene.
+- Verifikation: fokussierte Tests grün (`levels.test.ts`, `rooms.test.ts`) und Frontend-Build erfolgreich.

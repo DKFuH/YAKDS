@@ -17,6 +17,7 @@ import { autoCompletionApi, type AutoCompleteResult } from '../api/autoCompletio
 import { acousticsApi, type AcousticGridMeta, type GeoJsonGrid } from '../api/acoustics.js'
 import { getTenantPlugins } from '../api/tenantSettings.js'
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
+import { levelsApi, type BuildingLevel } from '../api/levels.js'
 import { usePolygonEditor, edgeLengthMm, type EditorState } from '../editor/usePolygonEditor.js'
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { PopoutWindow } from '../components/editor/PopoutWindow.js'
@@ -24,6 +25,7 @@ import { Preview3D } from '../components/editor/Preview3D.js'
 import { DaylightPanel } from '../components/editor/DaylightPanel.js'
 import { MaterialPanel } from '../components/editor/MaterialPanel.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
+import { LevelsPanel } from '../components/editor/LevelsPanel.js'
 import { RightSidebar, type CeilingConstraint, type ConfiguredDimensions } from '../components/editor/RightSidebar.js'
 import { StatusBar } from '../components/editor/StatusBar.js'
 import { AreasPanel } from '../components/editor/AreasPanel.js'
@@ -112,6 +114,8 @@ export function Editor() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
+  const [levels, setLevels] = useState<BuildingLevel[]>([])
+  const [activeLevelId, setActiveLevelId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<PlannerViewMode>('2d')
   const [splitRatio, setSplitRatio] = useState(58)
   const [splitDragging, setSplitDragging] = useState(false)
@@ -182,11 +186,57 @@ export function Editor() {
     projectsApi.get(id)
       .then(p => {
         setProject(p)
-        if (p.rooms.length > 0) setSelectedRoomId(p.rooms[0].id)
+        setSelectedRoomId(p.rooms[0]?.id ?? null)
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    if (!id) return
+
+    let active = true
+    levelsApi.list(id)
+      .then((projectLevels) => {
+        if (!active) return
+        const orderedLevels = [...projectLevels].sort((left, right) => left.order_index - right.order_index)
+        setLevels(orderedLevels)
+        setActiveLevelId((previous) => {
+          if (previous && orderedLevels.some((level) => level.id === previous)) {
+            return previous
+          }
+          return orderedLevels[0]?.id ?? null
+        })
+      })
+      .catch(() => {
+        if (!active) return
+        setLevels([])
+        setActiveLevelId(null)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [id])
+
+  useEffect(() => {
+    if (!project) {
+      return
+    }
+
+    const roomsOnLevel = activeLevelId
+      ? project.rooms.filter((room) => room.level_id === activeLevelId)
+      : project.rooms
+
+    if (roomsOnLevel.length === 0) {
+      setSelectedRoomId(null)
+      return
+    }
+
+    if (!selectedRoomId || !roomsOnLevel.some((room) => room.id === selectedRoomId)) {
+      setSelectedRoomId(roomsOnLevel[0]?.id ?? null)
+    }
+  }, [project, activeLevelId, selectedRoomId])
 
   useEffect(() => {
     let active = true
@@ -588,17 +638,52 @@ export function Editor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoomId])
 
+  const handleCreateLevel = useCallback(async (payload: { name: string; elevation_mm: number }) => {
+    if (!id) {
+      return
+    }
+
+    const created = await levelsApi.create(id, payload)
+    setLevels((previous) => [...previous, created].sort((left, right) => left.order_index - right.order_index))
+    setActiveLevelId(created.id)
+  }, [id])
+
+  const handleToggleLevelVisibility = useCallback((level: BuildingLevel) => {
+    levelsApi.update(level.id, { visible: !level.visible })
+      .then((updated) => {
+        setLevels((previous) => {
+          const next = previous.map((entry) => (entry.id === updated.id ? updated : entry))
+          return next.sort((left, right) => left.order_index - right.order_index)
+        })
+
+        if (!updated.visible && activeLevelId === updated.id) {
+          setActiveLevelId((previousLevelId) => {
+            if (previousLevelId !== updated.id) {
+              return previousLevelId
+            }
+            const fallback = levels.find((entry) => entry.id !== updated.id && entry.visible)
+            return fallback?.id ?? null
+          })
+        }
+      })
+      .catch((toggleError: Error) => {
+        console.error('Ebene-Sichtbarkeit konnte nicht gespeichert werden:', toggleError)
+      })
+  }, [activeLevelId, levels])
+
   // Raum anlegen (Name kommt aus dem Inline-Formular der LeftSidebar)
   const handleAddRoom = useCallback(async (name: string) => {
     if (!project) return
+    const targetLevelId = activeLevelId ?? levels[0]?.id ?? undefined
     const newRoom = await roomsApi.create({
       project_id: project.id,
+      ...(targetLevelId ? { level_id: targetLevelId } : {}),
       name,
       boundary: { vertices: [], wall_segments: [] },
     })
     setProject(prev => prev ? { ...prev, rooms: [...prev.rooms, newRoom as unknown as ProjectDetail['rooms'][0]] } : prev)
     setSelectedRoomId(newRoom.id)
-  }, [project])
+  }, [project, activeLevelId, levels])
 
   // Raum nach Boundary-Update aktualisieren
   const handleRoomUpdated = useCallback((updated: RoomPayload) => {
@@ -886,7 +971,19 @@ export function Editor() {
       })
   }, [editor, handleRoomUpdated])
 
-  const selectedRoom = project?.rooms.find(r => r.id === selectedRoomId) ?? null
+  const roomsOnActiveLevel = useMemo(() => {
+    if (!project) {
+      return []
+    }
+
+    if (!activeLevelId) {
+      return project.rooms
+    }
+
+    return project.rooms.filter((room) => room.level_id === activeLevelId)
+  }, [project, activeLevelId])
+
+  const selectedRoom = roomsOnActiveLevel.find(r => r.id === selectedRoomId) ?? null
   selectedRoomRef.current = selectedRoom as unknown as RoomPayload | null
 
   const effectiveViewMode: PlannerViewMode = compactLayout && viewMode === 'split' ? '2d' : viewMode
@@ -1255,7 +1352,16 @@ export function Editor() {
           <AreasPanel projectId={id} onOpenAlternative={setSelectedAlternativeId} />
         )}
         <LeftSidebar
-          rooms={project.rooms}
+          levelsPanel={(
+            <LevelsPanel
+              levels={levels}
+              activeLevelId={activeLevelId}
+              onSelectLevel={setActiveLevelId}
+              onToggleVisibility={handleToggleLevelVisibility}
+              onCreateLevel={handleCreateLevel}
+            />
+          )}
+          rooms={roomsOnActiveLevel}
           selectedRoomId={selectedRoomId}
           onSelectRoom={setSelectedRoomId}
           onAddRoom={handleAddRoom}

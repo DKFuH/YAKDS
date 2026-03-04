@@ -31,6 +31,7 @@ export interface ProjectDetail extends Project {
 export interface Room {
   id: string
   project_id: string
+  level_id?: string | null
   name: string
   ceiling_height_mm: number
   boundary: unknown
