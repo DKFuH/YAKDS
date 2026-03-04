@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-66-cnc-nesting`
 **Gruppe:** B (startbar nach S65)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S53 (DWG/DXF-Interop), S65 (Cutlist)
 
 ---

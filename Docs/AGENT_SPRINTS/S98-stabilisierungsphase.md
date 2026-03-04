@@ -68,7 +68,7 @@
 
 ## Ziel
 
-Vor weiteren Ausbau-Sprints wird YAKDS wieder als durchgehend benutzbare
+Vor weiteren Ausbau-Sprints wird OKP wieder als durchgehend benutzbare
 Anwendung stabilisiert. Fokus ist nicht neuer Funktionsumfang, sondern ein
 sauber nutzbarer Produktkern mit reproduzierbaren End-to-End-Flows.
 
@@ -217,7 +217,7 @@ Goldene Pfade:
 
 ## 8. DoD
 
-- YAKDS ist wieder als zusammenhaengende Anwendung benutzbar
+- OKP ist wieder als zusammenhaengende Anwendung benutzbar
 - die definierten Goldenen Pfade laufen ohne kritische Blocker
 - bekannte Kern-Findings aus diesem Sprint sind abgearbeitet oder explizit dokumentiert
 - kein neuer Feature-Scope wurde unter dem Label "Stabilisierung" eingeschmuggelt

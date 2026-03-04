@@ -86,7 +86,7 @@ Keine neue Core-Route nur fuer dieses Format.
 
 ---
 
-## 3. Mapping in YAKDS
+## 3. Mapping in OKP
 
 ### 3.1 Raum und Waende
 

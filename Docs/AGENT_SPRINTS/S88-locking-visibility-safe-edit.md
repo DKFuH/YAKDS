@@ -9,7 +9,7 @@
 
 ## Ziel
 
-YAKDS bekommt einen professionellen Schutz- und Sichtbarkeitsmodus:
+OKP bekommt einen professionellen Schutz- und Sichtbarkeitsmodus:
 Objekte, Maße, Levels und Gruppen koennen gesperrt oder ausgeblendet werden,
 damit komplexe Plaene sicher bearbeitet werden koennen.
 

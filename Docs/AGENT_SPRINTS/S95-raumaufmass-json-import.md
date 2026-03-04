@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-95-raumaufmass-json-import`
 **Gruppe:** A (startbar nach S47, S58 und S79)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S47, S58, S79
 
 ---

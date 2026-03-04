@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-64-layout-sheets`
 **Gruppe:** A (unabhängig)
-**Status:** `planned`
+**Status:** `done`
 **Abhängigkeiten:** S59 (Bemaßung), S14 (3D-Preview), S63 (Centerlines)
 
 ---

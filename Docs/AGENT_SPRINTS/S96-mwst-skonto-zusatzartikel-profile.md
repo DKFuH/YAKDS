@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-96-mwst-skonto-zusatzartikel-profile`
 **Gruppe:** B (startbar nach S13, S49 und S54)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S13, S49, S54
 
 ---

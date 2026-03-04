@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-93-katalogversionen-index-sharing-aufschlaege`
 **Gruppe:** B (startbar nach S20 und S29)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S20, S29, S54
 
 ---

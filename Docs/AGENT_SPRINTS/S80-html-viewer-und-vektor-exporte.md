@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-80-viewer-export-plugin`
 **Gruppe:** B (startbar nach S69 und S76)
-**Status:** `completed`
+**Status:** `done`
 **Abhaengigkeiten:** S64 (Layout-Sheets), S69 (Panorama-Touren), S76 (Praesentationsmodus)
 
 ---

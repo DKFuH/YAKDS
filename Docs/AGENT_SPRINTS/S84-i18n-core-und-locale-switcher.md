@@ -9,7 +9,7 @@
 
 ## Ziel
 
-YAKDS bekommt eine echte Mehrsprachenbasis: zentrale Message-Kataloge,
+OKP bekommt eine echte Mehrsprachenbasis: zentrale Message-Kataloge,
 Sprachumschaltung im Frontend, locale-aware Formatierung fuer Datum/Zahl/Waehrung
 und eine definierte Fallback-Strategie.
 

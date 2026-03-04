@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-79-offline-pwa-measure-import`
 **Gruppe:** A (startbar nach S47 und S74)
-**Status:** `completed`
+**Status:** `done`
 **Abhaengigkeiten:** S47 (Mobile Aufmass), S58 (Bild-Nachzeichnen), S74 (Split-View)
 
 ---

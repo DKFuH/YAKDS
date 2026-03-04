@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-65-cutlist`
 **Gruppe:** B (startbar nach S11 BOM)
-**Status:** `planned`
+**Status:** `done`
 **Abhängigkeiten:** S11 (Stücklisten-Engine), S60 (Katalog/Kitchen Assistant)
 
 ---
