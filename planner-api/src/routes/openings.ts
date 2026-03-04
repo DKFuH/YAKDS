@@ -5,6 +5,7 @@ import { detectOpeningsFromCad, validateOpening as validateOpeningRule } from '@
 import type { CadEntity, Opening as SharedOpening, WallSegment } from '@okp/shared-schemas'
 import { prisma } from '../db.js'
 import { sendNotFound, sendBadRequest } from '../errors.js'
+import { arcLengthMm } from '../services/arcWallGeometry.js'
 
 const openingTypeValues = [
   'door',
@@ -31,7 +32,55 @@ const OpeningSchema = z.object({
 })
 
 type Opening = z.infer<typeof OpeningSchema>
-type BoundaryJson = { wall_segments?: Array<{ id: string; length_mm?: number }> }
+type BoundaryJson = {
+  vertices?: Array<{ id: string; x_mm: number; y_mm: number }>
+  wall_segments?: Array<{
+    id: string
+    length_mm?: number
+    start_vertex_id?: string
+    end_vertex_id?: string
+    kind?: 'line' | 'arc'
+    start?: { x_mm: number; y_mm: number }
+    end?: { x_mm: number; y_mm: number }
+    center?: { x_mm: number; y_mm: number }
+    radius_mm?: number
+    clockwise?: boolean
+  }>
+}
+
+function computeLineLength(boundary: BoundaryJson, wall: NonNullable<BoundaryJson['wall_segments']>[number]): number {
+  if (typeof wall.length_mm === 'number' && Number.isFinite(wall.length_mm) && wall.length_mm > 0) {
+    return wall.length_mm
+  }
+
+  const vertices = boundary.vertices ?? []
+  const start = vertices.find((vertex) => vertex.id === wall.start_vertex_id)
+  const end = vertices.find((vertex) => vertex.id === wall.end_vertex_id)
+  if (!start || !end) {
+    return Infinity
+  }
+
+  return Math.hypot(end.x_mm - start.x_mm, end.y_mm - start.y_mm)
+}
+
+function computeWallLength(boundary: BoundaryJson, wallId: string): number {
+  const wall = boundary.wall_segments?.find((entry) => entry.id === wallId)
+  if (!wall) return Infinity
+
+  if (wall.kind === 'arc' && wall.start && wall.end && wall.center && typeof wall.radius_mm === 'number') {
+    return arcLengthMm({
+      id: wall.id,
+      kind: 'arc',
+      start: wall.start,
+      end: wall.end,
+      center: wall.center,
+      radius_mm: wall.radius_mm,
+      clockwise: Boolean(wall.clockwise),
+    })
+  }
+
+  return computeLineLength(boundary, wall)
+}
 
 const OpeningDraftSchema = z.object({
   id: z.string().min(1).default(() => randomUUID()),
@@ -140,8 +189,7 @@ export async function openingRoutes(app: FastifyInstance) {
 
     const existing = (room.openings as unknown[] ?? []) as Opening[]
     const boundary = room.boundary as BoundaryJson
-    const wall = boundary.wall_segments?.find(w => w.id === parsed.data.wall_id)
-    const wallLen = wall?.length_mm ?? Infinity
+    const wallLen = computeWallLength(boundary, parsed.data.wall_id)
 
     const errors = validateOpening(parsed.data, wallLen, existing)
     if (errors.length > 0) return sendBadRequest(reply, errors[0])
@@ -161,7 +209,7 @@ export async function openingRoutes(app: FastifyInstance) {
     if (!room) return sendNotFound(reply, 'Room not found')
 
     const boundary = room.boundary as BoundaryJson
-    const wallMap = new Map((boundary.wall_segments ?? []).map(w => [w.id, w.length_mm ?? Infinity]))
+    const wallMap = new Map((boundary.wall_segments ?? []).map((wall) => [wall.id, computeWallLength(boundary, wall.id)]))
     const openings = bodyParsed.data.openings
 
     for (const opening of openings) {

@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-71-arc-walls-core`
 **Gruppe:** A (startbar nach S63)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S56 (Canvas-UX), S57 (WallAttachments), S63 (Centerlines)
 
 ---

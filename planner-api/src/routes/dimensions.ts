@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'
+import { arcLengthMm, pointOnArc, type ArcWallSegment } from '../services/arcWallGeometry.js'
 
 const PointSchema = z.object({ x_mm: z.number(), y_mm: z.number() })
 
@@ -14,7 +15,7 @@ const StyleSchema = z.object({
 
 const CreateDimensionSchema = z.object({
   room_id: z.string().uuid(),
-  type: z.enum(['linear', 'angular']),
+  type: z.enum(['linear', 'angular', 'radial', 'arc_length', 'chord']),
   points: z.array(PointSchema).min(2).max(3),
   style: StyleSchema,
   label: z.string().max(100).nullable().optional(),
@@ -29,12 +30,18 @@ type RoomBoundary = {
   vertices?: Array<{ id: string; x_mm: number; y_mm: number }>
   wall_segments?: Array<{
     id: string
+    kind?: 'line' | 'arc'
     x0_mm?: number
     y0_mm?: number
     x1_mm?: number
     y1_mm?: number
     start_vertex_id?: string
     end_vertex_id?: string
+    start?: { x_mm: number; y_mm: number }
+    end?: { x_mm: number; y_mm: number }
+    center?: { x_mm: number; y_mm: number }
+    radius_mm?: number
+    clockwise?: boolean
   }>
 } | null
 
@@ -46,15 +53,38 @@ const AutoChainBodySchema = z.object({
   offset_mm: z.number().min(0).max(1000).optional(),
 })
 
+const AutoChainQuerySchema = z.object({
+  include_arcs: z.coerce.boolean().optional().default(false),
+})
+
 type ChainPoint = {
   x_mm: number
   ref_type: 'wall' | 'placement' | 'opening'
   ref_id: string
 }
 
-function wallEndpoints(boundary: RoomBoundary, wallId: string): { x0_mm: number; y0_mm: number; x1_mm: number; y1_mm: number } | null {
+type ResolvedWall =
+  | { kind: 'line'; x0_mm: number; y0_mm: number; x1_mm: number; y1_mm: number }
+  | { kind: 'arc'; arc: ArcWallSegment }
+
+function wallEndpoints(boundary: RoomBoundary, wallId: string): ResolvedWall | null {
   const wall = boundary?.wall_segments?.find((entry) => entry.id === wallId)
   if (!wall) return null
+
+  if (wall.kind === 'arc' && wall.start && wall.end && wall.center && typeof wall.radius_mm === 'number') {
+    return {
+      kind: 'arc',
+      arc: {
+        id: wall.id,
+        kind: 'arc',
+        start: wall.start,
+        end: wall.end,
+        center: wall.center,
+        radius_mm: wall.radius_mm,
+        clockwise: Boolean(wall.clockwise),
+      },
+    }
+  }
 
   if (
     typeof wall.x0_mm === 'number' &&
@@ -63,6 +93,7 @@ function wallEndpoints(boundary: RoomBoundary, wallId: string): { x0_mm: number;
     typeof wall.y1_mm === 'number'
   ) {
     return {
+      kind: 'line',
       x0_mm: wall.x0_mm,
       y0_mm: wall.y0_mm,
       x1_mm: wall.x1_mm,
@@ -75,6 +106,7 @@ function wallEndpoints(boundary: RoomBoundary, wallId: string): { x0_mm: number;
   if (!start || !end) return null
 
   return {
+    kind: 'line',
     x0_mm: start.x_mm,
     y0_mm: start.y_mm,
     x1_mm: end.x_mm,
@@ -82,7 +114,14 @@ function wallEndpoints(boundary: RoomBoundary, wallId: string): { x0_mm: number;
   }
 }
 
-function wallPointAt(wall: { x0_mm: number; y0_mm: number; x1_mm: number; y1_mm: number }, offsetMm: number): { x_mm: number; y_mm: number } {
+function wallPointAt(wall: ResolvedWall, offsetMm: number): { x_mm: number; y_mm: number } {
+  if (wall.kind === 'arc') {
+    const length = arcLengthMm(wall.arc)
+    const ratio = length <= 0 ? 0 : Math.max(0, Math.min(1, offsetMm / length))
+    const point = pointOnArc(wall.arc, ratio)
+    return { x_mm: point.x_mm, y_mm: point.y_mm }
+  }
+
   const dx = wall.x1_mm - wall.x0_mm
   const dy = wall.y1_mm - wall.y0_mm
   const len = Math.hypot(dx, dy)
@@ -107,6 +146,10 @@ export async function dimensionRoutes(app: FastifyInstance) {
 
     if (parsed.data.type === 'angular' && parsed.data.points.length !== 3) {
       return sendBadRequest(reply, 'Angular dimension requires exactly 3 points')
+    }
+
+    if ((parsed.data.type === 'linear' || parsed.data.type === 'radial' || parsed.data.type === 'arc_length' || parsed.data.type === 'chord') && parsed.data.points.length !== 2) {
+      return sendBadRequest(reply, `${parsed.data.type} dimension requires exactly 2 points`)
     }
 
     const dimension = await prisma.dimension.create({
@@ -177,6 +220,7 @@ export async function dimensionRoutes(app: FastifyInstance) {
       .map((wall) => wallEndpoints(boundary, wall.id))
       .filter((wall): wall is NonNullable<typeof wall> => Boolean(wall))
       .filter((wall) => {
+        if (wall.kind === 'arc') return false
         const dx = wall.x1_mm - wall.x0_mm
         const dy = wall.y1_mm - wall.y0_mm
         return Math.hypot(dx, dy) >= 50
@@ -219,6 +263,24 @@ export async function dimensionRoutes(app: FastifyInstance) {
     for (const wallSegment of boundary.wall_segments) {
       const wall = wallEndpoints(boundary, wallSegment.id)
       if (!wall) continue
+
+      if (wall.kind === 'arc') {
+        const arcLen = arcLengthMm(wall.arc)
+        if (arcLen < 50) continue
+        results.push(await prisma.dimension.create({
+          data: {
+            room_id: request.params.id,
+            type: 'arc_length',
+            points: [
+              { x_mm: wall.arc.start.x_mm, y_mm: wall.arc.start.y_mm },
+              { x_mm: wall.arc.end.x_mm, y_mm: wall.arc.end.y_mm },
+            ],
+            style: { unit: 'mm', offset_mm: OUTER_OFFSET_MM },
+            label: `${Math.round(arcLen)} mm`,
+          },
+        }))
+        continue
+      }
 
       const dx = wall.x1_mm - wall.x0_mm
       const dy = wall.y1_mm - wall.y0_mm
@@ -274,6 +336,11 @@ export async function dimensionRoutes(app: FastifyInstance) {
       return sendBadRequest(reply, parsed.error.errors[0]?.message ?? 'Invalid')
     }
 
+    const queryParsed = AutoChainQuerySchema.safeParse(request.query ?? {})
+    if (!queryParsed.success) {
+      return sendBadRequest(reply, queryParsed.error.errors[0]?.message ?? 'Invalid query')
+    }
+
     const room = await prisma.room.findUnique({ where: { id: request.params.id } })
     if (!room) return sendNotFound(reply, 'Room not found')
 
@@ -286,7 +353,31 @@ export async function dimensionRoutes(app: FastifyInstance) {
     const openings = ((room.openings as RoomOpening[] | null) ?? [])
       .filter((opening) => opening.wall_id === parsed.data.wall_id)
 
-    const wallLength = Math.hypot(wall.x1_mm - wall.x0_mm, wall.y1_mm - wall.y0_mm)
+    const wallLength = wall.kind === 'arc'
+      ? arcLengthMm(wall.arc)
+      : Math.hypot(wall.x1_mm - wall.x0_mm, wall.y1_mm - wall.y0_mm)
+
+    if (wall.kind === 'arc' && queryParsed.data.include_arcs) {
+      const created = await prisma.dimension.create({
+        data: {
+          room_id: request.params.id,
+          type: 'arc_length',
+          points: [
+            { x_mm: wall.arc.start.x_mm, y_mm: wall.arc.start.y_mm },
+            { x_mm: wall.arc.end.x_mm, y_mm: wall.arc.end.y_mm },
+          ],
+          style: { chain: true, wall_id: parsed.data.wall_id, offset_mm: parsed.data.offset_mm ?? 150 },
+          label: `${Math.round(wallLength)} mm`,
+          ref_a_type: 'wall',
+          ref_a_id: parsed.data.wall_id,
+          ref_b_type: 'wall',
+          ref_b_id: parsed.data.wall_id,
+          auto_update: true,
+        },
+      })
+
+      return reply.status(201).send({ created: 1, dimension_ids: [created.id] })
+    }
     const chainPoints: ChainPoint[] = [{ x_mm: 0, ref_type: 'wall', ref_id: parsed.data.wall_id }]
 
     for (const opening of openings) {

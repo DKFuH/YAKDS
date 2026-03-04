@@ -291,6 +291,36 @@ model GeometryConstraint {
   @@map("geometry_constraints")
 }
 
+model PanoramaTour {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  project_id  String
+  name        String   @db.VarChar(140)
+  points_json Json     @default("[]")
+  share_token String?  @unique
+  expires_at  DateTime?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([tenant_id, project_id])
+  @@map("panorama_tours")
+}
+
+model SpecificationPackage {
+  id            String   @id @default(uuid())
+  tenant_id     String
+  project_id    String
+  name          String   @db.VarChar(140)
+  config_json   Json     @default("{}")
+  generated_at  DateTime?
+  artifact_json Json     @default("{}")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([tenant_id, project_id])
+  @@map("specification_packages")
+}
+
 model Cutlist {
   id           String   @id @default(uuid())
   project_id   String

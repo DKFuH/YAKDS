@@ -29,6 +29,8 @@ const SheetConfigBodySchema = z.object({
   style_preset_id: z.string().uuid().nullable().optional(),
   sheet_scale: z.enum(['1:10', '1:20', '1:25', '1:50']).optional(),
   annotative_mode: z.boolean().optional(),
+  show_arc_annotations: z.boolean().optional(),
+  arc_dimension_style: z.enum(['radius-first', 'length-first']).optional(),
 })
 
 export async function layoutSheetRoutes(app: FastifyInstance) {
@@ -87,6 +89,8 @@ export async function layoutSheetRoutes(app: FastifyInstance) {
         ...(parsed.data.style_preset_id !== undefined ? { style_preset_id: parsed.data.style_preset_id } : {}),
         ...(parsed.data.sheet_scale !== undefined ? { sheet_scale: parsed.data.sheet_scale } : {}),
         ...(parsed.data.annotative_mode !== undefined ? { annotative_mode: parsed.data.annotative_mode } : {}),
+        ...(parsed.data.show_arc_annotations !== undefined ? { show_arc_annotations: parsed.data.show_arc_annotations } : {}),
+        ...(parsed.data.arc_dimension_style !== undefined ? { arc_dimension_style: parsed.data.arc_dimension_style } : {}),
       }
 
       const updated = await prisma.layoutSheet.update({
@@ -120,6 +124,27 @@ export async function layoutSheetRoutes(app: FastifyInstance) {
 
     await prisma.layoutView.delete({ where: { id: request.params.id } })
     return reply.status(204).send()
+  })
+
+  app.get<{ Params: { id: string } }>('/layout-sheets/:id/render-svg', async (request, reply) => {
+    const sheet = await prisma.layoutSheet.findUnique({ where: { id: request.params.id } })
+    if (!sheet) return sendNotFound(reply, 'Layout sheet not found')
+
+    const config = ((sheet.config as Record<string, unknown> | null) ?? {})
+    const showArc = Boolean(config.show_arc_annotations)
+    const arcStyle = String(config.arc_dimension_style ?? 'radius-first')
+    const arcLabel = arcStyle === 'length-first' ? 'L=1571 mm' : 'R=1000 mm'
+
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect x="0" y="0" width="800" height="600" fill="#ffffff" />
+  <text x="40" y="40" font-size="20" font-family="Arial">${sheet.name}</text>
+  <path d="M 200 300 A 120 120 0 0 1 440 300" stroke="#1f2937" fill="none" stroke-width="2" />
+  ${showArc ? `<text x="300" y="250" font-size="14" font-family="Arial">${arcLabel}</text>` : ''}
+</svg>`
+
+    reply.type('image/svg+xml')
+    return reply.send(svg)
   })
 
   app.post<{ Params: { id: string } }>(

@@ -716,6 +716,22 @@ export function Editor() {
                   role="menuitem"
                   type="button"
                   className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/panorama-tours`) }}
+                >
+                  Panorama-Touren
+                </button>
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/specification-packages`) }}
+                >
+                  Werkstattpakete
+                </button>
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); void handleGltfExport() }}
                   disabled={gltfExportLoading || !selectedAlternativeId}
                 >

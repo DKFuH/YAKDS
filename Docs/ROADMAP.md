@@ -1188,8 +1188,8 @@ Panorama-Touren und standardisierte Werkstatt-/Vertriebspakete.
 |--------|--------|-------|--------------|
 | 67 | `done` | Annotative Layout-Styles | Tenant-Style-Presets, scale-aware Masse, plot-stabile Symbole |
 | 68 | `done` | Constraint-Modus & Driving Dimensions | einfache Geometrie-Constraints, deterministischer Solver, Constraint-Panel |
-| 69 | `in_progress` | Panorama Multi-Point & Client-Tour | mehrere Viewpoints, Hotspots, Share-Link fuer Touren |
-| 70 | `planned` | Spezifikationsblaetter & Werkstattpaket | strukturierte Paket-Generierung aus Quote, BOM, Cutlist, Sheets, Nesting |
+| 69 | `done` | Panorama Multi-Point & Client-Tour | mehrere Viewpoints, Hotspots, Share-Link fuer Touren |
+| 70 | `done` | Spezifikationsblaetter & Werkstattpaket | strukturierte Paket-Generierung aus Quote, BOM, Cutlist, Sheets, Nesting |
  
 ### Sprint-Metadaten
  
@@ -1227,8 +1227,8 @@ Editor-Spielerei. Die Phase trennt bewusst 2D-Kern, Bemaßung/Layout und
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
-| 71 | `planned` | Gebogene Waende im 2D-Kern | Arc-Wall-Typ, Radius-Handles, Snap-Logik, Oeffnungen auf Boegen |
-| 72 | `planned` | Bogen-Bemaßung & Layout | Radius-, Bogenlaengen- und Sehnenmasse, Arc-Annotations in Sheets |
+| 71 | `done` | Gebogene Waende im 2D-Kern | Arc-Wall-Typ, Radius-Handles, Snap-Logik, Oeffnungen auf Boegen |
+| 72 | `done` | Bogen-Bemaßung & Layout | Radius-, Bogenlaengen- und Sehnenmasse, Arc-Annotations in Sheets |
 | 73 | `planned` | Gebogene Waende in 3D & Interop | segmentierte Extrusion, GLTF-/IFC-/DXF-Unterstuetzung |
 
 ### Sprint-Metadaten

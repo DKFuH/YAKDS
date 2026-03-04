@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-70-spec-sheets-workshop-package`
 **Gruppe:** B (startbar nach S61, S65, S66)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S44 (Batchdruck), S61 (PDF/Firmenprofil), S65 (Cutlist), S66 (Nesting)
 
 ---

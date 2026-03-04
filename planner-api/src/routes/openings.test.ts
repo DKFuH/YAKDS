@@ -199,4 +199,40 @@ describe('openingRoutes', () => {
 
     await app.close()
   })
+
+  it('validates opening width against computed arc wall length', async () => {
+    prismaMock.room.findUnique.mockResolvedValueOnce({
+      id: roomId,
+      openings: [],
+      boundary: {
+        wall_segments: [{
+          id: wallId,
+          kind: 'arc',
+          start: { x_mm: 1000, y_mm: 0 },
+          end: { x_mm: 0, y_mm: 1000 },
+          center: { x_mm: 0, y_mm: 0 },
+          radius_mm: 1000,
+          clockwise: false,
+        }],
+      },
+    })
+
+    const app = Fastify()
+    await app.register(openingRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${roomId}/openings`,
+      payload: {
+        wall_id: wallId,
+        type: 'door',
+        offset_mm: 1000,
+        width_mm: 900,
+        source: 'manual',
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    await app.close()
+  })
 })

@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-69-panorama-multipoint`
 **Gruppe:** A (startbar nach S14)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S14 (3D-Preview), S61 (PDF/Firmenprofil), S62 (MCP optional)
 
 ---

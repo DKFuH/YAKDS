@@ -255,4 +255,21 @@ describe('layoutSheetRoutes', () => {
     expect(response.statusCode).toBe(404)
     await app.close()
   })
+
+  it('GET /layout-sheets/:id/render-svg includes arc label when enabled', async () => {
+    prismaMock.layoutSheet.findUnique.mockResolvedValueOnce(createSheetFixture({
+      config: { show_arc_annotations: true, arc_dimension_style: 'radius-first' },
+    }))
+    const app = await createApp()
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/layout-sheets/${sheetId}/render-svg`,
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['content-type']).toContain('image/svg+xml')
+    expect(response.body).toContain('R=1000 mm')
+    await app.close()
+  })
 })

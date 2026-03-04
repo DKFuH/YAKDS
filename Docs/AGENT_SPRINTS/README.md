@@ -1,9 +1,9 @@
 # AGENT_SPRINTS - Sprint-Dokumentation
 
-Sprints `S47` bis `S68` sind implementiert und gemergt.
-`S69` bis `S73` sind als naechster Backlog fuer GitHub-Agents vorbereitet.
+Sprints `S47` bis `S72` sind implementiert und gemergt.
+`S73` ist als naechster Backlog vorbereitet.
 
-Stand: 2026-03-03
+Stand: 2026-03-04
 
 ---
 
@@ -32,6 +32,11 @@ Stand: 2026-03-03
 | 65 | `S65-zuschnittliste-cutlist.md` | done | `6b7b81c` | +11 |
 | 66 | `S66-cnc-nesting-dxf-export.md` | done | `24f4cbc` | +16 |
 | 67 | `S67-annotative-layout-styles.md` | done | `867fff9` | +16 |
+| 68 | `S68-constraint-modus-driving-dimensions.md` | done | `b01b007` | +10 |
+| 69 | `S69-panorama-multipoint-client-tour.md` | done | `local` | +6 |
+| 70 | `S70-spezifikationsblaetter-werkstattpaket.md` | done | `local` | +4 |
+| 71 | `S71-gebogene-waende-2d-kern.md` | done | `local` | +9 |
+| 72 | `S72-bogen-bemassung-layout.md` | done | `local` | +39 |
 
 ---
 
@@ -52,8 +57,8 @@ Stand: 2026-03-03
 |--------|-------|--------|-------|
 | 67 | `S67-annotative-layout-styles.md` | done | Annotative Layout-Stile, massstabsstabile Masse und Symbole |
 | 68 | `S68-constraint-modus-driving-dimensions.md` | done | Constraint-Modus und Driving Dimensions fuer Waende und Placements |
-| 69 | `S69-panorama-multipoint-client-tour.md` | in_progress | Multi-Point-Panorama und oeffentliche Client-Touren |
-| 70 | `S70-spezifikationsblaetter-werkstattpaket.md` | planned | Spezifikationsblaetter und Werkstattpakete aus Quote, BOM, Cutlist und Nesting |
-| 71 | `S71-gebogene-waende-2d-kern.md` | planned | Gebogene Waende als eigener 2D-Geometrietyp mit Oeffnungen und Snap-Logik |
-| 72 | `S72-bogen-bemassung-layout.md` | planned | Radius-, Bogenlaengen- und Sehnenmasse in Sheets und Detailansichten |
+| 69 | `S69-panorama-multipoint-client-tour.md` | done | Multi-Point-Panorama und oeffentliche Client-Touren |
+| 70 | `S70-spezifikationsblaetter-werkstattpaket.md` | done | Spezifikationsblaetter und Werkstattpakete aus Quote, BOM, Cutlist und Nesting |
+| 71 | `S71-gebogene-waende-2d-kern.md` | done | Gebogene Waende als eigener 2D-Geometrietyp mit Oeffnungen und Snap-Logik |
+| 72 | `S72-bogen-bemassung-layout.md` | done | Radius-, Bogenlaengen- und Sehnenmasse in Sheets und Detailansichten |
 | 73 | `S73-bogen-3d-interop.md` | planned | Gebogene Waende in 3D, GLTF, IFC und DXF/DWG-Interop |

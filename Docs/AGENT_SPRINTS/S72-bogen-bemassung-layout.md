@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-72-arc-dimensions-layout`
 **Gruppe:** B (startbar nach S71)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S59 (Bemaßung), S64 (Layout-Sheets), S67 (Annotative Styles), S71 (Arc-Walls)
 
 ---

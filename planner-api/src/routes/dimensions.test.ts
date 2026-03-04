@@ -126,6 +126,26 @@ describe('dimensionRoutes', () => {
     await app.close()
   })
 
+  it('POST /dimensions radial with 2 points returns 201', async () => {
+    const app = await createApp()
+
+    prismaMock.dimension.create.mockResolvedValueOnce(createDimensionFixture({ type: 'radial' }))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/dimensions',
+      payload: {
+        room_id: roomId,
+        type: 'radial',
+        points: [{ x_mm: 0, y_mm: 0 }, { x_mm: 1000, y_mm: 0 }],
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(response.json()).toMatchObject({ type: 'radial' })
+    await app.close()
+  })
+
   it('POST /dimensions angular with 2 points returns 400', async () => {
     const app = await createApp()
 
@@ -532,6 +552,41 @@ describe('dimensionRoutes', () => {
     expect(response.statusCode).toBe(201)
     const body = response.json()
     expect(body.created).toBeLessThan(6)
+    await app.close()
+  })
+
+  it('POST /rooms/:id/dimensions/auto-chain?include_arcs=true creates arc_length dimension', async () => {
+    const app = await createApp()
+
+    prismaMock.room.findUnique.mockResolvedValueOnce({
+      ...roomFixture,
+      boundary: {
+        wall_segments: [
+          {
+            id: 'arc-1',
+            kind: 'arc',
+            start: { x_mm: 1000, y_mm: 0 },
+            end: { x_mm: 0, y_mm: 1000 },
+            center: { x_mm: 0, y_mm: 0 },
+            radius_mm: 1000,
+            clockwise: false,
+          },
+        ],
+      },
+      placements: [],
+      openings: [],
+    })
+
+    prismaMock.dimension.create.mockResolvedValueOnce(createDimensionFixture({ id: 'arc-dim', type: 'arc_length' }))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${roomId}/dimensions/auto-chain?include_arcs=true`,
+      payload: { wall_id: 'arc-1' },
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(response.json()).toMatchObject({ created: 1 })
     await app.close()
   })
 })

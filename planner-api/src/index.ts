@@ -62,6 +62,8 @@ import { kitchenAssistantRoutes } from './routes/kitchenAssistant.js'
 import { layoutSheetRoutes } from './routes/layoutSheets.js'
 import { layoutStyleRoutes } from './routes/layoutStyles.js'
 import { constraintRoutes } from './routes/constraints.js'
+import { panoramaTourRoutes } from './routes/panoramaTours.js'
+import { specificationPackageRoutes } from './routes/specificationPackages.js'
 // Sprint 61
 import { tenantSettingsRoutes } from './routes/tenantSettings.js'
 // Plugin-System
@@ -138,6 +140,8 @@ await app.register(centerlineRoutes, { prefix: '/api/v1' })
 await app.register(layoutSheetRoutes, { prefix: '/api/v1' })
 await app.register(layoutStyleRoutes, { prefix: '/api/v1' })
 await app.register(constraintRoutes, { prefix: '/api/v1' })
+await app.register(panoramaTourRoutes, { prefix: '/api/v1' })
+await app.register(specificationPackageRoutes, { prefix: '/api/v1' })
 await app.register(kitchenAssistantRoutes, { prefix: '/api/v1' })
 await app.register(tenantSettingsRoutes, { prefix: '/api/v1' })
 
