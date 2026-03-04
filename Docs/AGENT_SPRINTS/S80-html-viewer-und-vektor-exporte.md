@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-80-viewer-export-plugin`
 **Gruppe:** B (startbar nach S69 und S76)
-**Status:** `planned`
+**Status:** `completed`
 **Abhaengigkeiten:** S64 (Layout-Sheets), S69 (Panorama-Touren), S76 (Praesentationsmodus)
 
 ---
@@ -105,3 +105,14 @@ Funktionen:
 - Grundriss und Sheet lassen sich als SVG exportieren
 - Exportdaten sind ohne Editor verwendbar
 - Viewer/Export respektieren Tenant- und Share-Regeln
+
+## 6. Umsetzung (2026-03-04)
+
+- Backend-Plugin `viewer-export` mit Registrierung in der Plugin-Registry umgesetzt.
+- Routes `POST /projects/:id/export/html-viewer`, `POST /projects/:id/export/plan-svg` und `POST /layout-sheets/:id/export/svg` implementiert.
+- Service `vectorExportService` fuer SVG-Generierung von Grundriss- und Sheet-Daten integriert.
+- Frontend-API `viewerExports` fuer HTML- und SVG-Exportaufrufe sowie Artefakt-Download angebunden.
+- Exports-Seite mit Aktionen fuer `HTML Viewer`, `SVG Grundriss` und `SVG Sheet` inkl. Download-Flow umgesetzt.
+- Frontend-Route fuer Export-UI registriert und in die bestehende Navigation eingebunden.
+- Tenant-aware Plugin-Gating aktiviert, sodass Viewer-/Exportfunktionen mandantenbezogen steuerbar sind.
+- Validierung ueber relevante Tests sowie erfolgreichen Frontend-Build (`planner-frontend`) durchgefuehrt.

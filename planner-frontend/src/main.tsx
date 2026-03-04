@@ -23,9 +23,11 @@ import { PanoramaToursPage } from './pages/PanoramaToursPage.js'
 import { PublicPanoramaTourPage } from './pages/PublicPanoramaTourPage.js'
 import { PresentationModePage } from './pages/PresentationModePage.js'
 import { SpecificationPackagesPage } from './pages/SpecificationPackagesPage.js'
+import { ExportsPage } from './pages/ExportsPage.js'
 import { CutlistPage } from './pages/CutlistPage'
 import { NestingPage } from './pages/NestingPage'
 import { getTenantPlugins } from './api/tenantSettings.js'
+import { bootstrapOfflinePwa } from './pwa/offlineBootstrap.js'
 import './global.css'
 
 const tischlerPluginFlag = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_ENABLE_TISCHLER_PLUGIN
@@ -92,6 +94,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
+bootstrapOfflinePwa()
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
@@ -108,6 +112,10 @@ createRoot(document.getElementById('root')!).render(
         <Route
           path="/projects/:id/presentation"
           element={<TenantPluginRoute pluginId="presentation"><PresentationModePage /></TenantPluginRoute>}
+        />
+        <Route
+          path="/projects/:id/exports"
+          element={<TenantPluginRoute pluginId="viewer-export"><ExportsPage /></TenantPluginRoute>}
         />
         <Route path="/projects/:id/specification-packages" element={<SpecificationPackagesPage />} />
         <Route path="/share/panorama/:token" element={<PublicPanoramaTourPage />} />

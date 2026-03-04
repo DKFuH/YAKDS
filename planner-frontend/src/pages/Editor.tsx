@@ -1162,6 +1162,14 @@ export function Editor() {
                   role="menuitem"
                   type="button"
                   className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/exports`) }}
+                >
+                  Viewer-Exports
+                </button>
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); void handleGltfExport() }}
                   disabled={gltfExportLoading || !selectedAlternativeId}
                 >
