@@ -87,7 +87,7 @@ Stand: 2026-03-04
 | 92 | `S92-projektarchiv-kontakte-shop-defaults.md` | planned | Projektarchiv, Kontakte und tenantweite Standardwerte |
 | 93 | `S93-katalogversionen-index-sharing-aufschlaege.md` | planned | Katalogversionen, Index-Sharing und Lieferantenaufschlaege |
 | 94 | `S94-bestellstatus-positionsnummern-sperranzeige.md` | planned | Bestellstatus, Positionsnummern und Sperranzeige |
-| 95 | `S95-room-survey-json-import.md` | planned | Room-Survey-Import und robuste JSON-Interop |
+| 95 | `S95-raumaufmass-json-import.md` | planned | Raumaufmass-Import und robuste JSON-Interop |
 | 96 | `S96-mwst-skonto-zusatzartikel-profile.md` | planned | MwSt-, Skonto- und Zusatzartikel-Profile |
-| 97 | `S97-egi-aufmassservice-import-plugin.md` | planned | Plugin `survey-import`: EGI-Aufmassservice-Import fuer Waende, Oeffnungen und Installationen |
+| 97 | `S97-pos-aufmassservice-import-plugin.md` | planned | Plugin `survey-import`: POS Aufmassservice-Import fuer Waende, Oeffnungen und Installationen |
 | 98 | `S98-stabilisierungsphase.md` | planned | Stabilisierungsphase fuer Produktpfad, UX, Security, Findings und Logik |

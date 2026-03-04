@@ -1,6 +1,6 @@
-# Sprint 95 - Room-Survey-Import & robuste JSON-Interop
+# Sprint 95 - Raumaufmass-Import & robuste JSON-Interop
 
-**Branch:** `feature/sprint-95-room-survey-json-import`
+**Branch:** `feature/sprint-95-raumaufmass-json-import`
 **Gruppe:** A (startbar nach S47, S58 und S79)
 **Status:** `planned`
 **Abhaengigkeiten:** S47, S58, S79
@@ -9,8 +9,8 @@
 
 ## Ziel
 
-Room-Surveys und strukturierte JSON-Aufmasse robust importieren:
-Validerung, Mapping, Fehlerrueckmeldung und nachvollziehbare Importdiagnostik
+Raumaufmass und strukturierte JSON-Aufmasse robust importieren:
+Validierung, Mapping, Fehlerrueckmeldung und nachvollziehbare Importdiagnostik
 sollen den Survey-Import alltagstauglich machen.
 
 ---
@@ -25,15 +25,15 @@ Einzufuehren:
 
 Neue Endpunkte:
 
-- `POST /projects/:id/import/room-survey`
-- `POST /projects/:id/validate/room-survey`
-- `GET /projects/:id/room-survey-jobs`
+- `POST /projects/:id/import/raumaufmass`
+- `POST /projects/:id/validate/raumaufmass`
+- `GET /projects/:id/raumaufmass-jobs`
 
 ---
 
 ## 2. Frontend
 
-- Upload fuer Survey-JSON
+- Upload fuer Raumaufmass-JSON
 - Vorschau/Review der importierten Raeume
 - klare Importwarnungen bei unvollstaendigen oder ungueltigen Feldern
 
@@ -41,7 +41,7 @@ Neue Endpunkte:
 
 ## 3. DoD
 
-- valide Survey-JSONs erzeugen Raeume nachvollziehbar
+- valide Raumaufmass-JSONs erzeugen Raeume nachvollziehbar
 - invalide Daten geben strukturierte Fehler zurueck
 - Importdiagnostik ist im UI sichtbar
 - mindestens 12 Tests fuer Validierung, Mapping und Warnungen

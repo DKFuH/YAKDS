@@ -1,4 +1,4 @@
-# Sprint 97 - EGI-Aufmassservice-Import als Survey-Plugin
+# Sprint 97 - POS Aufmassservice-Import als Plugin
 
 **Branch:** `feature/sprint-97-egi-survey-import`
 **Gruppe:** B (startbar nach S79)
@@ -10,9 +10,9 @@
 ## Ziel
 
 Das Plugin `survey-import` soll um einen konkreten Import-Adapter fuer
-strukturierte EGI-Aufmassdateien erweitert werden. Der Adapter importiert
+strukturierte POS-Aufmassservice-Dateien erweitert werden. Der Adapter importiert
 Wandgeometrie, Dachschraegen, Oeffnungen, Hindernisse und
-Installationspunkte in das interne Raum-/Aufmassmodell von YAKDS.
+Installationspunkte in das interne Raum-/Aufmassmodell von OKP.
 
 Leitidee: Formatadapter statt harter Sonderlogik im Core.
 
@@ -175,13 +175,13 @@ Ziel: mindestens 12 Tests.
 
 ## 7. DoD
 
-- `.egi`-Datei ist ueber Plugin importierbar
+- POS-Aufmassservice-Datei ist ueber Plugin importierbar
 - Waende, Dachschraegen, Tueren, Fenster und Installationen erscheinen in der Import-Preview
 - Hindernisse werden mindestens generisch uebernommen
 - Nischen und Heizkoerper werden nicht still verworfen
 - Warnungen sind fuer nicht perfekt mappbare Objekte sichtbar
 - Tests gruen
-- keine EGI-spezifische Sonderlogik im Core ausser generischen Survey-Hooks
+- keine POS-Aufmassservice-spezifische Sonderlogik im Core ausser generischen Survey-Hooks
 
 ---
 

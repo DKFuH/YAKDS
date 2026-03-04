@@ -1500,7 +1500,7 @@ Browser und CAD-artige Gruppen-/Bauteillogik.
 | 92 | `planned` | Projektarchiv, Kontakte & Shop-Defaults | Archivsicht, Kontaktregister, Standardwerte je Tenant |
 | 93 | `planned` | Katalogversionen, Index-Sharing & Lieferantenaufschlaege | parallele Katalogversionen, freigegebene Indizes, Preisaufschlaege |
 | 94 | `planned` | Bestellstatus, Positionsnummern & Sperranzeige | Sammel-Lieferstatus, Renummerierung, Lock-Info |
-| 95 | `planned` | Room-Survey-Import & robuste JSON-Interop | Survey-JSON, Validierung, Importdiagnostik |
+| 95 | `planned` | Raumaufmass-Import & robuste JSON-Interop | Aufmass-JSON, Validierung, Importdiagnostik |
 | 96 | `planned` | MwSt-, Skonto- & Zusatzartikel-Profile | Steuerprofile, Rabattlogik, Zusatzartikelgruppen |
 
 ### Sprint-Metadaten
@@ -1511,7 +1511,7 @@ Browser und CAD-artige Gruppen-/Bauteillogik.
 | 92 | Full-Stack | Phase 19 | S47, S49, S84 | Projektarchiv und Kontakte sind tenantweit konsistent verwaltbar |
 | 93 | Backend | Phase 19 | S20, S29, S54 | Katalogversionen und Indexregeln sind parallel und freigegeben nutzbar |
 | 94 | Full-Stack | Phase 19 | S46, S48, S60 | Bestellstatus, Renummerierung und Locks sind transparent bedienbar |
-| 95 | Full-Stack | Phase 19 | S47, S58, S79 | Room-Surveys werden robust validiert und importiert |
+| 95 | Full-Stack | Phase 19 | S47, S58, S79 | Raumaufmass-Dateien werden robust validiert und importiert |
 | 96 | Backend | Phase 19 | S13, S49, S54 | MwSt- und Skontologik ist profilbasiert und reporting-faehig |
 
 ### Meilenstein Phase 19
@@ -1537,7 +1537,7 @@ Sonderlogik in Core-Routen zu verteilen.
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
-| 97 | `planned` | EGI-Aufmassservice-Import | Plugin-Adapter fuer EGI-Dateien mit Wall-/Door-/Window-/Installation-Mapping |
+| 97 | `planned` | POS Aufmassservice-Import | Plugin-Adapter fuer Aufmassservice-Dateien mit Wall-/Door-/Window-/Installation-Mapping |
 
 ### Sprint-Metadaten
 
