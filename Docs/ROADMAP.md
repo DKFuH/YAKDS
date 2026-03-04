@@ -1307,7 +1307,7 @@ Offline-Nutzung und leichtere Sharing-/Exportpfade erweitern.
 **Bewusst nicht uebernommen:**
 
 - SH3D-spezifische Bibliotheksformate (`SH3F`, `SH3T`)
-- generische Treppen-/Dachgeneratoren ohne klaren Kuechen-ROI
+- generische Dachgeneratoren ohne klaren Kuechen-ROI
 - direkte GPL-Code- oder Asset-Nutzung
 
 ### Sprint-Uebersicht
@@ -1336,3 +1336,41 @@ Offline-Nutzung und leichtere Sharing-/Exportpfade erweitern.
 | 78 | Materialien und Texturen sind nicht mehr ad hoc, sondern als Bibliothek nutzbar |
 | 79 | Der Planer wird unterwegs und bei instabiler Verbindung belastbar nutzbar |
 | 80 | Planungen koennen deutlich leichter als Viewer oder Vektorunterlage geteilt werden |
+
+---
+
+## Phase 16 - Treppen, Levels & vertikale Projektlogik (Sprints 81-83)
+
+**Ziel:** YAKDS von der Ein-Ebenen-Planung zu echten Mehr-Ebenen-Projekten
+weiterentwickeln: Levels, Treppen, Deckenaussparungen, Vertikalschnitte und
+levelfaehige Layout-/Exportpfade.
+
+**Inspiration aus Sweet Home 3D und angrenzenden CAD-Workflows:**
+
+- Levels / mehrere Geschosse
+- Staircase Generator als Workflow-Idee, nicht als Codevorlage
+- Side View / vertikale Ansichten
+
+### Sprint-Uebersicht
+
+| Sprint | Status | Thema | Deliverables |
+|--------|--------|-------|--------------|
+| 81 | `planned` | Mehr-Ebenen-Projektmodell | `BuildingLevel`, Level-CRUD, level-spezifische Raumlogik |
+| 82 | `planned` | Treppen & vertikale Verbindungen | Treppengeometrie, Vertikalverbindungen, Deckenaussparungen |
+| 83 | `planned` | Mehr-Ebenen-Layout, Sektionen & Interop | Vertikalschnitte, level-aware Sheets und Exportpfade |
+
+### Sprint-Metadaten
+
+| Sprint | Owner | ETA | Abhaengigkeiten | DoD-Kurzfassung |
+|--------|-------|-----|----------------|-----------------|
+| 81 | Full-Stack | Phase 16 | S58, S64, S74 | Projekte koennen mehrere Ebenen mit aktiver Sicht-/Bearbeitungslogik fuehren |
+| 82 | Full-Stack | Phase 16 | S73, S81 | Treppen verbinden Ebenen plausibel in 2D und 3D |
+| 83 | Full-Stack | Phase 16 | S64, S72, S80, S81, S82 | Mehr-Ebenen-Projekte sind in Sheets, Sektionen und Exporten nutzbar |
+
+### Meilenstein Phase 16
+
+| Nach Sprint | Ergebnis |
+|-------------|----------|
+| 81 | Projekte koennen sauber in Ebenen statt nur in Raeumen organisiert werden |
+| 82 | Vertikale Verbindungen wie Treppen werden als echte Planungselemente nutzbar |
+| 83 | Mehr-Ebenen-Projekte sind dokumentierbar, praesentierbar und exportierbar |

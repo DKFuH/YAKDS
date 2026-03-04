@@ -72,3 +72,6 @@ Stand: 2026-03-04
 | 78 | `S78-textur-materialbibliothek.md` | planned | Textur- und Materialbibliothek fuer Flaechen, Fronten und importierte Assets |
 | 79 | `S79-offline-pwa-und-aufmass-import.md` | planned | Offline-PWA, Sync-Queue und mobiler Aufmass-/Blueprint-Import |
 | 80 | `S80-html-viewer-und-vektor-exporte.md` | planned | HTML-Webviewer sowie SVG-/Vektor-Exporte fuer Plan und Sheets |
+| 81 | `S81-mehr-ebenen-projektmodell.md` | planned | Mehr-Ebenen-Projekte mit Levels, Sichtbarkeit und level-spezifischen Raeumen |
+| 82 | `S82-treppen-und-vertikale-verbindungen.md` | planned | Treppen, Treppenaugen und vertikale Verbindungen zwischen Ebenen |
+| 83 | `S83-mehr-ebenen-layout-sektionen-interop.md` | planned | Mehr-Ebenen-Sheets, Vertikalschnitte und Level-Metadaten in Exporten |
