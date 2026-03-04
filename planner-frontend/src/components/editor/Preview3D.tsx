@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { RoomPayload } from '../../api/rooms.js'
+import type { VerticalConnection } from '../../api/verticalConnections.js'
 import styles from './Preview3D.module.css'
 
 type VertexLike = { id: string; x_mm: number; y_mm: number }
@@ -32,6 +33,17 @@ type SurfaceColorMap = {
   wall_west?: string
 }
 
+type OutlinePoint = { x_mm: number; y_mm: number }
+
+type Bbox2dMm = {
+  min_x_mm: number
+  min_y_mm: number
+  max_x_mm: number
+  max_y_mm: number
+  width_mm: number
+  depth_mm: number
+}
+
 type WallSegmentResolved = {
   id: string
   start: { x_mm: number; y_mm: number }
@@ -52,6 +64,7 @@ type SunlightPreview = {
 
 interface Props {
   room: RoomPayload | null
+  verticalConnections?: VerticalConnection[]
   cameraState?: {
     x_mm: number
     y_mm: number
@@ -146,6 +159,134 @@ function clampUnitOrFallback(value: unknown, fallback: number): number {
   return Math.min(1, Math.max(0, parsed))
 }
 
+function parseOutlinePoints(value: unknown): OutlinePoint[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const points: OutlinePoint[] = []
+  for (const entry of value) {
+    const point = asRecord(entry)
+    if (!point) continue
+    if (typeof point.x_mm !== 'number' || !Number.isFinite(point.x_mm)) continue
+    if (typeof point.y_mm !== 'number' || !Number.isFinite(point.y_mm)) continue
+    points.push({ x_mm: point.x_mm, y_mm: point.y_mm })
+  }
+
+  return points
+}
+
+function bboxFromOutline(points: OutlinePoint[]): Bbox2dMm | null {
+  if (points.length < 3) return null
+
+  const xs = points.map((point) => point.x_mm)
+  const ys = points.map((point) => point.y_mm)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  const width = maxX - minX
+  const depth = maxY - minY
+
+  if (width <= 0 || depth <= 0) {
+    return null
+  }
+
+  return {
+    min_x_mm: minX,
+    min_y_mm: minY,
+    max_x_mm: maxX,
+    max_y_mm: maxY,
+    width_mm: width,
+    depth_mm: depth,
+  }
+}
+
+function readBbox(value: unknown): Bbox2dMm | null {
+  const bbox = asRecord(value)
+  if (!bbox) return null
+
+  if (
+    typeof bbox.min_x_mm !== 'number' ||
+    typeof bbox.min_y_mm !== 'number' ||
+    typeof bbox.max_x_mm !== 'number' ||
+    typeof bbox.max_y_mm !== 'number'
+  ) {
+    return null
+  }
+
+  const minX = Math.min(bbox.min_x_mm, bbox.max_x_mm)
+  const maxX = Math.max(bbox.min_x_mm, bbox.max_x_mm)
+  const minY = Math.min(bbox.min_y_mm, bbox.max_y_mm)
+  const maxY = Math.max(bbox.min_y_mm, bbox.max_y_mm)
+
+  const width = typeof bbox.width_mm === 'number' && bbox.width_mm > 0
+    ? bbox.width_mm
+    : maxX - minX
+  const depth = typeof bbox.depth_mm === 'number' && bbox.depth_mm > 0
+    ? bbox.depth_mm
+    : maxY - minY
+
+  if (width <= 0 || depth <= 0) {
+    return null
+  }
+
+  return {
+    min_x_mm: minX,
+    min_y_mm: minY,
+    max_x_mm: maxX,
+    max_y_mm: maxY,
+    width_mm: width,
+    depth_mm: depth,
+  }
+}
+
+function resolveVerticalConnectionBbox(connection: VerticalConnection): Bbox2dMm | null {
+  const opening = asRecord(connection.opening_json)
+  const openingBbox = readBbox(opening?.bbox_mm)
+  if (openingBbox) {
+    return openingBbox
+  }
+
+  const openingOutline = parseOutlinePoints(opening?.opening_outline)
+  const outlineBbox = bboxFromOutline(openingOutline)
+  if (outlineBbox) {
+    return outlineBbox
+  }
+
+  const footprint = asRecord(connection.footprint_json)
+  const footprintVertices = parseOutlinePoints(footprint?.vertices)
+  const verticesBbox = bboxFromOutline(footprintVertices)
+  if (verticesBbox) {
+    return verticesBbox
+  }
+
+  const footprintPolygon = parseOutlinePoints(footprint?.polygon)
+  const polygonBbox = bboxFromOutline(footprintPolygon)
+  if (polygonBbox) {
+    return polygonBbox
+  }
+
+  const rect = asRecord(footprint?.rect)
+  if (!rect) return null
+
+  const width = typeof rect.width_mm === 'number' && rect.width_mm > 0 ? rect.width_mm : null
+  const depth = typeof rect.depth_mm === 'number' && rect.depth_mm > 0 ? rect.depth_mm : null
+  if (width == null || depth == null) return null
+
+  const x = typeof rect.x_mm === 'number' && Number.isFinite(rect.x_mm) ? rect.x_mm : 0
+  const y = typeof rect.y_mm === 'number' && Number.isFinite(rect.y_mm) ? rect.y_mm : 0
+
+  return {
+    min_x_mm: x,
+    min_y_mm: y,
+    max_x_mm: x + width,
+    max_y_mm: y + depth,
+    width_mm: width,
+    depth_mm: depth,
+  }
+}
+
 function resolveWalls(vertices: VertexLike[], walls: WallLike[]): WallSegmentResolved[] {
   const byId = new Map(vertices.map((vertex) => [vertex.id, vertex]))
 
@@ -214,7 +355,7 @@ function applySunlight(
   )
 }
 
-export function Preview3D({ room, cameraState = null, onCameraStateChange, sunlight = null }: Props) {
+export function Preview3D({ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunlight = null }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
@@ -257,11 +398,12 @@ export function Preview3D({ room, cameraState = null, onCameraStateChange, sunli
       walls: resolveWalls(vertices, walls),
       openings,
       placements,
+      verticalConnections,
       ceilingHeightMm: room.ceiling_height_mm,
       surfaceColors,
       wallColor: chooseWallColor(surfaceColors),
     }
-  }, [room])
+  }, [room, verticalConnections])
 
   useEffect(() => {
     const mount = rootRef.current
@@ -396,6 +538,41 @@ export function Preview3D({ room, cameraState = null, onCameraStateChange, sunli
       openingMesh.rotation.y = -Math.atan2(dy, dx)
       openingMesh.visible = showReference
       group.add(openingMesh)
+    }
+
+    for (const connection of geometryInput.verticalConnections) {
+      const bbox = resolveVerticalConnectionBbox(connection)
+      if (!bbox) continue
+
+      const centerX = ((bbox.min_x_mm + bbox.max_x_mm) * 0.5) * MM_TO_M
+      const centerY = ((bbox.min_y_mm + bbox.max_y_mm) * 0.5) * MM_TO_M
+      const width = Math.max(0.12, bbox.width_mm * MM_TO_M)
+      const depth = Math.max(0.12, bbox.depth_mm * MM_TO_M)
+
+      const openingMarker = new THREE.Mesh(
+        new THREE.BoxGeometry(width, 0.06, depth),
+        new THREE.MeshStandardMaterial({
+          color: 0x0ea5e9,
+          transparent: true,
+          opacity: 0.28,
+          roughness: 0.75,
+        }),
+      )
+      openingMarker.position.set(centerX, 0.03, centerY)
+      openingMarker.visible = showReference
+      group.add(openingMarker)
+
+      const stairMarker = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.045, 0.7, 12),
+        new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.88,
+        }),
+      )
+      stairMarker.position.set(centerX, 0.35, centerY)
+      stairMarker.visible = showReference
+      group.add(stairMarker)
     }
 
     for (const placement of geometryInput.placements) {

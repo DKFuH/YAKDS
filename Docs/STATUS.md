@@ -14,21 +14,22 @@ Projektstatus per 2026-03-04.
 - Sprint 46: abgeschlossen
 - Sprints 47-51: abgeschlossen
 - Sprint 56: abgeschlossen
-- Sprints 57-81: abgeschlossen
+- Sprints 57-82: abgeschlossen
 
 Aktuell auf `main`:
 
 - Sprint 79: Offline-PWA und Aufmass-Import
 - Sprint 80: Viewer-Export-Plugin und Vektor-Exporte
 - Sprint 81: Mehr-Ebenen-Projektmodell
+- Sprint 82: Treppen und vertikale Verbindungen (`stairs`)
 
 ---
 
 ## Aktueller Fokus
 
 - Phase 16 ist gestartet.
-- Sprint 81 ist abgeschlossen und auf `main`.
-- Sprint 82 kann auf sauberem Mehr-Ebenen-Unterbau starten.
+- Sprint 81 und Sprint 82 sind abgeschlossen und auf `main`.
+- Phase 16 ist mit S83 (Mehr-Ebenen-Layout/Sektionen/Interop) als naechstem Fokus aktiv.
 
 ---
 

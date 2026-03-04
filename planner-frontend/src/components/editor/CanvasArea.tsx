@@ -5,6 +5,7 @@ import type { Dimension } from '../../api/dimensions.js'
 import type { Centerline } from '../../api/centerlines.js'
 import type { RoomPayload } from '../../api/rooms.js'
 import type { GeoJsonGrid } from '../../api/acoustics.js'
+import type { VerticalConnection } from '../../api/verticalConnections.js'
 import { roomsApi } from '../../api/rooms.js'
 import { PolygonEditor } from '../../editor/PolygonEditor.js'
 import type { EditorAPI } from '../../editor/usePolygonEditor.js'
@@ -15,6 +16,7 @@ interface Props {
   room: RoomPayload | null
   onRoomUpdated: (room: RoomPayload) => void
   editor: EditorAPI
+  verticalConnections: VerticalConnection[]
   openings: Opening[]
   selectedOpeningId: string | null
   onSelectOpening: (id: string | null) => void
@@ -41,7 +43,7 @@ interface Props {
   onRepositionVisitor?: (point: { x_mm: number; y_mm: number }) => void
 }
 
-export function CanvasArea({ room, onRoomUpdated, editor, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, onReferenceImageUpdate, showCompass = false, northAngleDeg = 0, virtualVisitor = null, onRepositionVisitor }: Props) {
+export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, onReferenceImageUpdate, showCompass = false, northAngleDeg = 0, virtualVisitor = null, onRepositionVisitor }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 })
   const [saving, setSaving] = useState(false)
@@ -115,6 +117,7 @@ export function CanvasArea({ room, onRoomUpdated, editor, openings, selectedOpen
             onSetTool={editor.setTool}
             onReset={editor.reset}
             onSave={handleSave}
+            verticalConnections={verticalConnections}
             openings={openings}
             selectedOpeningId={selectedOpeningId}
             onSelectOpening={onSelectOpening}

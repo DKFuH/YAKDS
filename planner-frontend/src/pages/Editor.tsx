@@ -18,6 +18,7 @@ import { acousticsApi, type AcousticGridMeta, type GeoJsonGrid } from '../api/ac
 import { getTenantPlugins } from '../api/tenantSettings.js'
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
 import { levelsApi, type BuildingLevel } from '../api/levels.js'
+import { verticalConnectionsApi, type VerticalConnection, type VerticalConnectionKind } from '../api/verticalConnections.js'
 import { usePolygonEditor, edgeLengthMm, type EditorState } from '../editor/usePolygonEditor.js'
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { PopoutWindow } from '../components/editor/PopoutWindow.js'
@@ -26,6 +27,7 @@ import { DaylightPanel } from '../components/editor/DaylightPanel.js'
 import { MaterialPanel } from '../components/editor/MaterialPanel.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
 import { LevelsPanel } from '../components/editor/LevelsPanel.js'
+import { StairsPanel } from '../components/editor/StairsPanel.js'
 import { RightSidebar, type CeilingConstraint, type ConfiguredDimensions } from '../components/editor/RightSidebar.js'
 import { StatusBar } from '../components/editor/StatusBar.js'
 import { AreasPanel } from '../components/editor/AreasPanel.js'
@@ -99,6 +101,76 @@ function parseReferenceImage(raw: unknown): NonNullable<EditorState['referenceIm
   }
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null
+  }
+
+  return value as Record<string, unknown>
+}
+
+function extractRoomVertices(boundary: unknown): Array<{ x_mm: number; y_mm: number }> {
+  const candidate = asRecord(boundary)
+  if (!candidate) return []
+  if (!Array.isArray(candidate.vertices)) return []
+
+  const vertices: Array<{ x_mm: number; y_mm: number }> = []
+  for (const entry of candidate.vertices) {
+    const vertex = asRecord(entry)
+    if (!vertex) continue
+    if (typeof vertex.x_mm !== 'number' || !Number.isFinite(vertex.x_mm)) continue
+    if (typeof vertex.y_mm !== 'number' || !Number.isFinite(vertex.y_mm)) continue
+    vertices.push({ x_mm: vertex.x_mm, y_mm: vertex.y_mm })
+  }
+
+  return vertices
+}
+
+function buildFootprintFromRoom(room: RoomPayload): Record<string, unknown> {
+  const vertices = extractRoomVertices(room.boundary)
+
+  if (vertices.length === 0) {
+    return {
+      room_id: room.id,
+      rect: {
+        x_mm: 0,
+        y_mm: 0,
+        width_mm: 1,
+        depth_mm: 1,
+      },
+    }
+  }
+
+  const xs = vertices.map((vertex) => vertex.x_mm)
+  const ys = vertices.map((vertex) => vertex.y_mm)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+
+  return {
+    room_id: room.id,
+    rect: {
+      x_mm: minX,
+      y_mm: minY,
+      width_mm: Math.max(1, maxX - minX),
+      depth_mm: Math.max(1, maxY - minY),
+    },
+    ...(vertices.length >= 3 ? { vertices } : {}),
+  }
+}
+
+function extractVerticalConnectionRoomId(connection: VerticalConnection): string | null {
+  const footprint = asRecord(connection.footprint_json)
+  if (!footprint) return null
+
+  const roomId = footprint.room_id
+  if (typeof roomId !== 'string') return null
+
+  const normalized = roomId.trim()
+  return normalized.length > 0 ? normalized : null
+}
+
 interface SyncedCameraState {
   x_mm: number
   y_mm: number
@@ -163,6 +235,8 @@ export function Editor() {
   const [daylightPanelOpen, setDaylightPanelOpen] = useState(false)
   const [materialsEnabled, setMaterialsEnabled] = useState(false)
   const [materialPanelOpen, setMaterialPanelOpen] = useState(false)
+  const [stairsEnabled, setStairsEnabled] = useState(false)
+  const [verticalConnections, setVerticalConnections] = useState<VerticalConnection[]>([])
   const [projectEnvironment, setProjectEnvironment] = useState<ProjectEnvironment | null>(null)
   const [sunPreview, setSunPreview] = useState<SunPreview | null>(null)
   const [daylightSaving, setDaylightSaving] = useState(false)
@@ -247,18 +321,42 @@ export function Editor() {
         setPresentationEnabled(result.enabled.includes('presentation'))
         setDaylightEnabled(result.enabled.includes('daylight'))
         setMaterialsEnabled(result.enabled.includes('materials'))
+        setStairsEnabled(result.enabled.includes('stairs'))
       })
       .catch(() => {
         if (!active) return
         setPresentationEnabled(false)
         setDaylightEnabled(false)
         setMaterialsEnabled(false)
+        setStairsEnabled(false)
       })
 
     return () => {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!id || !stairsEnabled) {
+      setVerticalConnections([])
+      return
+    }
+
+    let active = true
+    verticalConnectionsApi.list(id)
+      .then((items) => {
+        if (!active) return
+        setVerticalConnections(items)
+      })
+      .catch(() => {
+        if (!active) return
+        setVerticalConnections([])
+      })
+
+    return () => {
+      active = false
+    }
+  }, [id, stairsEnabled])
 
   const refreshSunPreview = useCallback(async (projectId: string, env: ProjectEnvironment | null) => {
     if (!env) return
@@ -671,6 +769,51 @@ export function Editor() {
       })
   }, [activeLevelId, levels])
 
+  const handleCreateVerticalConnection = useCallback(async (payload: {
+    from_level_id: string
+    to_level_id: string
+    kind: VerticalConnectionKind
+    stair_json: Record<string, unknown>
+  }) => {
+    if (!id) {
+      throw new Error('Projektkontext fehlt')
+    }
+
+    if (!selectedRoomId || !project) {
+      throw new Error('Bitte zuerst einen Raum auswählen')
+    }
+
+    const room = project.rooms.find((entry) => entry.id === selectedRoomId)
+    if (!room) {
+      throw new Error('Ausgewählter Raum nicht gefunden')
+    }
+
+    const created = await verticalConnectionsApi.create(id, {
+      from_level_id: payload.from_level_id,
+      to_level_id: payload.to_level_id,
+      kind: payload.kind,
+      stair_json: payload.stair_json,
+      footprint_json: buildFootprintFromRoom(room as unknown as RoomPayload),
+    })
+
+    setVerticalConnections((previous) => [...previous, created].sort((left, right) => left.created_at.localeCompare(right.created_at)))
+  }, [id, project, selectedRoomId])
+
+  const handleUpdateVerticalConnection = useCallback(async (connectionId: string, payload: {
+    from_level_id: string
+    to_level_id: string
+    kind: VerticalConnectionKind
+    stair_json: Record<string, unknown>
+  }) => {
+    const updated = await verticalConnectionsApi.update(connectionId, payload)
+    setVerticalConnections((previous) => previous.map((entry) => (entry.id === updated.id ? updated : entry)))
+  }, [])
+
+  const handleDeleteVerticalConnection = useCallback(async (connectionId: string) => {
+    await verticalConnectionsApi.remove(connectionId)
+    setVerticalConnections((previous) => previous.filter((entry) => entry.id !== connectionId))
+  }, [])
+
   // Raum anlegen (Name kommt aus dem Inline-Formular der LeftSidebar)
   const handleAddRoom = useCallback(async (name: string) => {
     if (!project) return
@@ -983,6 +1126,14 @@ export function Editor() {
     return project.rooms.filter((room) => room.level_id === activeLevelId)
   }, [project, activeLevelId])
 
+  const verticalConnectionsForSelectedRoom = useMemo(() => {
+    if (!selectedRoomId) {
+      return []
+    }
+
+    return verticalConnections.filter((entry) => extractVerticalConnectionRoomId(entry) === selectedRoomId)
+  }, [verticalConnections, selectedRoomId])
+
   const selectedRoom = roomsOnActiveLevel.find(r => r.id === selectedRoomId) ?? null
   selectedRoomRef.current = selectedRoom as unknown as RoomPayload | null
 
@@ -1075,6 +1226,7 @@ export function Editor() {
       room={selectedRoom as unknown as RoomPayload | null}
       onRoomUpdated={handleRoomUpdated}
       editor={editor}
+      verticalConnections={verticalConnectionsForSelectedRoom}
       openings={openings}
       selectedOpeningId={selectedOpeningId}
       onSelectOpening={setSelectedOpeningId}
@@ -1105,6 +1257,7 @@ export function Editor() {
   const previewPanel = (
     <Preview3D
       room={selectedRoom as unknown as RoomPayload | null}
+      verticalConnections={verticalConnectionsForSelectedRoom}
       cameraState={cameraState}
       onCameraStateChange={handleCameraStateChange}
       sunlight={daylightEnabled ? sunPreview : null}
@@ -1361,6 +1514,18 @@ export function Editor() {
               onCreateLevel={handleCreateLevel}
             />
           )}
+          stairsPanel={(
+            <StairsPanel
+              enabled={stairsEnabled}
+              levels={levels}
+              connections={verticalConnections}
+              activeLevelId={activeLevelId}
+              selectedRoomId={selectedRoomId}
+              onCreate={handleCreateVerticalConnection}
+              onUpdate={handleUpdateVerticalConnection}
+              onDelete={handleDeleteVerticalConnection}
+            />
+          )}
           rooms={roomsOnActiveLevel}
           selectedRoomId={selectedRoomId}
           onSelectRoom={setSelectedRoomId}
@@ -1449,6 +1614,7 @@ export function Editor() {
         >
           <Preview3D
             room={selectedRoom as unknown as RoomPayload | null}
+            verticalConnections={verticalConnectionsForSelectedRoom}
             cameraState={cameraState}
             onCameraStateChange={handleCameraStateChange}
             sunlight={daylightEnabled ? sunPreview : null}

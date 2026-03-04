@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-82-stairs-plugin`
 **Gruppe:** A (startbar nach S81)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S71 (Arc-Walls optional), S73 (3D/Interop), S81 (Mehr-Ebenen-Projektmodell)
 
 ---
@@ -130,3 +130,24 @@ Funktionen:
 - Geometrie und Deckenaussparung werden automatisch berechnet
 - 2D-Footprint und 3D-Darstellung stimmen zusammen
 - ungueltige Geschosshoehen oder Parameter liefern klare Fehler
+
+---
+
+## 6. Umsetzung 2026-03-04
+
+Umgesetzt wurden Backend und Frontend fuer V1 des `stairs`-Plugins:
+
+- Prisma-Modell `VerticalConnection` inkl. Migration und Room-Erweiterung `ceiling_openings`
+- Plugin-Registrierung `stairs` inkl. tenant-aware Gating
+- API-CRUD fuer vertikale Verbindungen (`GET/POST/PATCH/DELETE`) mit strikter Tenant-/Projekt-/Level-Validierung
+- deterministischer Treppengeometrie-Service mit Ableitung von `stair_json` und `opening_json`
+- Raum-Patch fuer Deckenaussparungen bei Create/Update/Delete in derselben Transaktion
+- Frontend-API `verticalConnectionsApi`
+- Editor-Integration mit `StairsPanel` (Anlegen, Bearbeiten, Loeschen)
+- 2D-Overlay in Canvas (Aussparungs-/Footprint-Konturen)
+- 3D-Helper in Preview (Opening-BBox und Treppenmarker)
+
+Verifikation:
+
+- Backend-Tests gruen, inklusive Anti-Leak-Test fuer Level aus unterschiedlichen Projekten
+- Frontend-Build gruen

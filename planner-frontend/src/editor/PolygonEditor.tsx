@@ -7,6 +7,7 @@ import type { Placement } from '../api/placements.js'
 import type { Dimension } from '../api/dimensions.js'
 import type { Centerline } from '../api/centerlines.js'
 import type { GeoJsonGrid } from '../api/acoustics.js'
+import type { VerticalConnection } from '../api/verticalConnections.js'
 import type { EditorState, EditorTool } from './usePolygonEditor.js'
 import { CenterlineLayer } from '../components/canvas/CenterlineLayer.js'
 import { AcousticOverlay } from '../pages/AcousticOverlay.js'
@@ -50,6 +51,8 @@ const COLOR = {
   placementSelectedStroke: resolveColor('--status-warning-strong', '--status-warning-text'),
   centerline: resolveColor('--status-info', '--primary-color'),
   vertexStroke: resolveColor('--text-inverse'),
+  verticalConnectionFill: resolveColor('--status-info-soft', '--primary-light'),
+  verticalConnectionStroke: resolveColor('--status-info', '--primary-color'),
 } as const
 
 function openingColor(type: Opening['type'], selected: boolean) {
@@ -62,6 +65,67 @@ function openingColor(type: Opening['type'], selected: boolean) {
   if (type === 'niche') return resolveColor('--text-muted', '#888')
   if (type === 'pipe') return resolveColor('--status-info', '#06f')
   return COLOR.openingDoor
+}
+
+type OutlinePoint = { x_mm: number; y_mm: number }
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null
+  }
+
+  return value as Record<string, unknown>
+}
+
+function parseOutlinePoints(value: unknown): OutlinePoint[] {
+  if (!Array.isArray(value)) return []
+
+  const points: OutlinePoint[] = []
+  for (const entry of value) {
+    const point = asRecord(entry)
+    if (!point) continue
+    if (typeof point.x_mm !== 'number' || !Number.isFinite(point.x_mm)) continue
+    if (typeof point.y_mm !== 'number' || !Number.isFinite(point.y_mm)) continue
+    points.push({ x_mm: point.x_mm, y_mm: point.y_mm })
+  }
+
+  return points
+}
+
+function extractVerticalConnectionOutline(connection: VerticalConnection): OutlinePoint[] {
+  const opening = asRecord(connection.opening_json)
+  const openingOutline = parseOutlinePoints(opening?.opening_outline)
+  if (openingOutline.length >= 3) {
+    return openingOutline
+  }
+
+  const footprint = asRecord(connection.footprint_json)
+  const vertices = parseOutlinePoints(footprint?.vertices)
+  if (vertices.length >= 3) {
+    return vertices
+  }
+
+  const polygon = parseOutlinePoints(footprint?.polygon)
+  if (polygon.length >= 3) {
+    return polygon
+  }
+
+  const rect = asRecord(footprint?.rect)
+  if (!rect) return []
+
+  const width = typeof rect.width_mm === 'number' && rect.width_mm > 0 ? rect.width_mm : null
+  const depth = typeof rect.depth_mm === 'number' && rect.depth_mm > 0 ? rect.depth_mm : null
+  if (width == null || depth == null) return []
+
+  const x = typeof rect.x_mm === 'number' && Number.isFinite(rect.x_mm) ? rect.x_mm : 0
+  const y = typeof rect.y_mm === 'number' && Number.isFinite(rect.y_mm) ? rect.y_mm : 0
+
+  return [
+    { x_mm: x, y_mm: y },
+    { x_mm: x + width, y_mm: y },
+    { x_mm: x + width, y_mm: y + depth },
+    { x_mm: x, y_mm: y + depth },
+  ]
 }
 
 // ─── Komponente ───────────────────────────────────────────────────────────────
@@ -81,6 +145,7 @@ interface Props {
   onSetTool: (t: EditorTool) => void
   onReset: () => void
   onSave: () => void
+  verticalConnections?: VerticalConnection[]
   openings?: Opening[]
   selectedOpeningId?: string | null
   onSelectOpening?: (id: string | null) => void
@@ -113,6 +178,7 @@ export function PolygonEditor({
   onAddVertex, onClosePolygon, onMoveVertex,
   onSelectVertex, onSelectEdge, onHoverVertex, onDeleteVertex,
   onSetTool, onReset, onSave,
+  verticalConnections = [],
   openings = [], selectedOpeningId, onSelectOpening, onAddOpening,
   placements = [], selectedPlacementId, onSelectPlacement, canAddPlacement, onAddPlacement,
   dimensions = [],
@@ -400,6 +466,30 @@ export function PolygonEditor({
           {/* Offene Linien */}
           {!state.closed && pts.length >= 2 && (
             <Line points={linePoints} stroke={COLOR.preview} strokeWidth={2} dash={[8, 4]} />
+          )}
+
+          {state.closed && (
+            <Group listening={false}>
+              {verticalConnections.map((connection) => {
+                const outline = extractVerticalConnectionOutline(connection)
+                if (outline.length < 3) {
+                  return null
+                }
+
+                const overlayPoints = outline.flatMap((point) => [worldToCanvas(point.x_mm), worldToCanvas(point.y_mm)])
+                return (
+                  <Line
+                    key={`vc-overlay-${connection.id}`}
+                    points={overlayPoints}
+                    closed
+                    fill={COLOR.verticalConnectionFill}
+                    stroke={COLOR.verticalConnectionStroke}
+                    strokeWidth={1}
+                    dash={[6, 4]}
+                  />
+                )
+              })}
+            </Group>
           )}
 
           {/* Klickbare Kantensegmente (select-Modus) */}
@@ -759,7 +849,7 @@ export function PolygonEditor({
         {state.tool === 'calibrate' && state.referenceImage && (
           <span>Kalibrieren: Zwei Punkte anklicken, dann Referenzlänge eingeben</span>
         )}
-        <span className={styles.vertexCount}>{state.vertices.length} Punkte · {openings.length} Öffnungen</span>
+        <span className={styles.vertexCount}>{state.vertices.length} Punkte · {openings.length} Öffnungen · {verticalConnections.length} Treppen</span>
       </div>
     </div>
   )
