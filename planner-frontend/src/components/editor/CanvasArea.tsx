@@ -29,9 +29,16 @@ interface Props {
   acousticVisible: boolean
   acousticOpacity: number
   onReferenceImageUpdate: (img: NonNullable<RoomPayload['reference_image']>) => void
+  virtualVisitor?: {
+    x_mm: number
+    y_mm: number
+    yaw_rad: number
+    visible?: boolean
+  } | null
+  onRepositionVisitor?: (point: { x_mm: number; y_mm: number }) => void
 }
 
-export function CanvasArea({ room, onRoomUpdated, editor, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, onReferenceImageUpdate }: Props) {
+export function CanvasArea({ room, onRoomUpdated, editor, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, onReferenceImageUpdate, virtualVisitor = null, onRepositionVisitor }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 })
   const [saving, setSaving] = useState(false)
@@ -122,6 +129,8 @@ export function CanvasArea({ room, onRoomUpdated, editor, openings, selectedOpen
             acousticVisible={acousticVisible}
             acousticOpacity={acousticOpacity}
             onReferenceImageUpdate={onReferenceImageUpdate}
+            virtualVisitor={virtualVisitor}
+            onRepositionVisitor={onRepositionVisitor}
           />
         </div>
       ) : (

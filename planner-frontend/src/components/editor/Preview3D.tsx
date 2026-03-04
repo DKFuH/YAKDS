@@ -24,6 +24,20 @@ type WallSegmentResolved = {
 
 interface Props {
   room: RoomPayload | null
+  cameraState?: {
+    x_mm: number
+    y_mm: number
+    yaw_rad: number
+    pitch_rad: number
+    camera_height_mm: number
+  } | null
+  onCameraStateChange?: (state: {
+    x_mm: number
+    y_mm: number
+    yaw_rad: number
+    pitch_rad: number
+    camera_height_mm: number
+  }) => void
 }
 
 const MM_TO_M = 0.001
@@ -59,9 +73,38 @@ function resolveWalls(vertices: VertexLike[], walls: WallLike[]): WallSegmentRes
   })
 }
 
-export function Preview3D({ room }: Props) {
+function toCameraDirection(yawRad: number, pitchRad: number): THREE.Vector3 {
+  const cosPitch = Math.cos(pitchRad)
+  return new THREE.Vector3(
+    Math.cos(yawRad) * cosPitch,
+    Math.sin(pitchRad),
+    Math.sin(yawRad) * cosPitch,
+  )
+}
+
+function angleDelta(a: number, b: number): number {
+  const raw = a - b
+  return Math.atan2(Math.sin(raw), Math.cos(raw))
+}
+
+export function Preview3D({ room, cameraState = null, onCameraStateChange }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const controlsRef = useRef<OrbitControls | null>(null)
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const groupRef = useRef<THREE.Group | null>(null)
+  const cameraStateRef = useRef<Props['cameraState']>(cameraState)
+  const onCameraStateChangeRef = useRef<Props['onCameraStateChange']>(onCameraStateChange)
+  const lastEmittedRef = useRef<{
+    x_mm: number
+    y_mm: number
+    yaw_rad: number
+    pitch_rad: number
+    camera_height_mm: number
+  } | null>(null)
   const [showReference, setShowReference] = useState(true)
+
+  cameraStateRef.current = cameraState
+  onCameraStateChangeRef.current = onCameraStateChange
 
   const geometryInput = useMemo(() => {
     if (!room) {
@@ -105,6 +148,8 @@ export function Preview3D({ room }: Props) {
     mount.appendChild(renderer.domElement)
 
     const controls = new OrbitControls(camera, renderer.domElement)
+    controlsRef.current = controls
+    cameraRef.current = camera
     controls.enableDamping = true
     controls.dampingFactor = 0.08
     controls.target.set(0, 0.7, 0)
@@ -116,6 +161,7 @@ export function Preview3D({ room }: Props) {
     scene.add(directional)
 
     const group = new THREE.Group()
+    groupRef.current = group
     scene.add(group)
 
     const grid = new THREE.GridHelper(20, 40, 0x334155, 0x1e293b)
@@ -133,6 +179,22 @@ export function Preview3D({ room }: Props) {
 
     const center = new THREE.Box3().setFromObject(floorMesh).getCenter(new THREE.Vector3())
     group.position.set(-center.x, 0, -center.z)
+
+    const applyExternalCameraState = (state: NonNullable<Props['cameraState']>) => {
+      const direction = toCameraDirection(state.yaw_rad, state.pitch_rad)
+      const position = new THREE.Vector3(
+        state.x_mm * MM_TO_M + group.position.x,
+        state.camera_height_mm * MM_TO_M,
+        state.y_mm * MM_TO_M + group.position.z,
+      )
+      camera.position.copy(position)
+      controls.target.copy(position.clone().add(direction.multiplyScalar(1.2)))
+      controls.update()
+    }
+
+    if (cameraStateRef.current) {
+      applyExternalCameraState(cameraStateRef.current)
+    }
 
     const wallById = new Map<string, WallSegmentResolved>()
 
@@ -231,6 +293,49 @@ export function Preview3D({ room }: Props) {
     }
 
     let disposed = false
+    let lastEmitTs = 0
+
+    const emitCameraStateIfChanged = () => {
+      if (!onCameraStateChangeRef.current) {
+        return
+      }
+
+      const now = performance.now()
+      if (now - lastEmitTs < 80) {
+        return
+      }
+
+      const direction = controls.target.clone().sub(camera.position)
+      if (direction.lengthSq() < 1e-8) {
+        return
+      }
+      direction.normalize()
+
+      const next = {
+        x_mm: Math.round((camera.position.x - group.position.x) / MM_TO_M),
+        y_mm: Math.round((camera.position.z - group.position.z) / MM_TO_M),
+        yaw_rad: Math.atan2(direction.z, direction.x),
+        pitch_rad: Math.asin(Math.max(-1, Math.min(1, direction.y))),
+        camera_height_mm: Math.round(camera.position.y / MM_TO_M),
+      }
+
+      const prev = lastEmittedRef.current
+      if (prev) {
+        const same =
+          Math.abs(prev.x_mm - next.x_mm) < 6 &&
+          Math.abs(prev.y_mm - next.y_mm) < 6 &&
+          Math.abs(prev.camera_height_mm - next.camera_height_mm) < 6 &&
+          Math.abs(angleDelta(prev.yaw_rad, next.yaw_rad)) < 0.01 &&
+          Math.abs(angleDelta(prev.pitch_rad, next.pitch_rad)) < 0.01
+        if (same) {
+          return
+        }
+      }
+
+      lastEmitTs = now
+      lastEmittedRef.current = next
+      onCameraStateChangeRef.current(next)
+    }
     const onResize = () => {
       if (disposed) return
       const width = Math.max(1, mount.clientWidth)
@@ -246,6 +351,7 @@ export function Preview3D({ room }: Props) {
     const animate = () => {
       if (disposed) return
       controls.update()
+      emitCameraStateIfChanged()
       renderer.render(scene, camera)
       requestAnimationFrame(animate)
     }
@@ -255,10 +361,34 @@ export function Preview3D({ room }: Props) {
       disposed = true
       resizeObserver.disconnect()
       controls.dispose()
+      if (controlsRef.current === controls) controlsRef.current = null
+      if (cameraRef.current === camera) cameraRef.current = null
+      if (groupRef.current === group) groupRef.current = null
       renderer.dispose()
       mount.removeChild(renderer.domElement)
     }
   }, [geometryInput, showReference])
+
+  useEffect(() => {
+    const next = cameraState
+    const camera = cameraRef.current
+    const controls = controlsRef.current
+    const group = groupRef.current
+    if (!next || !camera || !controls || !group) {
+      return
+    }
+
+    const direction = toCameraDirection(next.yaw_rad, next.pitch_rad)
+    const position = new THREE.Vector3(
+      next.x_mm * MM_TO_M + group.position.x,
+      next.camera_height_mm * MM_TO_M,
+      next.y_mm * MM_TO_M + group.position.z,
+    )
+
+    camera.position.copy(position)
+    controls.target.copy(position.clone().add(direction.multiplyScalar(1.2)))
+    controls.update()
+  }, [cameraState])
 
   if (!geometryInput) {
     return (

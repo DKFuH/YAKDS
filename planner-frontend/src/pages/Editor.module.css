@@ -48,7 +48,7 @@
   text-overflow: ellipsis;
 }
 
-.topbarActions { display: flex; align-items: center; gap: 0.5rem; }
+.topbarActions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 
 .autoCompleteHint {
   font-size: 0.75rem;
@@ -80,11 +80,118 @@
 }
 .btnSecondary:hover { background: var(--editor-border); }
 
+.modeSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem;
+  border-radius: var(--radius-pill);
+  background: var(--editor-surface-alt);
+}
+
+.modeBtn {
+  background: transparent;
+  color: var(--editor-text-muted);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  padding: 0.22rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.modeBtn:hover:not(:disabled) {
+  color: var(--editor-text);
+}
+
+.modeBtnActive {
+  background: var(--editor-surface);
+  color: var(--editor-text);
+}
+
+.modeBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.visitorToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--editor-text-muted);
+}
+
+.heightControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--editor-text-muted);
+}
+
+.heightControl input {
+  width: 120px;
+}
+
 /* ── Workspace ── */
 .workspace {
   display: flex;
   flex: 1;
   overflow: hidden;
+}
+
+.editorViewport {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.splitLayout {
+  --split-left: 58%;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.splitPane {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.splitPanePrimary {
+  flex-basis: var(--split-left);
+}
+
+.splitPaneSecondary {
+  flex-basis: calc(100% - var(--split-left) - 8px);
+}
+
+.splitDivider {
+  width: 8px;
+  cursor: col-resize;
+  flex: 0 0 8px;
+  background: linear-gradient(
+    to right,
+    transparent 0,
+    transparent 3px,
+    var(--editor-border) 3px,
+    var(--editor-border) 5px,
+    transparent 5px,
+    transparent 100%
+  );
+}
+
+.splitDivider:hover {
+  background: linear-gradient(
+    to right,
+    transparent 0,
+    transparent 2px,
+    var(--primary-color) 2px,
+    var(--primary-color) 6px,
+    transparent 6px,
+    transparent 100%
+  );
 }
 
 /* ── Workflow Step Bar ── */
@@ -162,4 +269,10 @@
 .moreMenuItem:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+@media (max-width: 1400px) {
+  .heightControl {
+    display: none;
+  }
 }

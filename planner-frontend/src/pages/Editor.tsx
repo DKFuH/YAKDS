@@ -25,6 +25,12 @@ import { StatusBar } from '../components/editor/StatusBar.js'
 import { AreasPanel } from '../components/editor/AreasPanel.js'
 import { LayoutSheetTabs } from '../components/editor/LayoutSheetTabs.js'
 import styles from './Editor.module.css'
+import {
+  clampNumber,
+  loadPlannerViewSettings,
+  savePlannerViewSettings,
+  type PlannerViewMode,
+} from './plannerViewSettings.js'
 
 function resolveArticleVariantId(article: CatalogArticle, chosenOptions: Record<string, string>): string | undefined {
   if (!article.variants || article.variants.length === 0) {
@@ -86,6 +92,14 @@ function parseReferenceImage(raw: unknown): NonNullable<EditorState['referenceIm
   }
 }
 
+interface SyncedCameraState {
+  x_mm: number
+  y_mm: number
+  yaw_rad: number
+  pitch_rad: number
+  camera_height_mm: number
+}
+
 export function Editor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -93,7 +107,19 @@ export function Editor() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d')
+  const [viewMode, setViewMode] = useState<PlannerViewMode>('2d')
+  const [splitRatio, setSplitRatio] = useState(58)
+  const [splitDragging, setSplitDragging] = useState(false)
+  const [showVirtualVisitor, setShowVirtualVisitor] = useState(true)
+  const [cameraHeightMm, setCameraHeightMm] = useState(1650)
+  const [cameraState, setCameraState] = useState<SyncedCameraState>({
+    x_mm: 0,
+    y_mm: 0,
+    yaw_rad: 0,
+    pitch_rad: -0.12,
+    camera_height_mm: 1650,
+  })
+  const [compactLayout, setCompactLayout] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 1180 : false))
   const [openings, setOpenings] = useState<Opening[]>([])
   const [selectedOpeningId, setSelectedOpeningId] = useState<string | null>(null)
   const [placements, setPlacements] = useState<Placement[]>([])
@@ -124,6 +150,8 @@ export function Editor() {
   const [activeLayoutSheetId, setActiveLayoutSheetId] = useState<string | null>(null)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const moreMenuRef = useRef<HTMLDivElement | null>(null)
+  const splitContainerRef = useRef<HTMLDivElement | null>(null)
+  const centeredVisitorRoomIdRef = useRef<string | null>(null)
 
   // Editor-State nach oben gehoben, damit RightSidebar darauf zugreifen kann
   const editor = usePolygonEditor()
@@ -261,6 +289,89 @@ export function Editor() {
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [moreMenuOpen])
+
+  useEffect(() => {
+    const onResize = () => {
+      setCompactLayout(window.innerWidth < 1180)
+    }
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    if (!id) {
+      return
+    }
+
+    const saved = loadPlannerViewSettings(id)
+    if (!saved) {
+      return
+    }
+
+    setViewMode(saved.mode)
+    setSplitRatio(saved.split_ratio)
+    setShowVirtualVisitor(saved.visitor_visible)
+    setCameraHeightMm(saved.camera_height_mm)
+    setCameraState((prev) => ({
+      ...prev,
+      camera_height_mm: saved.camera_height_mm,
+    }))
+  }, [id])
+
+  useEffect(() => {
+    if (!id) {
+      return
+    }
+
+    savePlannerViewSettings(id, {
+      mode: viewMode,
+      split_ratio: splitRatio,
+      visitor_visible: showVirtualVisitor,
+      camera_height_mm: cameraHeightMm,
+    })
+  }, [id, viewMode, splitRatio, showVirtualVisitor, cameraHeightMm])
+
+  useEffect(() => {
+    setCameraState((prev) => ({
+      ...prev,
+      camera_height_mm: cameraHeightMm,
+    }))
+  }, [cameraHeightMm])
+
+  useEffect(() => {
+    if (!splitDragging) {
+      return
+    }
+
+    const handlePointerMove = (event: MouseEvent) => {
+      const host = splitContainerRef.current
+      if (!host) {
+        return
+      }
+      const rect = host.getBoundingClientRect()
+      const ratio = ((event.clientX - rect.left) / rect.width) * 100
+      setSplitRatio(clampNumber(ratio, 25, 75))
+    }
+
+    const handlePointerUp = () => {
+      setSplitDragging(false)
+    }
+
+    window.addEventListener('mousemove', handlePointerMove)
+    window.addEventListener('mouseup', handlePointerUp)
+    return () => {
+      window.removeEventListener('mousemove', handlePointerMove)
+      window.removeEventListener('mouseup', handlePointerUp)
+    }
+  }, [splitDragging])
+
+  useEffect(() => {
+    if (!splitContainerRef.current) {
+      return
+    }
+    splitContainerRef.current.style.setProperty('--split-left', `${splitRatio}%`)
+  }, [splitRatio, viewMode])
 
   useEffect(() => {
     if (!id) return
@@ -623,6 +734,63 @@ export function Editor() {
   const selectedRoom = project?.rooms.find(r => r.id === selectedRoomId) ?? null
   selectedRoomRef.current = selectedRoom as unknown as RoomPayload | null
 
+  const effectiveViewMode: PlannerViewMode = compactLayout && viewMode === 'split' ? '2d' : viewMode
+
+  useEffect(() => {
+    if (!selectedRoom) {
+      return
+    }
+
+    if (centeredVisitorRoomIdRef.current === selectedRoom.id) {
+      return
+    }
+    centeredVisitorRoomIdRef.current = selectedRoom.id
+
+    const boundary = selectedRoom.boundary as RoomBoundaryPayload | undefined
+    const vertices = (boundary?.vertices ?? []) as Vertex[]
+    if (vertices.length < 1) {
+      return
+    }
+
+    const sum = vertices.reduce(
+      (acc, vertex) => ({
+        x_mm: acc.x_mm + vertex.x_mm,
+        y_mm: acc.y_mm + vertex.y_mm,
+      }),
+      { x_mm: 0, y_mm: 0 },
+    )
+    const centerX = Math.round(sum.x_mm / vertices.length)
+    const centerY = Math.round(sum.y_mm / vertices.length)
+
+    setCameraState((prev) => ({
+      ...prev,
+      x_mm: centerX,
+      y_mm: centerY,
+      camera_height_mm: cameraHeightMm,
+    }))
+  }, [selectedRoom, cameraHeightMm])
+
+  const handleRepositionVisitor = useCallback((point: { x_mm: number; y_mm: number }) => {
+    setCameraState((prev) => ({
+      ...prev,
+      x_mm: point.x_mm,
+      y_mm: point.y_mm,
+    }))
+  }, [])
+
+  const handleCameraStateChange = useCallback((next: SyncedCameraState) => {
+    setCameraState((prev) => {
+      const stable =
+        Math.abs(prev.x_mm - next.x_mm) < 1 &&
+        Math.abs(prev.y_mm - next.y_mm) < 1 &&
+        Math.abs(prev.camera_height_mm - next.camera_height_mm) < 1 &&
+        Math.abs(prev.yaw_rad - next.yaw_rad) < 0.0005 &&
+        Math.abs(prev.pitch_rad - next.pitch_rad) < 0.0005
+      return stable ? prev : next
+    })
+    setCameraHeightMm(clampNumber(Math.round(next.camera_height_mm), 900, 2400))
+  }, [])
+
   useEffect(() => {
     if (!selectedRoom) {
       setIsPreviewPopoutOpen(false)
@@ -650,6 +818,44 @@ export function Editor() {
 
   const ceilingConstraints = ((selectedRoom as unknown as RoomPayload | null)?.ceiling_constraints as CeilingConstraint[] | undefined) ?? []
 
+  const canvasPanel = (
+    <CanvasArea
+      room={selectedRoom as unknown as RoomPayload | null}
+      onRoomUpdated={handleRoomUpdated}
+      editor={editor}
+      openings={openings}
+      selectedOpeningId={selectedOpeningId}
+      onSelectOpening={setSelectedOpeningId}
+      onAddOpening={handleAddOpening}
+      placements={placements}
+      dimensions={dimensions}
+      centerlines={centerlines}
+      selectedPlacementId={selectedPlacementId}
+      onSelectPlacement={setSelectedPlacementId}
+      canAddPlacement={selectedCatalogItem !== null}
+      onAddPlacement={handleAddPlacement}
+      acousticGrid={acousticGrid}
+      acousticVisible={acousticEnabled}
+      acousticOpacity={acousticOpacityPct / 100}
+      onReferenceImageUpdate={handleReferenceImageUpdate}
+      virtualVisitor={{
+        x_mm: cameraState.x_mm,
+        y_mm: cameraState.y_mm,
+        yaw_rad: cameraState.yaw_rad,
+        visible: showVirtualVisitor,
+      }}
+      onRepositionVisitor={showVirtualVisitor ? handleRepositionVisitor : undefined}
+    />
+  )
+
+  const previewPanel = (
+    <Preview3D
+      room={selectedRoom as unknown as RoomPayload | null}
+      cameraState={cameraState}
+      onCameraStateChange={handleCameraStateChange}
+    />
+  )
+
   if (loading) return <div className={styles.center}>Lade Projekt…</div>
   if (error) return <div className={styles.center}>{error}</div>
   if (!project) return null
@@ -665,19 +871,55 @@ export function Editor() {
               ✓ {autoCompleteResult.created} Langteile generiert
             </span>
           )}
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={() => setViewMode((prev) => (prev === '2d' ? '3d' : '2d'))}
-          >
-            {viewMode === '2d' ? '3D Preview' : '2D Editor'}
-          </button>
+          <div className={styles.modeSwitch} aria-label="Ansichtsmodus">
+            <button
+              type="button"
+              className={`${styles.modeBtn} ${viewMode === '2d' ? styles.modeBtnActive : ''}`}
+              onClick={() => setViewMode('2d')}
+            >
+              2D
+            </button>
+            <button
+              type="button"
+              className={`${styles.modeBtn} ${viewMode === 'split' ? styles.modeBtnActive : ''}`}
+              onClick={() => setViewMode('split')}
+              title={compactLayout ? 'Split auf kleinen Displays nicht verfügbar' : '2D und 3D parallel'}
+              disabled={compactLayout}
+            >
+              Split
+            </button>
+            <button
+              type="button"
+              className={`${styles.modeBtn} ${viewMode === '3d' ? styles.modeBtnActive : ''}`}
+              onClick={() => setViewMode('3d')}
+            >
+              3D
+            </button>
+          </div>
+          <label className={styles.visitorToggle}>
+            <input
+              type="checkbox"
+              checked={showVirtualVisitor}
+              onChange={(event) => setShowVirtualVisitor(event.target.checked)}
+            />
+            Besucher
+          </label>
+          <label className={styles.heightControl}>
+            Höhe {cameraHeightMm} mm
+            <input
+              type="range"
+              min={900}
+              max={2400}
+              step={10}
+              value={cameraHeightMm}
+              onChange={(event) => setCameraHeightMm(Number(event.target.value))}
+            />
+          </label>
           <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
             <button
               type="button"
               className={styles.btnSecondary}
               aria-haspopup="true"
-              aria-expanded={moreMenuOpen}
               onClick={() => setMoreMenuOpen((prev) => !prev)}
             >
               Mehr ▾
@@ -760,8 +1002,7 @@ export function Editor() {
             <button
               key={step}
               type="button"
-              role="tab"
-              aria-selected={isActive}
+              aria-current={isActive ? 'step' : undefined}
               className={`${styles.stepTab} ${isActive ? styles.stepTabActive : ''}`}
               onClick={() => setWorkflowStep(step)}
               onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
@@ -798,30 +1039,29 @@ export function Editor() {
           workflowStep={workflowStep}
         />
 
-        {viewMode === '2d' ? (
-          <CanvasArea
-            room={selectedRoom as unknown as RoomPayload | null}
-            onRoomUpdated={handleRoomUpdated}
-            editor={editor}
-            openings={openings}
-            selectedOpeningId={selectedOpeningId}
-            onSelectOpening={setSelectedOpeningId}
-            onAddOpening={handleAddOpening}
-            placements={placements}
-            dimensions={dimensions}
-            centerlines={centerlines}
-            selectedPlacementId={selectedPlacementId}
-            onSelectPlacement={setSelectedPlacementId}
-            canAddPlacement={selectedCatalogItem !== null}
-            onAddPlacement={handleAddPlacement}
-            acousticGrid={acousticGrid}
-            acousticVisible={acousticEnabled}
-            acousticOpacity={acousticOpacityPct / 100}
-            onReferenceImageUpdate={handleReferenceImageUpdate}
-          />
-        ) : (
-          <Preview3D room={selectedRoom as unknown as RoomPayload | null} />
-        )}
+        <div className={styles.editorViewport}>
+          {effectiveViewMode === '2d' && canvasPanel}
+
+          {effectiveViewMode === '3d' && previewPanel}
+
+          {effectiveViewMode === 'split' && (
+            <div className={styles.splitLayout} ref={splitContainerRef}>
+              <div className={`${styles.splitPane} ${styles.splitPanePrimary}`}>
+                {canvasPanel}
+              </div>
+              <div
+                className={styles.splitDivider}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Split-Ansicht verschieben"
+                onMouseDown={() => setSplitDragging(true)}
+              />
+              <div className={`${styles.splitPane} ${styles.splitPaneSecondary}`}>
+                {previewPanel}
+              </div>
+            </div>
+          )}
+        </div>
 
         <RightSidebar
           projectId={id ?? ''}
@@ -876,7 +1116,11 @@ export function Editor() {
           name={`yakds-preview-${project.id}`}
           onClose={() => setIsPreviewPopoutOpen(false)}
         >
-          <Preview3D room={selectedRoom as unknown as RoomPayload | null} />
+          <Preview3D
+            room={selectedRoom as unknown as RoomPayload | null}
+            cameraState={cameraState}
+            onCameraStateChange={handleCameraStateChange}
+          />
         </PopoutWindow>
       )}
     </div>

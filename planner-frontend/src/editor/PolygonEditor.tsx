@@ -99,6 +99,13 @@ interface Props {
   acousticVisible?: boolean
   acousticOpacity?: number
   onReferenceImageUpdate?: (img: NonNullable<EditorState['referenceImage']>) => void
+  virtualVisitor?: {
+    x_mm: number
+    y_mm: number
+    yaw_rad: number
+    visible?: boolean
+  } | null
+  onRepositionVisitor?: (point: { x_mm: number; y_mm: number }) => void
 }
 
 export function PolygonEditor({
@@ -116,6 +123,8 @@ export function PolygonEditor({
   acousticVisible = false,
   acousticOpacity = 0.5,
   onReferenceImageUpdate,
+  virtualVisitor = null,
+  onRepositionVisitor,
 }: Props) {
   const stageRef = useRef<Konva.Stage>(null)
   const calibrationPointsRef = useRef<Array<{ x: number; y: number }>>([])
@@ -155,10 +164,15 @@ export function PolygonEditor({
       return
     }
 
+    if (state.tool === 'select' && onRepositionVisitor) {
+      onRepositionVisitor({ x_mm: canvasToWorld(pos.x), y_mm: canvasToWorld(pos.y) })
+      return
+    }
+
     if (state.tool !== 'draw') return
     // Child shapes (vertices, edges) set e.cancelBubble = true so they never reach here
     onAddVertex({ x_mm: canvasToWorld(pos.x), y_mm: canvasToWorld(pos.y) })
-  }, [state.tool, state.referenceImage, onAddVertex, onReferenceImageUpdate])
+  }, [state.tool, state.referenceImage, onAddVertex, onReferenceImageUpdate, onRepositionVisitor])
 
   const handleStageDblClick = useCallback(() => {
     if (state.tool === 'draw' && state.vertices.length >= 3) onClosePolygon()
@@ -599,6 +613,50 @@ export function PolygonEditor({
                   />
                 )
               })}
+            </Group>
+          )}
+
+          {/* Virtual Visitor */}
+          {virtualVisitor?.visible !== false && (
+            <Group>
+              <Line
+                points={(() => {
+                  const x = worldToCanvas(virtualVisitor?.x_mm ?? 0)
+                  const y = worldToCanvas(virtualVisitor?.y_mm ?? 0)
+                  const yaw = virtualVisitor?.yaw_rad ?? 0
+                  const coneLength = worldToCanvas(900)
+                  const halfAngle = 0.35
+                  const x1 = x + Math.cos(yaw - halfAngle) * coneLength
+                  const y1 = y + Math.sin(yaw - halfAngle) * coneLength
+                  const x2 = x + Math.cos(yaw + halfAngle) * coneLength
+                  const y2 = y + Math.sin(yaw + halfAngle) * coneLength
+                  return [x, y, x1, y1, x2, y2]
+                })()}
+                closed
+                fill="rgba(56, 189, 248, 0.18)"
+                stroke={resolveColor('--status-info', '#38bdf8')}
+                strokeWidth={1}
+              />
+              <Line
+                points={(() => {
+                  const x = worldToCanvas(virtualVisitor?.x_mm ?? 0)
+                  const y = worldToCanvas(virtualVisitor?.y_mm ?? 0)
+                  const yaw = virtualVisitor?.yaw_rad ?? 0
+                  const rayLength = worldToCanvas(1050)
+                  return [x, y, x + Math.cos(yaw) * rayLength, y + Math.sin(yaw) * rayLength]
+                })()}
+                stroke={resolveColor('--status-info', '#38bdf8')}
+                strokeWidth={2}
+                dash={[6, 4]}
+              />
+              <Circle
+                x={worldToCanvas(virtualVisitor?.x_mm ?? 0)}
+                y={worldToCanvas(virtualVisitor?.y_mm ?? 0)}
+                radius={7}
+                fill={resolveColor('--status-info', '#38bdf8')}
+                stroke={resolveColor('--text-inverse', '#fff')}
+                strokeWidth={2}
+              />
             </Group>
           )}
 

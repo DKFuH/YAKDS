@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-74-split-view-visitor`
 **Gruppe:** A (startbar nach S69)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S14 (3D-Preview), S58 (Bild-Nachzeichnen), S69 (Panorama-Touren)
 
 ---
