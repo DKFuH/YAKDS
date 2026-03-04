@@ -1,6 +1,11 @@
+import {
+  resolveNavigationSettings,
+  type NavigationSettings,
+} from '../components/editor/navigationSettings.js'
+
 export type PlannerViewMode = '2d' | 'split' | '3d'
 
-export interface PlannerViewSettings {
+export interface PlannerViewSettings extends NavigationSettings {
   mode: PlannerViewMode
   split_ratio: number
   visitor_visible: boolean
@@ -22,6 +27,7 @@ function parsePlannerViewSettings(raw: string): PlannerViewSettings {
   const mode = parsed.mode === '2d' || parsed.mode === 'split' || parsed.mode === '3d'
     ? parsed.mode
     : '2d'
+  const navigation = resolveNavigationSettings(parsed)
 
   return {
     mode,
@@ -30,6 +36,7 @@ function parsePlannerViewSettings(raw: string): PlannerViewSettings {
     camera_height_mm: typeof parsed.camera_height_mm === 'number'
       ? clampNumber(Math.round(parsed.camera_height_mm), 900, 2400)
       : 1650,
+    ...navigation,
   }
 }
 

@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { RoomPayload } from '../../api/rooms.js'
 import type { VerticalConnection } from '../../api/verticalConnections.js'
+import { profileZoomFactor, type NavigationSettings } from './navigationSettings.js'
 import styles from './Preview3D.module.css'
 
 type VertexLike = { id: string; x_mm: number; y_mm: number }
@@ -80,6 +81,7 @@ interface Props {
     camera_height_mm: number
   }) => void
   sunlight?: SunlightPreview | null
+  navigationSettings: NavigationSettings
 }
 
 const MM_TO_M = 0.001
@@ -355,7 +357,30 @@ function applySunlight(
   )
 }
 
-export function Preview3D({ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunlight = null }: Props) {
+function applyNavigationControls(controls: OrbitControls, settings: NavigationSettings) {
+  controls.screenSpacePanning = true
+  controls.enablePan = true
+  controls.dampingFactor = settings.navigation_profile === 'presentation' ? 0.12 : 0.08
+  controls.panSpeed = settings.navigation_profile === 'trackpad' ? 1.2 : 0.9
+  controls.rotateSpeed = settings.invert_y_axis ? -0.8 : 0.8
+
+  const zoomSign = settings.zoom_direction === 'inverted' ? -1 : 1
+  controls.zoomSpeed = zoomSign * profileZoomFactor(settings.navigation_profile)
+
+  controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE
+  controls.mouseButtons.RIGHT = THREE.MOUSE.PAN
+  controls.mouseButtons.MIDDLE = settings.middle_mouse_pan ? THREE.MOUSE.PAN : THREE.MOUSE.DOLLY
+
+  if (settings.touchpad_mode === 'trackpad') {
+    controls.touches.ONE = THREE.TOUCH.PAN
+    controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE
+  } else {
+    controls.touches.ONE = THREE.TOUCH.ROTATE
+    controls.touches.TWO = THREE.TOUCH.DOLLY_PAN
+  }
+}
+
+export function Preview3D({ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunlight = null, navigationSettings }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
@@ -426,7 +451,7 @@ export function Preview3D({ room, verticalConnections = [], cameraState = null, 
     controlsRef.current = controls
     cameraRef.current = camera
     controls.enableDamping = true
-    controls.dampingFactor = 0.08
+    applyNavigationControls(controls, navigationSettings)
     controls.target.set(0, 0.7, 0)
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.6)
@@ -694,7 +719,7 @@ export function Preview3D({ room, verticalConnections = [], cameraState = null, 
       renderer.dispose()
       mount.removeChild(renderer.domElement)
     }
-  }, [geometryInput, showReference])
+  }, [geometryInput, navigationSettings, showReference])
 
   useEffect(() => {
     const next = cameraState
@@ -723,6 +748,16 @@ export function Preview3D({ room, verticalConnections = [], cameraState = null, 
     if (!ambient || !directional) return
     applySunlight(ambient, directional, sunlight)
   }, [sunlight])
+
+  useEffect(() => {
+    const controls = controlsRef.current
+    if (!controls) {
+      return
+    }
+
+    applyNavigationControls(controls, navigationSettings)
+    controls.update()
+  }, [navigationSettings])
 
   if (!geometryInput) {
     return (

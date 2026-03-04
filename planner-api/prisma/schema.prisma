@@ -998,6 +998,11 @@ model TenantSetting {
   enabled_plugins    Json     @default("[]")
   preferred_locale   String?  @db.VarChar(10)  // Sprint 84 – Core-i18n
   fallback_locale    String?  @db.VarChar(10)  // Sprint 84 – Core-i18n
+  navigation_profile String?  @db.VarChar(20)  // Sprint 87 – Navigation-UX
+  invert_y_axis      Boolean  @default(false)  // Sprint 87 – Navigation-UX
+  middle_mouse_pan   Boolean  @default(true)   // Sprint 87 – Navigation-UX
+  touchpad_mode      String?  @db.VarChar(20)  // Sprint 87 – Navigation-UX
+  zoom_direction     String?  @db.VarChar(20)  // Sprint 87 – Navigation-UX
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 

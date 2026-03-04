@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState } from 'react'
+import { useRef, useCallback, useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { Stage, Layer, Line, Circle, Group, Rect, Text, Image as KonvaImage } from 'react-konva'
 import type Konva from 'konva'
 import type { Point2D } from '@shared/types'
@@ -11,6 +11,7 @@ import type { VerticalConnection } from '../api/verticalConnections.js'
 import type { EditorState, EditorTool } from './usePolygonEditor.js'
 import { CenterlineLayer } from '../components/canvas/CenterlineLayer.js'
 import { AcousticOverlay } from '../pages/AcousticOverlay.js'
+import { profileZoomFactor, type NavigationSettings } from '../components/editor/navigationSettings.js'
 import styles from './PolygonEditor.module.css'
 
 // ─── Koordinaten-Umrechnung ───────────────────────────────────────────────────
@@ -164,6 +165,7 @@ interface Props {
   acousticVisible?: boolean
   acousticOpacity?: number
   onReferenceImageUpdate?: (img: NonNullable<EditorState['referenceImage']>) => void
+  navigationSettings: NavigationSettings
   virtualVisitor?: {
     x_mm: number
     y_mm: number
@@ -189,13 +191,30 @@ export function PolygonEditor({
   acousticVisible = false,
   acousticOpacity = 0.5,
   onReferenceImageUpdate,
+  navigationSettings,
   virtualVisitor = null,
   onRepositionVisitor,
 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
   const calibrationPointsRef = useRef<Array<{ x: number; y: number }>>([])
+  const middlePanActiveRef = useRef(false)
+  const middlePanStartRef = useRef<{ pointerX: number; pointerY: number; offsetX: number; offsetY: number } | null>(null)
   const [dragLabel, setDragLabel] = useState<{ x: number; y: number; text: string } | null>(null)
   const [referenceImageElement, setReferenceImageElement] = useState<HTMLImageElement | null>(null)
+  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
+
+  const resolveLogicalPointer = useCallback((stage: Konva.Stage) => {
+    const pointer = stage.getPointerPosition()
+    if (!pointer) {
+      return null
+    }
+
+    return {
+      x: (pointer.x - viewport.x) / viewport.zoom,
+      y: (pointer.y - viewport.y) / viewport.zoom,
+    }
+  }, [viewport.x, viewport.y, viewport.zoom])
 
   useEffect(() => {
     const url = state.referenceImage?.url
@@ -210,7 +229,13 @@ export function PolygonEditor({
   }, [state.referenceImage?.url])
 
   const handleStageClick = useCallback((_e: Konva.KonvaEventObject<MouseEvent>) => {
-    const pos = stageRef.current?.getPointerPosition()
+    if (middlePanActiveRef.current) {
+      return
+    }
+
+    const stage = stageRef.current
+    if (!stage) return
+    const pos = resolveLogicalPointer(stage)
     if (!pos) return
 
     if (state.tool === 'calibrate' && state.referenceImage) {
@@ -238,7 +263,7 @@ export function PolygonEditor({
     if (state.tool !== 'draw') return
     // Child shapes (vertices, edges) set e.cancelBubble = true so they never reach here
     onAddVertex({ x_mm: canvasToWorld(pos.x), y_mm: canvasToWorld(pos.y) })
-  }, [state.tool, state.referenceImage, onAddVertex, onReferenceImageUpdate, onRepositionVisitor])
+  }, [resolveLogicalPointer, state.tool, state.referenceImage, onAddVertex, onReferenceImageUpdate, onRepositionVisitor])
 
   const handleStageDblClick = useCallback(() => {
     if (state.tool === 'draw' && state.vertices.length >= 3) onClosePolygon()
@@ -260,6 +285,92 @@ export function PolygonEditor({
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [state.selectedIndex, state.tool, onSetTool, onDeleteVertex, onSelectVertex, onSelectEdge])
+
+  useEffect(() => {
+    const onMouseMove = (event: MouseEvent) => {
+      if (!middlePanActiveRef.current || !middlePanStartRef.current) {
+        return
+      }
+
+      const start = middlePanStartRef.current
+      setViewport((prev) => ({
+        ...prev,
+        x: start.offsetX + (event.clientX - start.pointerX),
+        y: start.offsetY + (event.clientY - start.pointerY),
+      }))
+    }
+
+    const onMouseUp = () => {
+      middlePanActiveRef.current = false
+      middlePanStartRef.current = null
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
+
+  const handleStageWheel = useCallback((event: Konva.KonvaEventObject<WheelEvent>) => {
+    event.evt.preventDefault()
+
+    const stage = stageRef.current
+    if (!stage) {
+      return
+    }
+
+    const pointer = stage.getPointerPosition()
+    if (!pointer) {
+      return
+    }
+
+    const isTrackpadPan =
+      navigationSettings.touchpad_mode === 'trackpad'
+      && !event.evt.ctrlKey
+      && Math.abs(event.evt.deltaX) + Math.abs(event.evt.deltaY) > 0
+
+    if (isTrackpadPan) {
+      setViewport((prev) => ({
+        ...prev,
+        x: prev.x - event.evt.deltaX,
+        y: prev.y - event.evt.deltaY,
+      }))
+      return
+    }
+
+    const logicalX = (pointer.x - viewport.x) / viewport.zoom
+    const logicalY = (pointer.y - viewport.y) / viewport.zoom
+    const directionMultiplier = navigationSettings.zoom_direction === 'inverted' ? -1 : 1
+    const directionalDelta = event.evt.deltaY * directionMultiplier
+    const baseFactor = navigationSettings.touchpad_mode === 'trackpad'
+      ? 1 + 0.02 * profileZoomFactor(navigationSettings.navigation_profile)
+      : 1 + 0.08 * profileZoomFactor(navigationSettings.navigation_profile)
+    const zoomFactor = directionalDelta > 0 ? 1 / baseFactor : baseFactor
+    const nextZoom = Math.min(4, Math.max(0.35, viewport.zoom * zoomFactor))
+
+    setViewport({
+      x: pointer.x - logicalX * nextZoom,
+      y: pointer.y - logicalY * nextZoom,
+      zoom: nextZoom,
+    })
+  }, [navigationSettings, viewport.x, viewport.y, viewport.zoom])
+
+  const handleContainerMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.button !== 1 || !navigationSettings.middle_mouse_pan) {
+      return
+    }
+
+    event.preventDefault()
+    middlePanActiveRef.current = true
+    middlePanStartRef.current = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      offsetX: viewport.x,
+      offsetY: viewport.y,
+    }
+  }, [navigationSettings.middle_mouse_pan, viewport.x, viewport.y])
 
   const pts = state.vertices.map(v => ({
     x: worldToCanvas(v.x_mm),
@@ -340,7 +451,11 @@ export function PolygonEditor({
   }
 
   return (
-    <div className={styles.container}>
+    <div
+      ref={containerRef}
+      className={styles.container}
+      onMouseDown={handleContainerMouseDown}
+    >
       {/* ── Toolbar ── */}
       <div className={styles.toolbar}>
         <ToolBtn active={state.tool === 'draw'} onClick={() => onSetTool('draw')}>Zeichnen</ToolBtn>
@@ -420,8 +535,13 @@ export function PolygonEditor({
         ref={stageRef}
         width={width}
         height={height}
+        x={viewport.x}
+        y={viewport.y}
+        scaleX={viewport.zoom}
+        scaleY={viewport.zoom}
         onClick={handleStageClick}
         onDblClick={handleStageDblClick}
+        onWheel={handleStageWheel}
         className={state.tool === 'draw' || state.tool === 'calibrate' ? styles.stageCrosshair : styles.stageDefault}
       >
         <AcousticOverlay
@@ -844,7 +964,7 @@ export function PolygonEditor({
           <span>Klick: Punkt setzen · Doppelklick oder erster Punkt: Polygon schließen</span>
         )}
         {state.tool === 'select' && (
-          <span>Ziehen: Punkt/Wand verschieben · Doppelklick: löschen · D=Zeichnen · S=Auswählen · Esc=Abwählen</span>
+          <span>Ziehen: Punkt/Wand verschieben · Doppelklick: löschen · D=Zeichnen · S=Auswählen · Esc=Abwählen · Mausrad=Zoom</span>
         )}
         {state.tool === 'calibrate' && state.referenceImage && (
           <span>Kalibrieren: Zwei Punkte anklicken, dann Referenzlänge eingeben</span>

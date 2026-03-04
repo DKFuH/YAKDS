@@ -256,6 +256,10 @@
   position: relative;
 }
 
+.navigationWrapper {
+  position: relative;
+}
+
 .moreMenu {
   position: absolute;
   top: calc(100% + 6px);

@@ -50,6 +50,11 @@ describe('plannerViewSettings', () => {
       split_ratio: 61,
       visitor_visible: false,
       camera_height_mm: 1740,
+      navigation_profile: 'cad',
+      invert_y_axis: false,
+      middle_mouse_pan: true,
+      touchpad_mode: 'cad',
+      zoom_direction: 'natural',
     })
   })
 
@@ -62,6 +67,11 @@ describe('plannerViewSettings', () => {
       split_ratio: 58,
       visitor_visible: true,
       camera_height_mm: 1650,
+      navigation_profile: 'cad',
+      invert_y_axis: false,
+      middle_mouse_pan: true,
+      touchpad_mode: 'cad',
+      zoom_direction: 'natural',
     })
   })
 
@@ -85,6 +95,11 @@ describe('plannerViewSettings', () => {
       split_ratio: 25,
       visitor_visible: true,
       camera_height_mm: 2400,
+      navigation_profile: 'cad',
+      invert_y_axis: false,
+      middle_mouse_pan: true,
+      touchpad_mode: 'cad',
+      zoom_direction: 'natural',
     })
   })
 
@@ -102,6 +117,11 @@ describe('plannerViewSettings', () => {
       split_ratio: 54,
       visitor_visible: true,
       camera_height_mm: 1700,
+      navigation_profile: 'trackpad',
+      invert_y_axis: true,
+      middle_mouse_pan: false,
+      touchpad_mode: 'trackpad',
+      zoom_direction: 'inverted',
     }
 
     savePlannerViewSettings('abc', settings, storage)

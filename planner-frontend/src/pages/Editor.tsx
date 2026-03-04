@@ -15,7 +15,7 @@ import { openingsApi, type Opening } from '../api/openings.js'
 import { validateApi, type ValidateResponse } from '../api/validate.js'
 import { autoCompletionApi, type AutoCompleteResult } from '../api/autoCompletion.js'
 import { acousticsApi, type AcousticGridMeta, type GeoJsonGrid } from '../api/acoustics.js'
-import { getTenantPlugins } from '../api/tenantSettings.js'
+import { getTenantPlugins, getTenantSettings, updateTenantSettings } from '../api/tenantSettings.js'
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
 import { levelsApi, type BuildingLevel } from '../api/levels.js'
 import { verticalConnectionsApi, type VerticalConnection, type VerticalConnectionKind } from '../api/verticalConnections.js'
@@ -23,6 +23,7 @@ import { usePolygonEditor, edgeLengthMm, type EditorState } from '../editor/useP
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { PopoutWindow } from '../components/editor/PopoutWindow.js'
 import { Preview3D } from '../components/editor/Preview3D.js'
+import { NavigationSettingsPanel } from '../components/editor/NavigationSettingsPanel.js'
 import { DaylightPanel } from '../components/editor/DaylightPanel.js'
 import { MaterialPanel } from '../components/editor/MaterialPanel.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
@@ -35,6 +36,11 @@ import { AreasPanel } from '../components/editor/AreasPanel.js'
 import { LayoutSheetTabs } from '../components/editor/LayoutSheetTabs.js'
 import type { ProjectEnvironment, SunPreview } from '../plugins/daylight/index.js'
 import styles from './Editor.module.css'
+import {
+  defaultsForNavigationProfile,
+  resolveNavigationSettings,
+  type NavigationSettings,
+} from '../components/editor/navigationSettings.js'
 import {
   clampNumber,
   loadPlannerViewSettings,
@@ -218,6 +224,8 @@ export function Editor() {
   const [splitDragging, setSplitDragging] = useState(false)
   const [showVirtualVisitor, setShowVirtualVisitor] = useState(true)
   const [cameraHeightMm, setCameraHeightMm] = useState(1650)
+  const [navigationSettings, setNavigationSettings] = useState<NavigationSettings>(defaultsForNavigationProfile('cad'))
+  const [navigationPanelOpen, setNavigationPanelOpen] = useState(false)
   const [cameraState, setCameraState] = useState<SyncedCameraState>({
     x_mm: 0,
     y_mm: 0,
@@ -270,6 +278,7 @@ export function Editor() {
   const [daylightSaving, setDaylightSaving] = useState(false)
   const [sunPreviewLoading, setSunPreviewLoading] = useState(false)
   const moreMenuRef = useRef<HTMLDivElement | null>(null)
+  const navigationPanelRef = useRef<HTMLDivElement | null>(null)
   const splitContainerRef = useRef<HTMLDivElement | null>(null)
   const centeredVisitorRoomIdRef = useRef<string | null>(null)
 
@@ -653,6 +662,17 @@ export function Editor() {
   }, [moreMenuOpen])
 
   useEffect(() => {
+    if (!navigationPanelOpen) return
+    function handleOutsideClick(event: MouseEvent) {
+      if (navigationPanelRef.current && !navigationPanelRef.current.contains(event.target as Node)) {
+        setNavigationPanelOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [navigationPanelOpen])
+
+  useEffect(() => {
     const onResize = () => {
       setCompactLayout(window.innerWidth < 1180)
     }
@@ -675,6 +695,7 @@ export function Editor() {
     setSplitRatio(saved.split_ratio)
     setShowVirtualVisitor(saved.visitor_visible)
     setCameraHeightMm(saved.camera_height_mm)
+    setNavigationSettings(resolveNavigationSettings(saved))
     setCameraState((prev) => ({
       ...prev,
       camera_height_mm: saved.camera_height_mm,
@@ -691,8 +712,68 @@ export function Editor() {
       split_ratio: splitRatio,
       visitor_visible: showVirtualVisitor,
       camera_height_mm: cameraHeightMm,
+      ...navigationSettings,
     })
-  }, [id, viewMode, splitRatio, showVirtualVisitor, cameraHeightMm])
+  }, [id, viewMode, splitRatio, showVirtualVisitor, cameraHeightMm, navigationSettings])
+
+  useEffect(() => {
+    let active = true
+    getTenantSettings()
+      .then((settings) => {
+        if (!active) return
+        setNavigationSettings((current) => resolveNavigationSettings({
+          ...(current ?? {}),
+          ...settings,
+        }))
+      })
+      .catch(() => {
+        // optional
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const handleNavigationSettingsChange = useCallback((next: NavigationSettings) => {
+    setNavigationSettings(next)
+    void updateTenantSettings({
+      navigation_profile: next.navigation_profile,
+      invert_y_axis: next.invert_y_axis,
+      middle_mouse_pan: next.middle_mouse_pan,
+      touchpad_mode: next.touchpad_mode,
+      zoom_direction: next.zoom_direction,
+    }).catch(() => {
+      // keep local persistence as fallback
+    })
+  }, [])
+
+  useEffect(() => {
+    function handleViewModeShortcuts(event: globalThis.KeyboardEvent) {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) {
+        return
+      }
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return
+      }
+
+      if (event.key === '1') {
+        event.preventDefault()
+        setViewMode('2d')
+      }
+      if (event.key === '2') {
+        event.preventDefault()
+        setViewMode(compactLayout ? '2d' : 'split')
+      }
+      if (event.key === '3') {
+        event.preventDefault()
+        setViewMode('3d')
+      }
+    }
+
+    window.addEventListener('keydown', handleViewModeShortcuts)
+    return () => window.removeEventListener('keydown', handleViewModeShortcuts)
+  }, [compactLayout])
 
   useEffect(() => {
     setCameraState((prev) => ({
@@ -1404,6 +1485,7 @@ export function Editor() {
       acousticVisible={acousticEnabled}
       acousticOpacity={acousticOpacityPct / 100}
       onReferenceImageUpdate={handleReferenceImageUpdate}
+      navigationSettings={navigationSettings}
       showCompass={daylightEnabled}
       northAngleDeg={projectEnvironment?.north_angle_deg ?? 0}
       virtualVisitor={{
@@ -1423,6 +1505,7 @@ export function Editor() {
       cameraState={cameraState}
       onCameraStateChange={handleCameraStateChange}
       sunlight={daylightEnabled ? sunPreview : null}
+      navigationSettings={navigationSettings}
     />
   )
 
@@ -1485,6 +1568,21 @@ export function Editor() {
               onChange={(event) => setCameraHeightMm(Number(event.target.value))}
             />
           </label>
+          <div className={styles.navigationWrapper} ref={navigationPanelRef}>
+            <button
+              type='button'
+              className={styles.btnSecondary}
+              onClick={() => setNavigationPanelOpen((prev) => !prev)}
+            >
+              Navigation
+            </button>
+            {navigationPanelOpen && (
+              <NavigationSettingsPanel
+                settings={navigationSettings}
+                onChange={handleNavigationSettingsChange}
+              />
+            )}
+          </div>
           <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
             <button
               type="button"
@@ -1795,6 +1893,7 @@ export function Editor() {
             cameraState={cameraState}
             onCameraStateChange={handleCameraStateChange}
             sunlight={daylightEnabled ? sunPreview : null}
+            navigationSettings={navigationSettings}
           />
         </PopoutWindow>
       )}

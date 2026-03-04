@@ -89,6 +89,43 @@ describe('tenantSettingsRoutes', () => {
     await app.close()
   })
 
+  it('PUT /tenant/settings persists navigation settings payload', async () => {
+    prismaMock.tenantSetting.upsert.mockResolvedValue({
+      id: 'ts-2',
+      tenant_id: TENANT_ID,
+      navigation_profile: 'trackpad',
+      invert_y_axis: true,
+      middle_mouse_pan: false,
+      touchpad_mode: 'trackpad',
+      zoom_direction: 'inverted',
+      created_at: new Date(),
+      updated_at: new Date(),
+    })
+
+    const app = makeApp()
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/tenant/settings',
+      payload: {
+        navigation_profile: 'trackpad',
+        invert_y_axis: true,
+        middle_mouse_pan: false,
+        touchpad_mode: 'trackpad',
+        zoom_direction: 'inverted',
+      },
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({
+      navigation_profile: 'trackpad',
+      invert_y_axis: true,
+      middle_mouse_pan: false,
+      touchpad_mode: 'trackpad',
+      zoom_direction: 'inverted',
+    })
+    await app.close()
+  })
+
   // Test 2: PUT with invalid email → 400
   it('PUT /tenant/settings returns 400 for invalid email', async () => {
     const app = makeApp()
@@ -96,6 +133,18 @@ describe('tenantSettingsRoutes', () => {
       method: 'PUT',
       url: '/api/v1/tenant/settings',
       payload: { company_email: 'not-an-email' },
+    })
+
+    expect(res.statusCode).toBe(400)
+    await app.close()
+  })
+
+  it('PUT /tenant/settings rejects invalid navigation profile', async () => {
+    const app = makeApp()
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/tenant/settings',
+      payload: { navigation_profile: 'gaming' },
     })
 
     expect(res.statusCode).toBe(400)

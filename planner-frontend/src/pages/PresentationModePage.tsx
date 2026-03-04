@@ -5,6 +5,7 @@ import { presentationApi, type PresentationSession } from '../api/presentation.j
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
 import { getTenantPlugins } from '../api/tenantSettings.js'
 import { Preview3D } from '../components/editor/Preview3D.js'
+import { defaultsForNavigationProfile } from '../components/editor/navigationSettings.js'
 import { DaylightPanel } from '../components/editor/DaylightPanel.js'
 import type { RoomPayload } from '../api/rooms.js'
 import {
@@ -35,6 +36,7 @@ function sourceLabel(source: PresentationSource, session: PresentationSession | 
 }
 
 export function PresentationModePage() {
+  const presentationNavigation = defaultsForNavigationProfile('cad')
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
@@ -407,7 +409,11 @@ export function PresentationModePage() {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>3D-Ansicht</h2>
         <div className={styles.previewWrap}>
-          <Preview3D room={activeRoom as unknown as RoomPayload | null} sunlight={daylightEnabled ? sunPreview : null} />
+          <Preview3D
+            room={activeRoom as unknown as RoomPayload | null}
+            sunlight={daylightEnabled ? sunPreview : null}
+            navigationSettings={presentationNavigation}
+          />
         </div>
       </section>
 

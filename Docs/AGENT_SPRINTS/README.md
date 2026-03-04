@@ -1,6 +1,6 @@
 # AGENT_SPRINTS - Sprint-Dokumentation
 
-Sprints `S47` bis `S85` sind implementiert und gemergt.
+Sprints `S47` bis `S87` sind implementiert und gemergt.
 
 Stand: 2026-03-04
 
@@ -79,7 +79,7 @@ Stand: 2026-03-04
 | 84 | `S84-i18n-core-und-locale-switcher.md` | done | Core-i18n, Language Switcher und locale-aware Formatierung |
 | 85 | `S85-language-packs-und-uebersetzungsverwaltung.md` | done | Sprachpakete und tenant-spezifische Uebersetzungsverwaltung |
 | 86 | `S86-mehrsprachige-dokumente-und-shares.md` | done | Mehrsprachige PDFs, Exporte, Viewer und Shares |
-| 87 | `S87-navigation-ux-und-input-profile.md` | planned | Navigation-UX, CAD-Profil, Touchpad- und MMB-Steuerung |
+| 87 | `S87-navigation-ux-und-input-profile.md` | done | Navigation-UX, CAD-Profil, Touchpad- und MMB-Steuerung |
 | 88 | `S88-locking-visibility-safe-edit.md` | planned | Locking, Visibility und Safe-Edit fuer Level, Maße und Objekte |
 | 89 | `S89-browser-favoriten-ordner-kollektionen.md` | planned | Favoriten, Ordner und Kollektionen fuer Asset- und Materialbrowser |
 | 90 | `S90-cad-gruppen-bauteile-auswahlsets.md` | planned | CAD-Gruppen, Bauteile und Auswahlsets fuer Zeichnungselemente |

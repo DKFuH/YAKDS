@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-87-navigation-input-profiles`
 **Gruppe:** A (startbar nach S74)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S74 (Split-View), S76 (Presentation optional)
 
 ---
@@ -76,3 +76,39 @@ Nur falls Settings serverseitig persistiert werden:
 - Touchpad-Nutzung fuehlt sich nicht wie ein Sonderfall an
 - Nutzer kann mindestens ein CAD-nahes Profil aktivieren
 - Navigationseinstellungen bleiben persistent
+
+---
+
+## 6. Abschluss
+
+**Implementiert:**
+
+- Navigation-Settings als gemeinsames Modell (`cad`, `presentation`, `trackpad`) mit Profil-Defaults und Normalisierung:
+	- `planner-frontend/src/components/editor/navigationSettings.ts`
+- Neues Navigation-Panel im Editor:
+	- `planner-frontend/src/components/editor/NavigationSettingsPanel.tsx`
+	- `planner-frontend/src/components/editor/NavigationSettingsPanel.module.css`
+- Persistenz erweitert:
+	- `planner-frontend/src/pages/plannerViewSettings.ts` speichert/lädt jetzt `navigation_profile`, `invert_y_axis`, `middle_mouse_pan`, `touchpad_mode`, `zoom_direction`
+	- Editor synchronisiert Navigationseinstellungen zusätzlich tenantseitig über `tenant/settings`
+- 2D-Navigation verbessert (`PolygonEditor`):
+	- Middle-Mouse-Pan (konfigurierbar)
+	- Touchpad-Modus (`cad`/`trackpad`) mit sauberer Wheel-Interpretation
+	- Zoom-Richtung (`natural`/`inverted`) und profilabhängige Zoom-Geschwindigkeit
+- 3D-Navigation verbessert (`Preview3D`):
+	- OrbitControls profilabhängig konfiguriert (Pan/Rotate/Touch)
+	- invertierbare Y-Orbit-Achse
+	- Zoom-Richtung + profilabhängige Speed
+- Einheitliche View-Shortcuts im Editor:
+	- `1` → 2D, `2` → Split, `3` → 3D
+- Tenant-Persistenz (Backend) erweitert:
+	- Prisma-Modell `TenantSetting` um Navigation-Felder ergänzt
+	- Migration: `20260304235500_sprint87_navigation_settings`
+	- `PUT /tenant/settings` validiert/speichert S87-Felder
+
+**Verifikation:**
+
+- Frontend-Tests: `src/pages/plannerViewSettings.test.ts`, `src/components/editor/navigationSettings.test.ts` gruen
+- Backend-Test: `src/routes/tenantSettings.test.ts` gruen
+- Frontend-Build (`tsc && vite build`) gruen
+- Prisma-Migrationen konsistent, Schema up to date

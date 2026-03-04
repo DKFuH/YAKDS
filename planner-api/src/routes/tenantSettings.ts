@@ -20,6 +20,11 @@ const TenantSettingBodySchema = z.object({
   quote_footer:   z.string().max(2000).optional(),
   logo_url:       z.string().url().optional(),
   currency_code:  z.string().length(3).optional(),
+  navigation_profile: z.enum(['cad', 'presentation', 'trackpad']).optional(),
+  invert_y_axis: z.boolean().optional(),
+  middle_mouse_pan: z.boolean().optional(),
+  touchpad_mode: z.enum(['cad', 'trackpad']).optional(),
+  zoom_direction: z.enum(['natural', 'inverted']).optional(),
 })
 
 const TenantPluginsBodySchema = z.object({

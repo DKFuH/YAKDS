@@ -1463,7 +1463,7 @@ Browser und CAD-artige Gruppen-/Bauteillogik.
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
-| 87 | `planned` | Navigation-UX & Input-Profile | MMB-Pan, Touchpad-Profile, CAD-Navigation |
+| 87 | `done` | Navigation-UX & Input-Profile | MMB-Pan, Touchpad-Profile, CAD-Navigation |
 | 88 | `planned` | Locking, Visibility & Safe-Edit | Lock-/Hide-Logik fuer Level, Maße und Objekte |
 | 89 | `planned` | Browser-Favoriten, Ordner & Kollektionen | Favoriten, Unterordner, gespeicherte Filter |
 | 90 | `planned` | CAD-Gruppen, Bauteile & Auswahlsets | Gruppen, Auswahlsets, Bauteilbloecke, Batch-Transform |

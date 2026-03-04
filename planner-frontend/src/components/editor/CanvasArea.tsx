@@ -9,6 +9,7 @@ import type { VerticalConnection } from '../../api/verticalConnections.js'
 import { roomsApi } from '../../api/rooms.js'
 import { PolygonEditor } from '../../editor/PolygonEditor.js'
 import type { EditorAPI } from '../../editor/usePolygonEditor.js'
+import type { NavigationSettings } from './navigationSettings.js'
 import { CompassOverlay } from './CompassOverlay.js'
 import styles from './CanvasArea.module.css'
 
@@ -32,6 +33,7 @@ interface Props {
   acousticVisible: boolean
   acousticOpacity: number
   onReferenceImageUpdate: (img: NonNullable<RoomPayload['reference_image']>) => void
+  navigationSettings: NavigationSettings
   showCompass?: boolean
   northAngleDeg?: number
   virtualVisitor?: {
@@ -43,7 +45,7 @@ interface Props {
   onRepositionVisitor?: (point: { x_mm: number; y_mm: number }) => void
 }
 
-export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, onReferenceImageUpdate, showCompass = false, northAngleDeg = 0, virtualVisitor = null, onRepositionVisitor }: Props) {
+export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, onReferenceImageUpdate, navigationSettings, showCompass = false, northAngleDeg = 0, virtualVisitor = null, onRepositionVisitor }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 })
   const [saving, setSaving] = useState(false)
@@ -135,6 +137,7 @@ export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, o
             acousticVisible={acousticVisible}
             acousticOpacity={acousticOpacity}
             onReferenceImageUpdate={onReferenceImageUpdate}
+            navigationSettings={navigationSettings}
             virtualVisitor={virtualVisitor}
             onRepositionVisitor={onRepositionVisitor}
           />

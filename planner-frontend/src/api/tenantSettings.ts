@@ -16,6 +16,11 @@ export interface TenantSettingsPayload {
   quote_footer?: string
   logo_url?: string
   currency_code?: string
+  navigation_profile?: 'cad' | 'presentation' | 'trackpad'
+  invert_y_axis?: boolean
+  middle_mouse_pan?: boolean
+  touchpad_mode?: 'cad' | 'trackpad'
+  zoom_direction?: 'natural' | 'inverted'
 }
 
 export interface TenantSettings extends TenantSettingsPayload {

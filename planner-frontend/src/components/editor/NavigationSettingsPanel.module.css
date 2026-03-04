@@ -1,0 +1,63 @@
+.panel {
+  position: absolute;
+  top: 52px;
+  right: 12px;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  background: var(--editor-surface);
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card-hover);
+  z-index: 90;
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--editor-text);
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--editor-text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--editor-text-muted);
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.field select {
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-sm);
+  background: var(--editor-surface-alt);
+  color: var(--editor-text);
+  padding: 0.35rem 0.45rem;
+  font-size: 0.82rem;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--editor-text);
+  font-size: 0.8rem;
+}
