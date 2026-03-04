@@ -3,6 +3,7 @@ import { raumakustikPlugin } from './raumakustik.js'
 import { fengshuiPlugin } from './fengshui.js'
 import { tischlerPlugin } from './tischler.js'
 import { assetLibraryPlugin } from './assetLibrary.js'
+import { presentationPlugin } from './presentation.js'
 
 /**
  * Bootstraps alle Branche-Plugins.
@@ -13,6 +14,7 @@ export function bootstrapPlugins(): void {
   registerPlugin(raumakustikPlugin)
   registerPlugin(fengshuiPlugin)
   registerPlugin(assetLibraryPlugin)
+  registerPlugin(presentationPlugin)
 
   const tischlerEnabled = (process.env.ENABLE_TISCHLER_PLUGIN ?? 'true').toLowerCase() !== 'false'
   if (tischlerEnabled) {

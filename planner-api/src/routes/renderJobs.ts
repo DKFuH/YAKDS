@@ -11,7 +11,78 @@ const CreateRenderJobParamsSchema = z.object({
 
 const CreateRenderJobBodySchema = z.object({
   scene_payload: z.unknown().optional(),
+  preset: z.enum(['draft', 'balanced', 'best']).optional(),
+  source: z
+    .object({
+      kind: z.enum(['split-view', 'panorama-tour', 'manual-camera']),
+      panorama_tour_id: z.string().uuid().optional(),
+    })
+    .optional(),
+}).superRefine((value, ctx) => {
+  if (value.source?.kind === 'panorama-tour' && !value.source.panorama_tour_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'panorama_tour_id is required for panorama-tour source',
+      path: ['source', 'panorama_tour_id'],
+    })
+  }
 })
+
+type RenderPreset = 'draft' | 'balanced' | 'best'
+
+type RenderPresetProfile = {
+  samples: number
+  shadow_quality: 'low' | 'medium' | 'high'
+  output_scale: number
+}
+
+const PRESET_PROFILE: Record<RenderPreset, RenderPresetProfile> = {
+  draft: {
+    samples: 32,
+    shadow_quality: 'low',
+    output_scale: 0.75,
+  },
+  balanced: {
+    samples: 96,
+    shadow_quality: 'medium',
+    output_scale: 1,
+  },
+  best: {
+    samples: 256,
+    shadow_quality: 'high',
+    output_scale: 1.5,
+  },
+}
+
+function buildScenePayload(
+  scenePayload: unknown,
+  preset: RenderPreset,
+  source: { kind: 'split-view' | 'panorama-tour' | 'manual-camera'; panorama_tour_id?: string } | undefined,
+): Prisma.InputJsonValue {
+  const profile = PRESET_PROFILE[preset]
+  const normalizedSource = source
+    ? {
+        kind: source.kind,
+        ...(source.panorama_tour_id ? { panorama_tour_id: source.panorama_tour_id } : {}),
+      }
+    : { kind: 'split-view' as const }
+
+  if (scenePayload && typeof scenePayload === 'object' && !Array.isArray(scenePayload)) {
+    return {
+      ...(scenePayload as Record<string, unknown>),
+      render_preset: preset,
+      render_profile: profile,
+      presentation_source: normalizedSource,
+    } as Prisma.InputJsonValue
+  }
+
+  return {
+    scene_payload: scenePayload ?? null,
+    render_preset: preset,
+    render_profile: profile,
+    presentation_source: normalizedSource,
+  } as Prisma.InputJsonValue
+}
 
 const RenderJobIdParamsSchema = z.object({
   id: z.string().uuid(),
@@ -92,13 +163,14 @@ export async function renderJobRoutes(app: FastifyInstance) {
       return sendNotFound(reply, 'Project not found')
     }
 
+    const preset = parsedBody.data.preset ?? 'balanced'
+    const scenePayload = buildScenePayload(parsedBody.data.scene_payload, preset, parsedBody.data.source)
+
     const job = await prisma.renderJob.create({
       data: {
         project_id: project.id,
         status: 'queued',
-        ...(parsedBody.data.scene_payload !== undefined
-          ? { scene_payload: parsedBody.data.scene_payload as Prisma.InputJsonValue }
-          : {}),
+        scene_payload: scenePayload,
       },
     })
 

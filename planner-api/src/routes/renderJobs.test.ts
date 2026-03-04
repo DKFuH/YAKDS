@@ -76,6 +76,118 @@ describe('renderJobRoutes', () => {
     await app.close()
   })
 
+  it('applies balanced preset defaults when creating a render job', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ id: '11111111-1111-1111-1111-111111111111' })
+    prismaMock.renderJob.create.mockResolvedValue({
+      id: '77777777-7777-7777-7777-777777777777',
+      project_id: '11111111-1111-1111-1111-111111111111',
+      status: 'queued',
+    })
+
+    const app = Fastify()
+    await app.register(renderJobRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/projects/11111111-1111-1111-1111-111111111111/render-jobs',
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(201)
+
+    expect(prismaMock.renderJob.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          scene_payload: expect.objectContaining({
+            render_preset: 'balanced',
+            render_profile: {
+              samples: 96,
+              shadow_quality: 'medium',
+              output_scale: 1,
+            },
+            presentation_source: { kind: 'split-view' },
+          }),
+        }),
+      }),
+    )
+
+    await app.close()
+  })
+
+  it('stores best preset and panorama source in scene payload', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ id: '11111111-1111-1111-1111-111111111111' })
+    prismaMock.renderJob.create.mockResolvedValue({
+      id: '88888888-8888-8888-8888-888888888888',
+      project_id: '11111111-1111-1111-1111-111111111111',
+      status: 'queued',
+    })
+
+    const app = Fastify()
+    await app.register(renderJobRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/projects/11111111-1111-1111-1111-111111111111/render-jobs',
+      payload: {
+        preset: 'best',
+        source: {
+          kind: 'panorama-tour',
+          panorama_tour_id: '99999999-9999-9999-9999-999999999999',
+        },
+        scene_payload: {
+          room_id: 'room-42',
+        },
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+
+    expect(prismaMock.renderJob.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          scene_payload: expect.objectContaining({
+            room_id: 'room-42',
+            render_preset: 'best',
+            render_profile: {
+              samples: 256,
+              shadow_quality: 'high',
+              output_scale: 1.5,
+            },
+            presentation_source: {
+              kind: 'panorama-tour',
+              panorama_tour_id: '99999999-9999-9999-9999-999999999999',
+            },
+          }),
+        }),
+      }),
+    )
+
+    await app.close()
+  })
+
+  it('rejects panorama source without panorama_tour_id', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ id: '11111111-1111-1111-1111-111111111111' })
+
+    const app = Fastify()
+    await app.register(renderJobRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/projects/11111111-1111-1111-1111-111111111111/render-jobs',
+      payload: {
+        preset: 'draft',
+        source: {
+          kind: 'panorama-tour',
+        },
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json().message).toContain('panorama_tour_id')
+
+    await app.close()
+  })
+
   it('runs worker flow from register to complete', async () => {
     prismaMock.renderJob.findFirst.mockResolvedValueOnce({
       id: '33333333-3333-3333-3333-333333333333',

@@ -21,6 +21,7 @@ import { LayoutStylesPage } from './pages/LayoutStylesPage.js'
 import { McpInfoPage } from './pages/McpInfoPage.js'
 import { PanoramaToursPage } from './pages/PanoramaToursPage.js'
 import { PublicPanoramaTourPage } from './pages/PublicPanoramaTourPage.js'
+import { PresentationModePage } from './pages/PresentationModePage.js'
 import { SpecificationPackagesPage } from './pages/SpecificationPackagesPage.js'
 import { CutlistPage } from './pages/CutlistPage'
 import { NestingPage } from './pages/NestingPage'
@@ -104,6 +105,10 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/webplanner" element={<WebplannerPage />} />
         <Route path="/projects/:id" element={<Editor />} />
         <Route path="/projects/:id/panorama-tours" element={<PanoramaToursPage />} />
+        <Route
+          path="/projects/:id/presentation"
+          element={<TenantPluginRoute pluginId="presentation"><PresentationModePage /></TenantPluginRoute>}
+        />
         <Route path="/projects/:id/specification-packages" element={<SpecificationPackagesPage />} />
         <Route path="/share/panorama/:token" element={<PublicPanoramaTourPage />} />
         <Route path="/projects/:id/quote-lines" element={<QuoteLinesPage />} />

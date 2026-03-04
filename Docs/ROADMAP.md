@@ -1278,7 +1278,7 @@ Asset-Import und klarer Praesentationsmodus.
 |--------|--------|-------|--------------|
 | 74 | `done` | Split-View & Virtual Visitor | 2D/3D-Split, synchroner Kameravisitor, persistente View-Settings |
 | 75 | `done` | Plugin `asset-library`: Modell-Import & Asset-Browser Light | OBJ/DAE-Import, Bounding-Box, Auto-Scale, Asset-Bibliothek |
-| 76 | `planned` | Plugin `presentation`: Render-UX & Praesentationsmodus | Render-Presets, reduzierter Kundenmodus, vereinfachter Export |
+| 76 | `done` | Plugin `presentation`: Render-UX & Praesentationsmodus | Render-Presets, reduzierter Kundenmodus, vereinfachter Export |
 
 ### Sprint-Metadaten
 

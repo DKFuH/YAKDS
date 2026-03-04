@@ -1,6 +1,6 @@
 # AGENT_SPRINTS - Sprint-Dokumentation
 
-Sprints `S47` bis `S75` sind implementiert und gemergt.
+Sprints `S47` bis `S76` sind implementiert und gemergt.
 
 Stand: 2026-03-04
 
@@ -39,7 +39,7 @@ Stand: 2026-03-04
 | 73 | `S73-bogen-3d-interop.md` | done | `local` | +8 |
 | 74 | `S74-split-view-virtual-visitor.md` | done | `local` | +10 |
 | 75 | `S75-modell-import-asset-browser-light.md` | done | `local` | +12 |
-| 76 | `S76-render-ux-praesentationsmodus.md` | planned | - | Frontend |
+| 76 | `S76-render-ux-praesentationsmodus.md` | done | `local` | +8 |
 
 ---
 
@@ -67,7 +67,7 @@ Stand: 2026-03-04
 | 73 | `S73-bogen-3d-interop.md` | done | Gebogene Waende in 3D, GLTF, IFC und DXF/DWG-Interop |
 | 74 | `S74-split-view-virtual-visitor.md` | done | Split-View im Editor und synchroner Virtual Visitor zwischen 2D und 3D |
 | 75 | `S75-modell-import-asset-browser-light.md` | done | Plugin `asset-library`: OBJ/DAE-Import, Bounding-Box/Auto-Scale und Asset-Browser |
-| 76 | `S76-render-ux-praesentationsmodus.md` | planned | Plugin `presentation`: Render-Presets und Praesentationsmodus |
+| 76 | `S76-render-ux-praesentationsmodus.md` | done | Plugin `presentation`: Render-Presets und Praesentationsmodus |
 | 77 | `S77-nordkompass-sonnenstand-tageslicht.md` | planned | Plugin `daylight`: Nordkompass, Sonnenstand und Tageslichtsteuerung |
 | 78 | `S78-textur-materialbibliothek.md` | planned | Plugin `materials`: Textur- und Materialbibliothek fuer Flaechen und Assets |
 | 79 | `S79-offline-pwa-und-aufmass-import.md` | planned | Core-PWA plus Plugin `survey-import` fuer mobilen Aufmass-/Blueprint-Import |

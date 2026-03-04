@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-76-presentation-plugin`
 **Gruppe:** B (startbar nach S61 und S74)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S14 (3D-Preview), S69 (Panorama), S74 (Split-View)
 
 ---

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { panoramaToursApi, type PanoramaPoint, type PanoramaTour } from '../api/panoramaTours.js'
+import { getTenantPlugins } from '../api/tenantSettings.js'
 import styles from './TenantSettingsPage.module.css'
 
 const DEFAULT_POINT: PanoramaPoint = {
@@ -22,8 +23,27 @@ export function PanoramaToursPage() {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [presentationEnabled, setPresentationEnabled] = useState(false)
 
   const active = useMemo(() => items.find((entry) => entry.id === activeId) ?? null, [items, activeId])
+
+  useEffect(() => {
+    let active = true
+
+    getTenantPlugins()
+      .then((result) => {
+        if (!active) return
+        setPresentationEnabled(result.enabled.includes('presentation'))
+      })
+      .catch(() => {
+        if (!active) return
+        setPresentationEnabled(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!projectId) return
@@ -146,6 +166,15 @@ export function PanoramaToursPage() {
           <p className={styles.subtitle}>Multi-Point Touren mit Kamera-Viewpoints und Hotspots.</p>
         </div>
         <div className={styles.headerActions}>
+          {presentationEnabled && (
+            <button
+              type='button'
+              className={styles.btnSecondary}
+              onClick={() => navigate(`/projects/${projectId}/presentation${activeId ? `?source=panorama-tour&tourId=${activeId}` : ''}`)}
+            >
+              Präsentationsmodus
+            </button>
+          )}
           <button type='button' className={styles.btnSecondary} onClick={() => navigate(`/projects/${projectId}`)}>
             {'← Zurück zum Editor'}
           </button>
