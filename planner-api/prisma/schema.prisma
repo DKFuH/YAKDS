@@ -993,6 +993,8 @@ model TenantSetting {
   tax_number         String?  @db.VarChar(30)
   quote_footer       String?
   enabled_plugins    Json     @default("[]")
+  preferred_locale   String?  @db.VarChar(10)  // Sprint 84 – Core-i18n
+  fallback_locale    String?  @db.VarChar(10)  // Sprint 84 – Core-i18n
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 

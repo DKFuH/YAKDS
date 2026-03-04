@@ -6,6 +6,7 @@ import {
   type CreateQuotePayload,
   type Quote,
 } from '../../api/quotes.js'
+import { useLocale } from '../../hooks/useLocale.js'
 import styles from './QuoteExportPanel.module.css'
 
 interface Props {
@@ -14,15 +15,8 @@ interface Props {
   buildCreatePayload?: () => Promise<CreateQuotePayload>
 }
 
-function formatDate(value: string): string {
-  const asDate = new Date(value)
-  if (Number.isNaN(asDate.getTime())) {
-    return value
-  }
-  return asDate.toLocaleDateString('de-DE')
-}
-
 export function QuoteExportPanel({ projectId, createPayload = {}, buildCreatePayload }: Props) {
+  const { formatDate } = useLocale()
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loadingCreate, setLoadingCreate] = useState(false)
   const [loadingQuote, setLoadingQuote] = useState(false)
@@ -129,7 +123,7 @@ export function QuoteExportPanel({ projectId, createPayload = {}, buildCreatePay
           <dd>{quote.version}</dd>
 
           <dt>Gültig bis</dt>
-          <dd>{formatDate(quote.valid_until)}</dd>
+          <dd>{quote.valid_until ? formatDate(new Date(quote.valid_until)) : '–'}</dd>
         </dl>
       )}
     </section>

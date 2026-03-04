@@ -1424,7 +1424,7 @@ Dokumente und Share-/Viewer-Pfade.
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
-| 84 | `planned` | i18n-Core & Locale Switcher | Message-Kataloge, Locale-Resolver, Sprachumschalter |
+| 84 | `done` | i18n-Core & Locale Switcher | Message-Kataloge, Locale-Resolver, Sprachumschalter |
 | 85 | `planned` | Language Packs & Uebersetzungsverwaltung | verwaltbare Sprachpakete und Tenant-Overrides |
 | 86 | `planned` | Mehrsprachige Dokumente & Shares | locale-aware PDFs, Viewer und Exporte |
 

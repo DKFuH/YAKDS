@@ -1,6 +1,6 @@
 # AGENT_SPRINTS - Sprint-Dokumentation
 
-Sprints `S47` bis `S83` sind implementiert und gemergt.
+Sprints `S47` bis `S84` sind implementiert und gemergt.
 
 Stand: 2026-03-04
 
@@ -76,7 +76,7 @@ Stand: 2026-03-04
 | 81 | `S81-mehr-ebenen-projektmodell.md` | done | Mehr-Ebenen-Projekte mit Levels, Sichtbarkeit und level-spezifischen Raeumen |
 | 82 | `S82-treppen-und-vertikale-verbindungen.md` | done | Plugin `stairs`: Treppen, Treppenaugen und vertikale Verbindungen |
 | 83 | `S83-mehr-ebenen-layout-sektionen-interop.md` | done | Plugin `multilevel-docs`: Mehr-Ebenen-Sheets, Vertikalschnitte und Export-Metadaten |
-| 84 | `S84-i18n-core-und-locale-switcher.md` | planned | Core-i18n, Language Switcher und locale-aware Formatierung |
+| 84 | `S84-i18n-core-und-locale-switcher.md` | done | Core-i18n, Language Switcher und locale-aware Formatierung |
 | 85 | `S85-language-packs-und-uebersetzungsverwaltung.md` | planned | Sprachpakete und tenant-spezifische Uebersetzungsverwaltung |
 | 86 | `S86-mehrsprachige-dokumente-und-shares.md` | planned | Mehrsprachige PDFs, Exporte, Viewer und Shares |
 | 87 | `S87-navigation-ux-und-input-profile.md` | planned | Navigation-UX, CAD-Profil, Touchpad- und MMB-Steuerung |

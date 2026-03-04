@@ -11,6 +11,7 @@ import {
   type SalesChartResponse,
 } from '../api/dashboards.js'
 import { projectsApi, type Project } from '../api/projects.js'
+import { useLocale } from '../hooks/useLocale.js'
 import styles from './BIDashboard.module.css'
 
 const TENANT_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001'
@@ -45,8 +46,8 @@ const WIDGET_LABELS: Record<DashboardWidgetId, string> = {
 
 type WidgetWidth = 4 | 6 | 8 | 12
 
-function formatEur(value: number): string {
-  return new Intl.NumberFormat('de-DE', {
+function formatEur(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,
@@ -126,6 +127,7 @@ function getWidgetConfigMap(config: DashboardConfigResponse): Record<DashboardWi
 
 export function BIDashboard() {
   const navigate = useNavigate()
+  const { locale } = useLocale()
   const [tenantId, setTenantId] = useState(TENANT_ID_PLACEHOLDER)
   const [userId, setUserId] = useState(USER_ID_PLACEHOLDER)
   const [period, setPeriod] = useState<'month' | 'last_month' | 'year'>('month')
@@ -192,9 +194,9 @@ export function BIDashboard() {
       { label: 'Aktive Projekte', value: String(activeProjects) },
       { label: 'Leads', value: String(leadProjects) },
       { label: 'Kontakte', value: String(contacts.length) },
-      { label: 'Ø Projektwert', value: formatEur(avgQuoteValue) },
+      { label: 'Ø Projektwert', value: formatEur(avgQuoteValue, locale) },
     ]
-  }, [projects, contacts])
+  }, [projects, contacts, locale])
 
   const salesBars = useMemo(() => {
     const points = salesChart?.points ?? []
@@ -282,7 +284,7 @@ export function BIDashboard() {
       return (
         <div className={styles.chartWidget}>
           <div className={styles.widgetMetaRow}>
-            <strong>{formatEur(salesChart?.total_net ?? 0)}</strong>
+            <strong>{formatEur(salesChart?.total_net ?? 0, locale)}</strong>
             <span>{salesChart?.period ?? period}</span>
           </div>
           <div className={styles.chartBars}>
@@ -329,7 +331,7 @@ export function BIDashboard() {
             topProjects.map((project) => (
               <button key={project.id} type="button" className={styles.listItem} onClick={() => navigate(`/projects/${project.id}`)}>
                 <strong>{project.name}</strong>
-                <span>{project.project_status} · {project.deadline ? new Date(project.deadline).toLocaleDateString('de-DE') : 'ohne Frist'}</span>
+                <span>{project.project_status} · {project.deadline ? new Date(project.deadline).toLocaleDateString(locale) : 'ohne Frist'}</span>
               </button>
             ))
           )}

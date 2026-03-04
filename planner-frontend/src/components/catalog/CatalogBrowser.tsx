@@ -5,6 +5,7 @@ import {
   type CatalogItem,
   type CatalogItemType,
 } from '../../api/catalog.js'
+import { useLocale } from '../../hooks/useLocale.js'
 import styles from './CatalogBrowser.module.css'
 
 interface Props {
@@ -24,8 +25,8 @@ const TYPE_OPTIONS: Array<{ value: CatalogItemType | ''; label: string }> = [
   { value: 'accessory', label: CATALOG_TYPE_LABELS.accessory },
 ]
 
-function formatPrice(value: number): string {
-  return new Intl.NumberFormat('de-DE', {
+function formatPrice(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,
@@ -36,6 +37,7 @@ function formatPrice(value: number): string {
 export function CatalogBrowser({ initialType = '', initialQuery = '', pageSize = 50 }: Props) {
   const [typeFilter, setTypeFilter] = useState<CatalogItemType | ''>(initialType)
   const [query, setQuery] = useState(initialQuery)
+  const { locale } = useLocale()
 
   const [items, setItems] = useState<CatalogItem[]>([])
   const [listLoading, setListLoading] = useState(false)
@@ -160,7 +162,7 @@ export function CatalogBrowser({ initialType = '', initialQuery = '', pageSize =
                   >
                     <span className={styles.itemName}>{item.name}</span>
                     <span className={styles.itemMeta}>{item.sku} · {CATALOG_TYPE_LABELS[item.type]}</span>
-                    <span className={styles.itemPrice}>{formatPrice(item.list_price_net)}</span>
+                    <span className={styles.itemPrice}>{formatPrice(item.list_price_net, locale)}</span>
                   </button>
                 </li>
               ))}
@@ -196,7 +198,7 @@ export function CatalogBrowser({ initialType = '', initialQuery = '', pageSize =
               <dd>{selectedItem.width_mm} × {selectedItem.depth_mm} × {selectedItem.height_mm} mm</dd>
 
               <dt>Listenpreis (netto)</dt>
-              <dd>{formatPrice(selectedItem.list_price_net)}</dd>
+              <dd>{formatPrice(selectedItem.list_price_net, locale)}</dd>
             </dl>
           )}
         </aside>

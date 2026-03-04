@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { platformApi, type GlobalSearchResult } from '../api/platform.js'
 import { projectsApi, type Project } from '../api/projects.js'
 import { OnboardingWizard, shouldShowOnboarding } from '../components/OnboardingWizard.js'
+import { useLocale } from '../hooks/useLocale.js'
+import { formatDate as fmtDateRaw } from '../i18n/formatters.js'
 import styles from './ProjectList.module.css'
 
 const BOARD_COLUMNS: Array<{ id: Project['project_status']; label: string }> = [
@@ -22,12 +24,7 @@ const PRIORITY_LABELS: Record<Project['priority'], string> = {
 
 type GanttProject = Project & { start_at: string; end_at: string | null }
 
-function formatDate(value: string | null): string {
-  if (!value) {
-    return 'Kein Termin'
-  }
-  return new Date(value).toLocaleDateString('de-DE')
-}
+// formatDate is now locale-aware; see fmtDate() inside the component
 
 function getTimelineRange(projects: GanttProject[]) {
   const timestamps = projects.flatMap((project) => {
@@ -50,6 +47,11 @@ function getTimelineRange(projects: GanttProject[]) {
 
 export function ProjectList() {
   const navigate = useNavigate()
+  const { t, locale } = useLocale()
+  const formatDate = (value: string | null) => {
+    if (!value) return t('projects.noDeadline')
+    return fmtDateRaw(new Date(value), locale)
+  }
   const [projects, setProjects] = useState<Project[]>([])
   const [ganttProjects, setGanttProjects] = useState<GanttProject[]>([])
   const [loading, setLoading] = useState(true)
@@ -110,7 +112,7 @@ export function ProjectList() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Projekt wirklich löschen?')) return
+    if (!confirm(t('projects.deleteConfirm'))) return
     await projectsApi.delete(id)
     setProjects((prev) => prev.filter((project) => project.id !== id))
     setGanttProjects((prev) => prev.filter((project) => project.id !== id))
@@ -209,7 +211,7 @@ export function ProjectList() {
 
   const { min: timelineMin, max: timelineMax } = useMemo(() => getTimelineRange(ganttProjects), [ganttProjects])
 
-  if (loading) return <div className={styles.center}>Lade Projekte…</div>
+  if (loading) return <div className={styles.center}>{t('common.loading')}</div>
 
   return (
     <div className={styles.page}>
@@ -221,7 +223,7 @@ export function ProjectList() {
         </div>
         <div className={styles.headerActions}>
           <button className={styles.btnPrimary} onClick={() => setCreating(true)}>
-            + Neues Projekt
+            + {t('projects.newProject')}
           </button>
         </div>
       </header>
@@ -232,7 +234,7 @@ export function ProjectList() {
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/contacts')}>Kontakte</button>
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/documents')}>Dokumente</button>
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/catalog')}>Katalog</button>
-        <button type="button" className={styles.topNavLink} onClick={() => navigate('/settings')}>Einstellungen</button>
+        <button type="button" className={styles.topNavLink} onClick={() => navigate('/settings')}>{t('nav.settings')}</button>
         <button type="button" className={styles.topNavLink} onClick={() => void platformApi.exportProjectsCsv()}>CSV Export</button>
       </nav>
 
@@ -296,7 +298,7 @@ export function ProjectList() {
       )}
 
       {projects.length === 0 ? (
-        <p className={styles.empty}>Noch keine Projekte. Lege dein erstes Projekt an.</p>
+        <p className={styles.empty}>{t('projects.noProjects')}</p>
       ) : (
         <>
           <section className={styles.board}>

@@ -293,7 +293,7 @@ export function CatalogPage() {
                   <strong>{catalogOptionMap[record.catalog_id]?.label ?? record.catalog_id}</strong>
                   <span>ID {record.catalog_id}</span>
                   <span>EK {record.purchase_index.toFixed(2)} · VK {record.sales_index.toFixed(2)}</span>
-                  <span>{new Date(record.applied_at).toLocaleString('de-DE')} · {record.applied_by}</span>
+                  <span>{new Date(record.applied_at).toLocaleString()} · {record.applied_by}</span>
                 </article>
               ))}
             </div>

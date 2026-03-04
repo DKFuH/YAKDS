@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getTenantSettings, updateTenantSettings, type TenantSettings } from '../api/tenantSettings.js'
+import { useLocale } from '../hooks/useLocale.js'
+import { LanguageSwitcher } from '../components/LanguageSwitcher.js'
+import { SUPPORTED_LOCALES } from '../i18n/resolveLocale.js'
 import styles from './TenantSettingsPage.module.css'
 
 export function TenantSettingsPage() {
@@ -10,6 +13,9 @@ export function TenantSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [tenantLocale, setTenantLocale] = useState<string>('')
+  const [localeSaveMsg, setLocaleSaveMsg] = useState<string | null>(null)
+  const { t } = useLocale()
 
   useEffect(() => {
     getTenantSettings()
@@ -17,6 +23,25 @@ export function TenantSettingsPage() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    void fetch('/api/v1/tenant/locale-settings')
+      .then((r) => r.ok ? r.json() as Promise<{ preferred_locale: string | null; fallback_locale: string | null }> : Promise.reject(r))
+      .then((data) => { if (data.preferred_locale) setTenantLocale(data.preferred_locale) })
+      .catch(() => { /* locale settings not critical */ })
+  }, [])
+
+  async function handleSaveTenantLocale() {
+    if (!tenantLocale) return
+    try {
+      const r = await fetch('/api/v1/tenant/locale-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferred_locale: tenantLocale }),
+      })
+      if (r.ok) setLocaleSaveMsg(t('settings.tenantLocaleSaved'))
+    } catch { /* ignore */ }
+  }
 
   function handleChange(field: keyof TenantSettings, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -217,10 +242,32 @@ export function TenantSettingsPage() {
 
         <div className={styles.actions}>
           <button type="submit" className={styles.btnPrimary} disabled={saving}>
-            {saving ? 'Speichern…' : 'Einstellungen speichern'}
+            {saving ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </form>
+
+      {/* Sprint 84 – Tenant Locale */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>{t('settings.languageSection')}</h2>
+        <p className={styles.subtitle}>{t('settings.languageHint')}</p>
+        <LanguageSwitcher />
+        <div style={{ marginTop: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <label className={styles.field} style={{ margin: 0 }}>
+            <span>{t('settings.tenantLocale')}</span>
+            <select value={tenantLocale} onChange={(e) => { setTenantLocale(e.target.value); setLocaleSaveMsg(null) }}>
+              <option value="">–</option>
+              {SUPPORTED_LOCALES.map((code) => (
+                <option key={code} value={code}>{code.toUpperCase()}</option>
+              ))}
+            </select>
+          </label>
+          <button type="button" className={styles.btnSecondary} onClick={() => void handleSaveTenantLocale()}>
+            {t('settings.tenantLocaleSave')}
+          </button>
+          {localeSaveMsg && <span style={{ color: 'green' }}>{localeSaveMsg}</span>}
+        </div>
+      </section>
     </div>
   )
 }

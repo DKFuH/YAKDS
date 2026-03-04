@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-84-i18n-core`
 **Gruppe:** A (startbar jederzeit)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** keine harten, sinnvoll nach S74
 
 ---
@@ -113,3 +113,22 @@ Funktionen:
 - zentrale UI-Bereiche reagieren sofort auf Sprachwechsel
 - Datum, Zahl und Waehrung werden locale-aware formatiert
 - fehlende Uebersetzungen brechen die UI nicht
+
+---
+
+## 7. Abschluss
+
+**Implementiert:**
+
+- `i18next` + `react-i18next` in `planner-frontend` installiert
+- Kataloge `de.ts` / `en.ts` mit Namespaces `common`, `nav`, `settings`, `projects`
+- `resolveLocale()` als einzige Prioritaetsquelle: `okp_locale` → Tenant → Browser → `de`
+- Pure Formatter in `i18n/formatters.ts` (formatDate, formatNumber, formatCurrency)
+- React-Hook `useLocale()` wickelt Formatter und `useTranslation`
+- `LanguageSwitcher` Komponente: nur `de`/`en` aktiv, `fr`/`nl` disabled
+- i18n initialisiert via `i18next.use(initReactI18next).init(...)`, kein `I18nextProvider`
+- `preferred_locale` + `fallback_locale` auf `TenantSetting` (Prisma + Migration)
+- Backend-Route `GET /locales`, `GET/PUT /tenant/locale-settings` (tenant-scoped, 400 bei planned-Locales)
+- SettingsPage, TenantSettingsPage, ProjectList auf `t()`-Keys umgestellt
+- Hardcoded `'de-DE'`-Aufrufe in BIDashboard, CatalogBrowser, QuoteExportPanel, CatalogPage entfernt
+- 20 Tests (6 backend locales, 14 logic: resolveLocale + formatters), build gruen (751 backend, 412 frontend modules)
