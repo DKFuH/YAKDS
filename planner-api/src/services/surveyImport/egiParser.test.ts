@@ -1,10 +1,13 @@
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { parseEgiContent, parseEgiNumber } from './egiParser.js'
 
+const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), '__fixtures__')
+
 async function readFixture(name: string): Promise<string> {
-  const path = join(process.cwd(), 'src', 'services', 'surveyImport', '__fixtures__', name)
+  const path = join(fixtureDir, name)
   return readFile(path, 'utf8')
 }
 
