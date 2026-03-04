@@ -56,6 +56,50 @@ export interface ImportJob {
   completed_at: string | null
 }
 
+export interface RaumaufmassDiagnosticEntry {
+  code: string
+  path: string
+  message: string
+}
+
+export interface RaumaufmassDiagnostics {
+  warnings: RaumaufmassDiagnosticEntry[]
+  errors: RaumaufmassDiagnosticEntry[]
+}
+
+export interface RaumaufmassPreviewRoom {
+  index: number
+  name: string
+  height_mm: number
+  boundary_vertices: number
+  wall_segments: number
+  openings_count: number
+  warning_count: number
+}
+
+export interface RaumaufmassValidationResult {
+  valid: boolean
+  source_filename: string
+  diagnostics: RaumaufmassDiagnostics
+  preview: {
+    rooms: RaumaufmassPreviewRoom[]
+    summary: {
+      room_count: number
+      opening_count: number
+      warning_count: number
+      error_count: number
+    }
+  }
+}
+
+export interface RaumaufmassImportResult {
+  job_id: string
+  imported_rooms: number
+  room_ids: string[]
+  diagnostics: RaumaufmassDiagnostics
+  preview: RaumaufmassValidationResult['preview']
+}
+
 export type LayerMapping = Record<string, {
   action: 'imported' | 'ignored' | 'needs_review'
   reason?: string
@@ -170,4 +214,44 @@ export async function createSkpImportJob(input: {
 
 export function getImportJob(id: string): Promise<ImportJob> {
   return api.get<ImportJob>(`/imports/${id}`)
+}
+
+export function validateRaumaufmass(projectId: string, payload: unknown, sourceFilename?: string): Promise<RaumaufmassValidationResult> {
+  const normalizedPayload = (
+    payload
+    && typeof payload === 'object'
+    && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : { rooms: [] }
+  )
+
+  return api.post<RaumaufmassValidationResult>(
+    `/projects/${projectId}/validate/raumaufmass`,
+    {
+      ...normalizedPayload,
+      ...(sourceFilename ? { source_filename: sourceFilename } : {}),
+    },
+  )
+}
+
+export function importRaumaufmass(projectId: string, payload: unknown, sourceFilename?: string): Promise<RaumaufmassImportResult> {
+  const normalizedPayload = (
+    payload
+    && typeof payload === 'object'
+    && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : { rooms: [] }
+  )
+
+  return api.post<RaumaufmassImportResult>(
+    `/projects/${projectId}/import/raumaufmass`,
+    {
+      ...normalizedPayload,
+      ...(sourceFilename ? { source_filename: sourceFilename } : {}),
+    },
+  )
+}
+
+export function listRaumaufmassJobs(projectId: string): Promise<ImportJob[]> {
+  return api.get<ImportJob[]>(`/projects/${projectId}/raumaufmass-jobs`)
 }

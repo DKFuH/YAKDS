@@ -1,6 +1,8 @@
 # ROADMAP.md
 
-Sprint-Planung für MVP (Sprints 0–19), Phase 2 (Sprints 20–24), Phase 3 (Sprints 25–30), Phase 4 (Sprints 31–40), Phase 5 (Sprints 41–45), Phase 6 (Sprints 46–50), Phase 7 (Sprints 51–55), Phase 8 (Sprints 56–60) und Phase 9 (Infrastruktur & Integration) inkl. aktuellem Fortschritt. Stand: 2026-03-03.
+Sprint-Planung für MVP (Sprints 0–19), Phase 2 (Sprints 20–24), Phase 3 (Sprints 25–30), Phase 4 (Sprints 31–40), Phase 5 (Sprints 41–45), Phase 6 (Sprints 46–50), Phase 7 (Sprints 51–55), Phase 8 (Sprints 56–60) und Phase 9 (Infrastruktur & Integration) inkl. aktuellem Fortschritt. Stand: 2026-03-04.
+
+Hinweis zum Produktstand: Sprint 98 (Stabilisierungsphase) ist abgeschlossen; Kern-Builds und fokussierte Regressionen sind fuer die Hauptpfade gruen.
 
 ---
 

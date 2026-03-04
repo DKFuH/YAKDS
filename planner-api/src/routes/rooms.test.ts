@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import { Prisma } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const roomId = '33333333-3333-3333-3333-333333333333'
@@ -108,7 +109,7 @@ describe('roomRoutes reference image', () => {
     expect(response.statusCode).toBe(200)
     expect(prismaMock.room.update).toHaveBeenCalledWith({
       where: { id: roomId },
-      data: { reference_image: null },
+      data: { reference_image: Prisma.JsonNull },
     })
 
     await app.close()

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import Fastify from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,10 +11,14 @@ const { prismaMock } = vi.hoisted(() => ({
     project: {
       findFirst: vi.fn(),
     },
+    room: {
+      create: vi.fn(),
+    },
     importJob: {
       create: vi.fn(),
       update: vi.fn(),
       findFirst: vi.fn(),
+      findMany: vi.fn(),
     },
   },
 }))
@@ -110,6 +115,29 @@ function createImportJob(overrides: Record<string, unknown> = {}) {
   }
 }
 
+function createRaumaufmassPayload() {
+  return {
+    source_filename: 'aufmass.json',
+    rooms: [
+      {
+        name: 'Kueche',
+        width_mm: 4200,
+        depth_mm: 2800,
+        height_mm: 2550,
+        openings: [
+          {
+            kind: 'door',
+            wall_index: 1,
+            width_mm: 900,
+            height_mm: 2100,
+            offset_mm: 1000,
+          },
+        ],
+      },
+    ],
+  }
+}
+
 describe('importRoutes', () => {
   let persistedJob: ReturnType<typeof createImportJob> | null
 
@@ -140,6 +168,11 @@ describe('importRoutes', () => {
 
       return null
     })
+    prismaMock.importJob.findMany.mockResolvedValue([])
+    prismaMock.room.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
+      id: randomUUID(),
+      ...data,
+    }))
   })
 
   it('returns a parsed DXF preview asset', async () => {
@@ -623,6 +656,348 @@ describe('importRoutes', () => {
       error: 'NOT_FOUND',
       message: 'Import job not found in tenant scope',
     })
+
+    await app.close()
+  })
+
+  it('validates a raumaufmass payload with preview and diagnostics', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/validate/raumaufmass`,
+      headers: { 'x-tenant-id': tenantId },
+      payload: createRaumaufmassPayload(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({
+      valid: true,
+      source_filename: 'aufmass.json',
+      preview: {
+        summary: {
+          room_count: 1,
+          opening_count: 1,
+          error_count: 0,
+        },
+      },
+    })
+
+    await app.close()
+  })
+
+  it('returns structured validation errors for malformed raumaufmass payloads', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/validate/raumaufmass`,
+      headers: { 'x-tenant-id': tenantId },
+      payload: {
+        source_filename: 'broken.json',
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({
+      valid: false,
+      diagnostics: {
+        errors: expect.arrayContaining([
+          expect.objectContaining({ code: 'custom' }),
+        ]),
+      },
+    })
+
+    await app.close()
+  })
+
+  it('adds a fallback room name warning when room name is missing', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/validate/raumaufmass`,
+      headers: { 'x-tenant-id': tenantId },
+      payload: {
+        rooms: [{ width_mm: 3000, depth_mm: 2200 }],
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().diagnostics.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'room_name_fallback' }),
+      ]),
+    )
+
+    await app.close()
+  })
+
+  it('adds opening wall diagnostics when wall index is out of range', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/validate/raumaufmass`,
+      headers: { 'x-tenant-id': tenantId },
+      payload: {
+        rooms: [
+          {
+            name: 'Test',
+            width_mm: 3000,
+            depth_mm: 2200,
+            openings: [{ wall_index: 99, width_mm: 1000 }],
+          },
+        ],
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().diagnostics.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'opening_wall_out_of_range' }),
+      ]),
+    )
+
+    await app.close()
+  })
+
+  it('validates rooms from explicit boundary vertices', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/validate/raumaufmass`,
+      headers: { 'x-tenant-id': tenantId },
+      payload: {
+        rooms: [{
+          name: 'BoundaryRoom',
+          boundary: {
+            vertices: [
+              { x_mm: 0, y_mm: 0 },
+              { x_mm: 3200, y_mm: 0 },
+              { x_mm: 3200, y_mm: 2600 },
+            ],
+          },
+        }],
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().preview.rooms[0]).toMatchObject({
+      boundary_vertices: 3,
+      wall_segments: 3,
+    })
+
+    await app.close()
+  })
+
+  it('can derive boundary geometry from wall extents', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/validate/raumaufmass`,
+      headers: { 'x-tenant-id': tenantId },
+      payload: {
+        rooms: [{
+          name: 'WallRoom',
+          walls: [
+            { start: { x_mm: 0, y_mm: 0 }, end: { x_mm: 3500, y_mm: 0 } },
+            { start: { x_mm: 3500, y_mm: 0 }, end: { x_mm: 3500, y_mm: 2400 } },
+            { start: { x_mm: 3500, y_mm: 2400 }, end: { x_mm: 0, y_mm: 2400 } },
+          ],
+        }],
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().diagnostics.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'boundary_derived_from_walls' }),
+      ]),
+    )
+
+    await app.close()
+  })
+
+  it('imports valid raumaufmass payloads into rooms and stores import jobs', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/import/raumaufmass`,
+      headers: { 'x-tenant-id': tenantId },
+      payload: createRaumaufmassPayload(),
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(response.json()).toMatchObject({
+      imported_rooms: 1,
+      diagnostics: {
+        errors: [],
+      },
+    })
+    expect(prismaMock.room.create).toHaveBeenCalledTimes(1)
+    expect(prismaMock.importJob.create).toHaveBeenCalledTimes(1)
+    expect(registerProjectDocumentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId,
+        tenantId,
+        mimeType: 'application/json',
+      }),
+    )
+
+    await app.close()
+  })
+
+  it('rejects invalid raumaufmass imports with structured diagnostics', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/import/raumaufmass`,
+      headers: { 'x-tenant-id': tenantId },
+      payload: {
+        rooms: [{
+          name: 'InvalidRoom',
+          openings: [{ width_mm: 900 }],
+        }],
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toMatchObject({
+      valid: false,
+      diagnostics: {
+        errors: expect.arrayContaining([
+          expect.objectContaining({ code: 'room_geometry_missing' }),
+        ]),
+      },
+    })
+    expect(prismaMock.room.create).not.toHaveBeenCalled()
+
+    await app.close()
+  })
+
+  it('returns 403 for raumaufmass imports without tenant scope', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/import/raumaufmass`,
+      payload: createRaumaufmassPayload(),
+    })
+
+    expect(response.statusCode).toBe(403)
+
+    await app.close()
+  })
+
+  it('returns 404 for raumaufmass imports when project is missing', async () => {
+    prismaMock.project.findFirst.mockResolvedValueOnce(null)
+
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/import/raumaufmass`,
+      headers: { 'x-tenant-id': tenantId },
+      payload: createRaumaufmassPayload(),
+    })
+
+    expect(response.statusCode).toBe(404)
+
+    await app.close()
+  })
+
+  it('lists raumaufmass import jobs for a project', async () => {
+    prismaMock.importJob.findMany.mockResolvedValue([
+      createImportJob({
+        id: '77777777-7777-7777-7777-777777777777',
+        source_format: 'raumaufmass_json',
+        source_filename: 'aufmass-a.json',
+      }),
+      createImportJob({
+        id: '88888888-8888-8888-8888-888888888888',
+        source_format: 'raumaufmass_json',
+        source_filename: 'aufmass-b.json',
+      }),
+    ])
+
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/projects/${projectId}/raumaufmass-jobs`,
+      headers: { 'x-tenant-id': tenantId },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toHaveLength(2)
+    expect(prismaMock.importJob.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          project_id: projectId,
+          source_format: 'raumaufmass_json',
+        }),
+      }),
+    )
+
+    await app.close()
+  })
+
+  it('returns 403 for raumaufmass job list without tenant scope', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/projects/${projectId}/raumaufmass-jobs`,
+    })
+
+    expect(response.statusCode).toBe(403)
+
+    await app.close()
+  })
+
+  it('returns 404 for raumaufmass job list when project is missing', async () => {
+    prismaMock.project.findFirst.mockResolvedValueOnce(null)
+
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(importRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/projects/${projectId}/raumaufmass-jobs`,
+      headers: { 'x-tenant-id': tenantId },
+    })
+
+    expect(response.statusCode).toBe(404)
 
     await app.close()
   })

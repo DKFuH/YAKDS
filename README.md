@@ -34,12 +34,13 @@ in one integrated platform.
 - **Room decoration** – surface colors, materials, decorative objects (Sprint 38)
 - **Lighting profiles** – light sources with position, intensity and color temperature (Sprint 39)
 
-## Current development status (2026-03-02)
+## Current development status (2026-03-04)
 
 - **MVP (Sprints 0–19):** complete
 - **Phase 2 (Sprints 20–24):** complete
 - **Phase 3 (Sprints 25–30):** complete (documents, contacts, dashboards, catalog indexing, platform routes)
 - **Sprints 31–40:** backend complete, frontend implemented
+- **Sprint 98 (Stabilization):** core build/test regressions hardened, tenant-scope checks tightened in quote paths
 
 ## Tech stack
 

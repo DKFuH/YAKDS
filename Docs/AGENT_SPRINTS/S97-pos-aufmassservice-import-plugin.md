@@ -2,8 +2,33 @@
 
 **Branch:** `feature/sprint-97-egi-survey-import`
 **Gruppe:** B (startbar nach S79)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S47 (Mobile Aufmass), S57 (WallAttachments), S79 (Offline-PWA & Aufmass-Import)
+
+## Umsetzung (2026-03-04)
+
+- Backend-Service fuer EGI-Formatparser und Mapping umgesetzt in:
+  - `planner-api/src/services/surveyImport/egiParser.ts`
+  - `planner-api/src/services/surveyImport/egiMapper.ts`
+- Plugin-Route umgesetzt und im `survey-import`-Plugin registriert:
+  - `POST /survey-import/formats/egi/parse`
+  - `POST /rooms/:id/survey-import/egi`
+  - Dateien:
+    - `planner-api/src/routes/surveyImport.ts`
+    - `planner-api/src/plugins/surveyImport.ts`
+- Frontend-Integration im Survey-Import-Plugin + SiteSurvey-Seite:
+  - `.egi` Upload, Preview/Summary, Warnliste, Import in Zielraum
+  - Dateien:
+    - `planner-frontend/src/plugins/surveyImport/egi.ts`
+    - `planner-frontend/src/pages/SiteSurveyPage.tsx`
+- Tests und Fixtures:
+  - `planner-api/src/services/surveyImport/egiParser.test.ts`
+  - `planner-api/src/services/surveyImport/egiMapper.test.ts`
+  - `planner-api/src/routes/surveyImport.test.ts`
+  - Fixture-Dateien unter `planner-api/src/services/surveyImport/__fixtures__/`
+- Validierung:
+  - Backend: 3 Testdateien, 16 Tests gruen
+  - Frontend: `npm run build --workspace planner-frontend` erfolgreich
 
 ---
 

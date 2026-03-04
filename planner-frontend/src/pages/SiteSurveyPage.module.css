@@ -129,6 +129,64 @@
   gap: 0.5rem;
 }
 
+.actionRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.validationBlock {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.warningList,
+.errorList {
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.65rem;
+}
+
+.warningList {
+  border: 1px solid var(--status-warning-border);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.errorList {
+  border: 1px solid var(--status-danger-border);
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+.warningList ul,
+.errorList ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+}
+
+.jobList {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.jobItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  background: var(--surface-default);
+}
+
+.jobItem small {
+  color: var(--text-muted);
+}
+
 .primaryBtn {
   align-self: flex-start;
   border: 1px solid transparent;

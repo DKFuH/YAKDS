@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { checklistsApi, siteSurveysApi, type InstallationChecklist, type SiteSurvey } from '../api/siteSurveys.js'
 import { projectsApi, type Project } from '../api/projects.js'
 import { roomsApi, type MeasurementImportSegmentPayload, type RoomPayload } from '../api/rooms.js'
+import { importRaumaufmass, listRaumaufmassJobs, validateRaumaufmass, type ImportJob, type RaumaufmassValidationResult } from '../api/imports.js'
 import { getTenantPlugins } from '../api/tenantSettings.js'
+import { importEgiToRoom, parseEgi, type EgiParseResult } from '../plugins/surveyImport/egi.js'
 import { getMeasurementSegmentsFromMeasurements, getRoomsFromMeasurements } from '../plugins/surveyImport/index.js'
 import styles from './SiteSurveyPage.module.css'
 
@@ -30,6 +32,19 @@ export function SiteSurveyPage() {
   const [includeReferencePhoto, setIncludeReferencePhoto] = useState(false)
   const [importBusy, setImportBusy] = useState(false)
   const [importStatus, setImportStatus] = useState<string | null>(null)
+  const [raumaufmassFileName, setRaumaufmassFileName] = useState<string>('')
+  const [raumaufmassPayload, setRaumaufmassPayload] = useState<unknown | null>(null)
+  const [raumaufmassValidation, setRaumaufmassValidation] = useState<RaumaufmassValidationResult | null>(null)
+  const [raumaufmassJobs, setRaumaufmassJobs] = useState<ImportJob[]>([])
+  const [raumaufmassBusy, setRaumaufmassBusy] = useState(false)
+  const [raumaufmassImportBusy, setRaumaufmassImportBusy] = useState(false)
+  const [raumaufmassStatus, setRaumaufmassStatus] = useState<string | null>(null)
+  const [egiFileName, setEgiFileName] = useState('')
+  const [egiContent, setEgiContent] = useState<string | null>(null)
+  const [egiValidation, setEgiValidation] = useState<EgiParseResult | null>(null)
+  const [egiBusy, setEgiBusy] = useState(false)
+  const [egiImportBusy, setEgiImportBusy] = useState(false)
+  const [egiStatus, setEgiStatus] = useState<string | null>(null)
   const [createdBy, setCreatedBy] = useState('')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
@@ -67,6 +82,17 @@ export function SiteSurveyPage() {
         setRooms([])
         setTargetRoomId('')
       })
+  }, [selectedProjectId, surveyImportEnabled])
+
+  useEffect(() => {
+    if (!surveyImportEnabled || !selectedProjectId) {
+      setRaumaufmassJobs([])
+      return
+    }
+
+    listRaumaufmassJobs(selectedProjectId)
+      .then(setRaumaufmassJobs)
+      .catch(() => setRaumaufmassJobs([]))
   }, [selectedProjectId, surveyImportEnabled])
 
   useEffect(() => {
@@ -219,6 +245,142 @@ export function SiteSurveyPage() {
       setError(importError instanceof Error ? importError.message : 'Import fehlgeschlagen')
     } finally {
       setImportBusy(false)
+    }
+  }
+
+  async function handleRaumaufmassFileSelect(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    setError(null)
+    setRaumaufmassStatus(null)
+    setRaumaufmassValidation(null)
+
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text) as unknown
+      setRaumaufmassPayload(parsed)
+      setRaumaufmassFileName(file.name)
+    } catch {
+      setRaumaufmassPayload(null)
+      setRaumaufmassFileName(file.name)
+      setError('Die Datei enthält kein gültiges JSON.')
+    }
+  }
+
+  async function handleValidateRaumaufmass() {
+    if (!selectedProjectId || !raumaufmassPayload) {
+      return
+    }
+
+    setRaumaufmassBusy(true)
+    setError(null)
+    setRaumaufmassStatus(null)
+    try {
+      const result = await validateRaumaufmass(selectedProjectId, raumaufmassPayload, raumaufmassFileName || undefined)
+      setRaumaufmassValidation(result)
+      if (result.valid) {
+        setRaumaufmassStatus('Validierung erfolgreich. Daten können importiert werden.')
+      }
+    } catch (validationError) {
+      setError(validationError instanceof Error ? validationError.message : 'Validierung fehlgeschlagen')
+    } finally {
+      setRaumaufmassBusy(false)
+    }
+  }
+
+  async function handleImportRaumaufmass() {
+    if (!selectedProjectId || !raumaufmassPayload) {
+      return
+    }
+
+    setRaumaufmassImportBusy(true)
+    setError(null)
+    setRaumaufmassStatus(null)
+
+    try {
+      const result = await importRaumaufmass(selectedProjectId, raumaufmassPayload, raumaufmassFileName || undefined)
+      setRaumaufmassStatus(`${result.imported_rooms} Raum/Räume erfolgreich importiert.`)
+      const [projectRooms, jobs] = await Promise.all([
+        roomsApi.list(selectedProjectId).catch(() => rooms),
+        listRaumaufmassJobs(selectedProjectId).catch(() => raumaufmassJobs),
+      ])
+      setRooms(projectRooms)
+      setRaumaufmassJobs(jobs)
+      setRaumaufmassValidation(null)
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : 'Raumaufmaß-Import fehlgeschlagen')
+    } finally {
+      setRaumaufmassImportBusy(false)
+    }
+  }
+
+  async function handleEgiFileSelect(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    setError(null)
+    setEgiStatus(null)
+    setEgiValidation(null)
+    setEgiFileName(file.name)
+
+    try {
+      const text = await file.text()
+      setEgiContent(text)
+    } catch {
+      setEgiContent(null)
+      setError('Die EGI-Datei konnte nicht gelesen werden.')
+    }
+  }
+
+  async function handleParseEgi() {
+    if (!egiContent) {
+      return
+    }
+
+    setEgiBusy(true)
+    setError(null)
+    setEgiStatus(null)
+
+    try {
+      const parsed = await parseEgi(egiContent, egiFileName || undefined)
+      setEgiValidation(parsed)
+      setEgiStatus('EGI-Datei erfolgreich analysiert.')
+    } catch (parseError) {
+      setError(parseError instanceof Error ? parseError.message : 'EGI-Analyse fehlgeschlagen')
+    } finally {
+      setEgiBusy(false)
+    }
+  }
+
+  async function handleImportEgi() {
+    if (!egiContent || !targetRoomId) {
+      return
+    }
+
+    setEgiImportBusy(true)
+    setError(null)
+    setEgiStatus(null)
+
+    try {
+      const imported = await importEgiToRoom(targetRoomId, egiContent, egiFileName || undefined)
+      setEgiStatus(
+        [
+          `EGI importiert: ${imported.imported.walls} Wände, ${imported.imported.openings} Öffnungen, ${imported.imported.placements} Objekte.`,
+          `Import-Job: ${imported.job_id}`,
+        ].join(' '),
+      )
+      setEgiValidation(imported)
+      const projectRooms = await roomsApi.list(selectedProjectId).catch(() => rooms)
+      setRooms(projectRooms)
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : 'EGI-Import fehlgeschlagen')
+    } finally {
+      setEgiImportBusy(false)
     }
   }
 
@@ -397,6 +559,179 @@ export function SiteSurveyPage() {
                           </button>
 
                           {importStatus && <p className={styles.success}>{importStatus}</p>}
+                        </div>
+                      </>
+                    )}
+
+                    {surveyImportEnabled && (
+                      <>
+                        <h3>Raumaufmaß JSON-Import</h3>
+                        <div className={styles.form}>
+                          <label className={styles.label} htmlFor="raumaufmass-json-file">JSON-Datei</label>
+                          <input
+                            id="raumaufmass-json-file"
+                            type="file"
+                            accept="application/json,.json"
+                            className={styles.input}
+                            onChange={(event) => { void handleRaumaufmassFileSelect(event) }}
+                          />
+                          <p className={styles.hint}>{raumaufmassFileName ? `Datei: ${raumaufmassFileName}` : 'Keine Datei ausgewählt.'}</p>
+
+                          <div className={styles.actionRow}>
+                            <button
+                              type="button"
+                              className={styles.primaryBtn}
+                              disabled={raumaufmassBusy || !raumaufmassPayload}
+                              onClick={() => { void handleValidateRaumaufmass() }}
+                            >
+                              {raumaufmassBusy ? 'Validiere …' : 'JSON prüfen'}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.primaryBtn}
+                              disabled={raumaufmassImportBusy || !raumaufmassPayload || !raumaufmassValidation?.valid}
+                              onClick={() => { void handleImportRaumaufmass() }}
+                            >
+                              {raumaufmassImportBusy ? 'Importiere …' : 'JSON importieren'}
+                            </button>
+                          </div>
+
+                          {raumaufmassStatus && <p className={styles.success}>{raumaufmassStatus}</p>}
+
+                          {raumaufmassValidation && (
+                            <div className={styles.validationBlock}>
+                              <p className={styles.meta}>
+                                Valid: {raumaufmassValidation.valid ? 'Ja' : 'Nein'} · Räume: {raumaufmassValidation.preview.summary.room_count} · Öffnungen: {raumaufmassValidation.preview.summary.opening_count}
+                              </p>
+                              <p className={styles.meta}>
+                                Warnungen: {raumaufmassValidation.preview.summary.warning_count} · Fehler: {raumaufmassValidation.preview.summary.error_count}
+                              </p>
+
+                              {raumaufmassValidation.preview.rooms.length > 0 && (
+                                <table className={styles.table}>
+                                  <thead>
+                                    <tr>
+                                      <th>Raum</th>
+                                      <th>Höhe</th>
+                                      <th>Ecken</th>
+                                      <th>Wände</th>
+                                      <th>Öffnungen</th>
+                                      <th>Warnungen</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {raumaufmassValidation.preview.rooms.map((room) => (
+                                      <tr key={`${room.index}-${room.name}`}>
+                                        <td>{room.name}</td>
+                                        <td>{room.height_mm}</td>
+                                        <td>{room.boundary_vertices}</td>
+                                        <td>{room.wall_segments}</td>
+                                        <td>{room.openings_count}</td>
+                                        <td>{room.warning_count}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              )}
+
+                              {raumaufmassValidation.diagnostics.warnings.length > 0 && (
+                                <div className={styles.warningList}>
+                                  <strong>Warnungen</strong>
+                                  <ul>
+                                    {raumaufmassValidation.diagnostics.warnings.map((warning, index) => (
+                                      <li key={`${warning.code}-${index}`}>
+                                        {warning.path}: {warning.message}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {raumaufmassValidation.diagnostics.errors.length > 0 && (
+                                <div className={styles.errorList}>
+                                  <strong>Fehler</strong>
+                                  <ul>
+                                    {raumaufmassValidation.diagnostics.errors.map((diagError, index) => (
+                                      <li key={`${diagError.code}-${index}`}>
+                                        {diagError.path}: {diagError.message}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className={styles.jobList}>
+                            <strong>Importdiagnostik (Jobs)</strong>
+                            {raumaufmassJobs.length === 0 && <p className={styles.hint}>Noch keine Raumaufmaß-Jobs.</p>}
+                            {raumaufmassJobs.map((job) => (
+                              <div key={job.id} className={styles.jobItem}>
+                                <span>{job.source_filename}</span>
+                                <small>{job.status} · {formatDate(job.created_at)}</small>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {surveyImportEnabled && (
+                      <>
+                        <h3>POS-Aufmaßservice (.egi)</h3>
+                        <div className={styles.form}>
+                          <label className={styles.label} htmlFor="egi-file-input">EGI-Datei</label>
+                          <input
+                            id="egi-file-input"
+                            type="file"
+                            accept=".egi,text/plain"
+                            className={styles.input}
+                            onChange={(event) => { void handleEgiFileSelect(event) }}
+                          />
+                          <p className={styles.hint}>{egiFileName ? `Datei: ${egiFileName}` : 'Keine Datei ausgewählt.'}</p>
+
+                          <div className={styles.actionRow}>
+                            <button
+                              type="button"
+                              className={styles.primaryBtn}
+                              disabled={egiBusy || !egiContent}
+                              onClick={() => { void handleParseEgi() }}
+                            >
+                              {egiBusy ? 'Analysiere …' : 'EGI prüfen'}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.primaryBtn}
+                              disabled={egiImportBusy || !egiContent || !targetRoomId}
+                              onClick={() => { void handleImportEgi() }}
+                            >
+                              {egiImportBusy ? 'Importiere …' : 'In Zielraum importieren'}
+                            </button>
+                          </div>
+
+                          {egiStatus && <p className={styles.success}>{egiStatus}</p>}
+
+                          {egiValidation && (
+                            <div className={styles.validationBlock}>
+                              <p className={styles.meta}>
+                                Wände: {egiValidation.summary.walls} · Dächer: {egiValidation.summary.roofs} · Fenster: {egiValidation.summary.windows} · Türen: {egiValidation.summary.doors}
+                              </p>
+                              <p className={styles.meta}>
+                                Hindernisse: {egiValidation.summary.hindrances} · Installationen: {egiValidation.summary.installations} · Raumhöhe: {egiValidation.preview.room_height_mm} mm
+                              </p>
+
+                              {egiValidation.warnings.length > 0 && (
+                                <div className={styles.warningList}>
+                                  <strong>Warnungen</strong>
+                                  <ul>
+                                    {egiValidation.warnings.map((warning, index) => (
+                                      <li key={`${warning}-${index}`}>{warning}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </>
                     )}

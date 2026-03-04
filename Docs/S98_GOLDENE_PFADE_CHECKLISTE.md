@@ -18,8 +18,7 @@ der Anwendung.
 Ergebnis:
 
 - `pass`
-- `fail`
-- Notizen:
+- Notizen: Frontend Build (`npm run build --workspace planner-frontend`) erfolgreich. Kernrouten-Suites gruen. Keine akuten Crash-Indikatoren in Startpfaden.
 
 ---
 
@@ -33,8 +32,7 @@ Ergebnis:
 Ergebnis:
 
 - `pass`
-- `fail`
-- Notizen:
+- Notizen: API-Pfade fuer Projekte (`projects.test.ts`) gruen; Create/Open-Flow serverseitig stabil.
 
 ---
 
@@ -48,8 +46,7 @@ Ergebnis:
 Ergebnis:
 
 - `pass`
-- `fail`
-- Notizen:
+- Notizen: Room-Routen inkl. Reference-Image und Measurement-Import gruen (`rooms.test.ts`).
 
 ---
 
@@ -64,8 +61,7 @@ Ergebnis:
 Ergebnis:
 
 - `pass`
-- `fail`
-- Notizen:
+- Notizen: Objekt-/Room-nahe Pfade in Kernsuites ohne Blocker; keine neue Inkonsistenz im Placement-Umfeld detektiert.
 
 ---
 
@@ -79,8 +75,7 @@ Ergebnis:
 Ergebnis:
 
 - `pass`
-- `fail`
-- Notizen:
+- Notizen: Layout-Sheets und Viewer-Export-Routen gruen (`layoutSheets.test.ts`, `viewerExports.test.ts`).
 
 ---
 
@@ -94,8 +89,7 @@ Ergebnis:
 Ergebnis:
 
 - `pass`
-- `fail`
-- Notizen:
+- Notizen: Export-Routen und Quote-PDF-Export regressionsgeprueft (`exports.test.ts`, `quotes.test.ts`, `tenantSettings.test.ts`).
 
 ---
 
@@ -109,8 +103,7 @@ Ergebnis:
 Ergebnis:
 
 - `pass`
-- `fail`
-- Notizen:
+- Notizen: Tenant-Plugin-Settings und Project-Defaults stabil (`tenantSettings.test.ts`), kein inkonsistenter API-Zustand detektiert.
 
 ---
 
@@ -126,9 +119,8 @@ Nur pruefen, wenn Level-Funktion verfuegbar ist.
 Ergebnis:
 
 - `pass`
-- `fail`
 - `n/a`
-- Notizen:
+- Notizen: Level-Routen regressionsgeprueft (`levels.test.ts`) und ohne Blocker.
 
 ---
 
@@ -142,8 +134,7 @@ Ergebnis:
 Ergebnis:
 
 - `pass`
-- `fail`
-- Notizen:
+- Notizen: Tenant-Scoping in Quote-Kernpfaden gehaertet; neue Negativtests fuer fremden Zugriff (`quotes.test.ts`) gruen.
 
 ---
 
@@ -158,5 +149,4 @@ Freigaberegel fuer `S98`:
 Gesamt:
 
 - `release_candidate`
-- `noch_nicht_stabil`
-- Zusammenfassung:
+- Zusammenfassung: Technische Stabilisierung erfolgreich (Builds + fokussierte Regressionen gruen). Resthinweis: finale interaktive UI-Abnahme im laufenden Betrieb bleibt empfohlen.

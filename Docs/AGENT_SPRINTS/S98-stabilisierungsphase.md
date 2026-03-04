@@ -2,8 +2,67 @@
 
 **Branch:** `feature/sprint-98-stabilization`
 **Gruppe:** A
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S61-S81 als integrierter Produktstand
+
+## Umsetzung (2026-03-04)
+
+### UX
+
+- Frontend-Build verifiziert (`planner-frontend`) und Kern-Regressionen fuer Hauptseitennahe API-Pfade gruen.
+- Referenzbild-Regression in Room-Tests bereinigt (`Prisma.JsonNull` statt `null` in `rooms.test.ts`).
+- Survey-Import- und Layout-/Viewer-/Level-Pfade regressionsgeprueft.
+
+### Security
+
+- Quote-Kernpfade tenant-gescoped gehaertet:
+	- `POST /projects/:id/create-quote`
+	- `GET /quotes/:id`
+	- `POST /quotes/:id/export-pdf`
+- Fremdzugriffstests ergaenzt (`quotes.test.ts`):
+	- quote create fuer projektfremden Tenant -> `404`
+	- quote read ausserhalb Tenant-Scope -> `404`
+
+### Findings
+
+- Build-Breaker behoben:
+	- `imports.ts`: `pathString` strict typing
+	- `egiParser.ts`: nullable-section assignment fix
+	- `egiMapper.ts`: explizite Punkt-Typisierung in Wall-Mapping
+- Test-Breaker behoben:
+	- `rooms.test.ts` auf `Prisma.JsonNull` angepasst
+	- `tenantSettings.test.ts` auf tenant-gescopte `quote.findFirst`-Pfade angepasst
+
+### Logik
+
+- EGI-Import-Logik gegen Kernpfade regressionsgeprueft (`surveyImport`, `rooms`, `exports`, `quotes`, `tenantSettings`).
+- Keine neuen Feature-Silos hinzugefuegt; nur Stabilisierung/Absicherung bestehender Flows.
+
+### Security-Review-Liste (gepruefte Routen)
+
+- `POST /projects/:id/create-quote`
+- `GET /quotes/:id`
+- `POST /quotes/:id/export-pdf`
+- `POST /quotes/:id/resequence-lines`
+- `POST /quotes/:id/recalculate-financials`
+- `POST /rooms/:id/measurement-import`
+- `POST /rooms/:id/survey-import/egi`
+- `POST /survey-import/formats/egi/parse`
+- `GET /tenant/settings`, `PUT /tenant/settings`
+- `GET /tenant/project-defaults`, `PUT /tenant/project-defaults`
+
+### Verifikation (technisch)
+
+- `npm run build --workspace planner-api` -> erfolgreich
+- `npm run build --workspace planner-frontend` -> erfolgreich
+- Fokussierte Kern-Suites -> gruen:
+	- `projects`, `rooms`, `layoutSheets`, `viewerExports`, `tenantSettings`, `levels`, `exports`, `quotes`, `surveyImport`, `egiParser`, `egiMapper`
+	- Ergebnis: `11` Testdateien, `107` Tests, alle gruen
+
+### Offene Restpunkte
+
+- Vite-Bundle-Warnung zu Chunk-Groesse bleibt bestehen (kein funktionaler Blocker in S98).
+- Manuelle UI-Abnahme bleibt ueber `Docs/S98_GOLDENE_PFADE_CHECKLISTE.md` nachvollzogen.
 
 ---
 

@@ -76,6 +76,143 @@ const ImportJobParamsSchema = z.object({
   id: z.string().uuid(),
 })
 
+const ProjectParamsSchema = z.object({
+  id: z.string().uuid(),
+})
+
+const RaumaufmassPointSchema = z.object({
+  x_mm: z.number().finite(),
+  y_mm: z.number().finite(),
+})
+
+const RaumaufmassWallSchema = z
+  .object({
+    label: z.string().min(1).max(200).optional(),
+    start: RaumaufmassPointSchema.optional(),
+    end: RaumaufmassPointSchema.optional(),
+    length_mm: z.number().positive().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if ((value.start && !value.end) || (!value.start && value.end)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Wall start and end must be provided together.',
+      })
+    }
+
+    if (!value.length_mm && !(value.start && value.end)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Wall needs either start/end coordinates or length_mm.',
+      })
+    }
+  })
+
+const RaumaufmassOpeningSchema = z.object({
+  kind: z.enum(['door', 'window', 'opening']).optional(),
+  wall_index: z.number().int().min(0).optional(),
+  offset_mm: z.number().min(0).optional(),
+  width_mm: z.number().positive(),
+  height_mm: z.number().positive().optional(),
+  sill_height_mm: z.number().min(0).optional(),
+  notes: z.string().max(500).optional(),
+})
+
+const RaumaufmassReferenceSchema = z.object({
+  image_url: z.string().url().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  rotation: z.number().min(-360).max(360).optional(),
+  scale: z.number().min(0.01).max(100).optional(),
+  opacity: z.number().min(0).max(1).optional(),
+})
+
+const RaumaufmassRoomSchema = z.object({
+  external_id: z.string().min(1).max(255).optional(),
+  name: z.string().min(1).max(200).optional(),
+  width_mm: z.number().positive().optional(),
+  depth_mm: z.number().positive().optional(),
+  height_mm: z.number().positive().optional(),
+  boundary: z.object({
+    vertices: z.array(RaumaufmassPointSchema).min(3).max(128),
+  }).optional(),
+  walls: z.array(RaumaufmassWallSchema).max(256).optional(),
+  openings: z.array(RaumaufmassOpeningSchema).max(256).optional(),
+  reference: RaumaufmassReferenceSchema.optional(),
+})
+
+const RaumaufmassEnvelopeSchema = z
+  .object({
+    source_filename: z.string().min(1).max(255).optional(),
+    rooms: z.array(RaumaufmassRoomSchema).optional(),
+    survey: z.object({
+      rooms: z.array(RaumaufmassRoomSchema).default([]),
+      metadata: z.record(z.unknown()).optional(),
+    }).optional(),
+    metadata: z.record(z.unknown()).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const roomCount = value.rooms?.length ?? value.survey?.rooms.length ?? 0
+    if (roomCount < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['rooms'],
+        message: 'At least one room entry is required.',
+      })
+    }
+  })
+
+type RaumaufmassDiagnosticEntry = {
+  code: string
+  path: string
+  message: string
+}
+
+type RaumaufmassDiagnostics = {
+  warnings: RaumaufmassDiagnosticEntry[]
+  errors: RaumaufmassDiagnosticEntry[]
+}
+
+type RaumaufmassPreviewRoom = {
+  index: number
+  name: string
+  height_mm: number
+  boundary_vertices: number
+  wall_segments: number
+  openings_count: number
+  warning_count: number
+}
+
+type RaumaufmassPreview = {
+  rooms: RaumaufmassPreviewRoom[]
+  summary: {
+    room_count: number
+    opening_count: number
+    warning_count: number
+    error_count: number
+  }
+}
+
+type RaumaufmassPreparedRoom = {
+  name: string
+  ceiling_height_mm: number
+  boundary: {
+    vertices: Array<{ id: string; x_mm: number; y_mm: number; index: number }>
+    wall_segments: Array<{ id: string; index: number; start_vertex_id: string; end_vertex_id: string }>
+  }
+  openings: Array<Record<string, unknown>>
+  measure_lines: Array<Record<string, unknown>>
+  reference_image: Record<string, unknown> | null
+}
+
+type RaumaufmassEvaluation = {
+  valid: boolean
+  source_filename: string
+  diagnostics: RaumaufmassDiagnostics
+  preview: RaumaufmassPreview
+  prepared_rooms: RaumaufmassPreparedRoom[]
+}
+
 function decodeBase64(value: string): Buffer {
   return Buffer.from(value, 'base64')
 }
@@ -269,7 +406,7 @@ function createSkpProtocol(referenceModel: ReturnType<typeof applySkpComponentMa
 
 async function createQueuedImportJob(
   projectId: string,
-  sourceFormat: 'dxf' | 'dwg' | 'skp',
+  sourceFormat: 'dxf' | 'dwg' | 'skp' | 'raumaufmass_json',
   sourceFilename: string,
   fileSizeBytes: number,
 ) {
@@ -290,6 +427,279 @@ async function createQueuedImportJob(
   })
 
   return queuedJob
+}
+
+function pathString(parts: Array<string | number>): string {
+  if (parts.length === 0) {
+    return '$'
+  }
+
+  return parts.reduce<string>((acc, part) => {
+    if (typeof part === 'number') {
+      return `${acc}[${part}]`
+    }
+    return `${acc}.${part}`
+  }, '$')
+}
+
+function diagnosticsFromZod(error: z.ZodError): RaumaufmassDiagnostics {
+  return {
+    warnings: [],
+    errors: error.errors.map((issue) => ({
+      code: issue.code,
+      path: pathString(issue.path),
+      message: issue.message,
+    })),
+  }
+}
+
+function createBoundaryFromVertices(vertices: Array<{ x_mm: number; y_mm: number }>) {
+  const normalizedVertices = vertices.map((vertex, index) => ({
+    id: randomUUID(),
+    x_mm: vertex.x_mm,
+    y_mm: vertex.y_mm,
+    index,
+  }))
+
+  const wallSegments = normalizedVertices.map((vertex, index) => ({
+    id: randomUUID(),
+    index,
+    start_vertex_id: vertex.id,
+    end_vertex_id: normalizedVertices[(index + 1) % normalizedVertices.length].id,
+  }))
+
+  return {
+    vertices: normalizedVertices,
+    wall_segments: wallSegments,
+  }
+}
+
+function createBoundaryFromDimensions(widthMm: number, depthMm: number) {
+  return createBoundaryFromVertices([
+    { x_mm: 0, y_mm: 0 },
+    { x_mm: widthMm, y_mm: 0 },
+    { x_mm: widthMm, y_mm: depthMm },
+    { x_mm: 0, y_mm: depthMm },
+  ])
+}
+
+function createMeasureLinesFromWalls(walls: z.infer<typeof RaumaufmassWallSchema>[] | undefined) {
+  const warnings: RaumaufmassDiagnosticEntry[] = []
+  if (!walls || walls.length === 0) {
+    return {
+      measure_lines: [] as Array<Record<string, unknown>>,
+      warnings,
+    }
+  }
+
+  let fallbackCursorX = 0
+  const measureLines = walls.flatMap((wall, wallIndex) => {
+    if (wall.start && wall.end) {
+      return [{
+        id: randomUUID(),
+        room_id: null,
+        points: [wall.start, wall.end],
+        label: wall.label ?? `Wand ${wallIndex + 1}`,
+        is_chain: false,
+      }]
+    }
+
+    if (wall.length_mm) {
+      const start = { x_mm: fallbackCursorX, y_mm: 0 }
+      const end = { x_mm: fallbackCursorX + wall.length_mm, y_mm: 0 }
+      fallbackCursorX += wall.length_mm + 100
+      warnings.push({
+        code: 'wall_coordinates_missing',
+        path: `$.rooms[*].walls[${wallIndex}]`,
+        message: 'Wall has no coordinates; generated a synthetic measure line from length_mm.',
+      })
+      return [{
+        id: randomUUID(),
+        room_id: null,
+        points: [start, end],
+        label: wall.label ?? `Wand ${wallIndex + 1}`,
+        is_chain: false,
+      }]
+    }
+
+    return []
+  })
+
+  return {
+    measure_lines: measureLines,
+    warnings,
+  }
+}
+
+function evaluateRaumaufmassPayload(payload: unknown): RaumaufmassEvaluation {
+  const parsed = RaumaufmassEnvelopeSchema.safeParse(payload)
+  if (!parsed.success) {
+    return {
+      valid: false,
+      source_filename: 'raumaufmass.json',
+      diagnostics: diagnosticsFromZod(parsed.error),
+      preview: {
+        rooms: [],
+        summary: {
+          room_count: 0,
+          opening_count: 0,
+          warning_count: 0,
+          error_count: parsed.error.errors.length,
+        },
+      },
+      prepared_rooms: [],
+    }
+  }
+
+  const rooms = parsed.data.survey?.rooms ?? parsed.data.rooms ?? []
+  const warnings: RaumaufmassDiagnosticEntry[] = []
+  const errors: RaumaufmassDiagnosticEntry[] = []
+  const preparedRooms: RaumaufmassPreparedRoom[] = []
+  const previewRooms: RaumaufmassPreviewRoom[] = []
+  let openingCount = 0
+
+  rooms.forEach((room, roomIndex) => {
+    const roomPath = `$.rooms[${roomIndex}]`
+    const roomWarningsStart = warnings.length
+
+    const name = room.name?.trim() || `Raum ${roomIndex + 1}`
+    if (!room.name || room.name.trim().length === 0) {
+      warnings.push({
+        code: 'room_name_fallback',
+        path: `${roomPath}.name`,
+        message: `Room name missing; fallback '${name}' applied.`,
+      })
+    }
+
+    const ceilingHeight = room.height_mm ? Math.max(1000, Math.round(room.height_mm)) : 2500
+    if (!room.height_mm) {
+      warnings.push({
+        code: 'height_defaulted',
+        path: `${roomPath}.height_mm`,
+        message: 'Room height missing; default 2500 mm applied.',
+      })
+    }
+
+    let boundary: ReturnType<typeof createBoundaryFromVertices> | null = null
+    if (room.boundary?.vertices && room.boundary.vertices.length >= 3) {
+      boundary = createBoundaryFromVertices(room.boundary.vertices)
+    } else if (room.width_mm && room.depth_mm) {
+      boundary = createBoundaryFromDimensions(room.width_mm, room.depth_mm)
+      warnings.push({
+        code: 'boundary_derived_from_dimensions',
+        path: `${roomPath}.boundary`,
+        message: 'Boundary not provided; rectangular boundary created from width/depth.',
+      })
+    } else if (room.walls && room.walls.length >= 3) {
+      const wallPoints = room.walls.flatMap((wall) => (wall.start && wall.end ? [wall.start, wall.end] : []))
+      if (wallPoints.length >= 3) {
+        const xs = wallPoints.map((point) => point.x_mm)
+        const ys = wallPoints.map((point) => point.y_mm)
+        const minX = Math.min(...xs)
+        const maxX = Math.max(...xs)
+        const minY = Math.min(...ys)
+        const maxY = Math.max(...ys)
+
+        if (maxX > minX && maxY > minY) {
+          boundary = createBoundaryFromDimensions(maxX - minX, maxY - minY)
+          warnings.push({
+            code: 'boundary_derived_from_walls',
+            path: `${roomPath}.walls`,
+            message: 'Boundary derived from wall extents.',
+          })
+        }
+      }
+    }
+
+    if (!boundary) {
+      errors.push({
+        code: 'room_geometry_missing',
+        path: roomPath,
+        message: 'Room requires boundary vertices, width/depth, or wall coordinates.',
+      })
+      return
+    }
+
+    const openingEntries = (room.openings ?? []).map((opening, openingIndex) => {
+      if (
+        opening.wall_index !== undefined
+        && opening.wall_index >= boundary!.wall_segments.length
+      ) {
+        warnings.push({
+          code: 'opening_wall_out_of_range',
+          path: `${roomPath}.openings[${openingIndex}].wall_index`,
+          message: 'Opening wall_index exceeds boundary wall segment count.',
+        })
+      }
+
+      return {
+        id: randomUUID(),
+        kind: opening.kind ?? 'opening',
+        wall_index: opening.wall_index ?? null,
+        offset_mm: opening.offset_mm ?? null,
+        width_mm: opening.width_mm,
+        height_mm: opening.height_mm ?? null,
+        sill_height_mm: opening.sill_height_mm ?? null,
+        notes: opening.notes ?? null,
+      }
+    })
+
+    openingCount += openingEntries.length
+    const measureLineResult = createMeasureLinesFromWalls(room.walls)
+    warnings.push(...measureLineResult.warnings.map((entry) => ({
+      ...entry,
+      path: entry.path.replace('$.rooms[*]', roomPath),
+    })))
+
+    const referenceImage = room.reference?.image_url
+      ? {
+        url: room.reference.image_url,
+        x: room.reference.x ?? 50,
+        y: room.reference.y ?? 50,
+        rotation: room.reference.rotation ?? 0,
+        scale: room.reference.scale ?? 1,
+        opacity: room.reference.opacity ?? 0.5,
+      }
+      : null
+
+    preparedRooms.push({
+      name,
+      ceiling_height_mm: ceilingHeight,
+      boundary,
+      openings: openingEntries,
+      measure_lines: measureLineResult.measure_lines,
+      reference_image: referenceImage,
+    })
+
+    previewRooms.push({
+      index: roomIndex,
+      name,
+      height_mm: ceilingHeight,
+      boundary_vertices: boundary.vertices.length,
+      wall_segments: boundary.wall_segments.length,
+      openings_count: openingEntries.length,
+      warning_count: warnings.length - roomWarningsStart,
+    })
+  })
+
+  return {
+    valid: errors.length === 0,
+    source_filename: parsed.data.source_filename ?? 'raumaufmass.json',
+    diagnostics: {
+      warnings,
+      errors,
+    },
+    preview: {
+      rooms: previewRooms,
+      summary: {
+        room_count: previewRooms.length,
+        opening_count: openingCount,
+        warning_count: warnings.length,
+        error_count: errors.length,
+      },
+    },
+    prepared_rooms: preparedRooms,
+  }
 }
 
 async function finalizeImportJob(
@@ -644,6 +1054,159 @@ export async function importRoutes(app: FastifyInstance) {
     }
 
     return reply.send(getImportAssetMappingState(importJob.import_asset))
+  })
+
+  app.post<{ Params: { id: string } }>('/projects/:id/validate/raumaufmass', async (request, reply) => {
+    const tenantId = getTenantId(request)
+    if (!tenantId) {
+      return sendForbidden(reply, 'Tenant scope is required')
+    }
+
+    const parsedParams = ProjectParamsSchema.safeParse(request.params)
+    if (!parsedParams.success) {
+      return sendBadRequest(reply, parsedParams.error.errors[0].message)
+    }
+
+    const project = await findProjectInTenantScope(parsedParams.data.id, tenantId)
+    if (!project) {
+      return sendNotFound(reply, 'Project not found in tenant scope')
+    }
+
+    const evaluation = evaluateRaumaufmassPayload(request.body)
+    return reply.send(evaluation)
+  })
+
+  app.post<{ Params: { id: string } }>('/projects/:id/import/raumaufmass', async (request, reply) => {
+    const tenantId = getTenantId(request)
+    if (!tenantId) {
+      return sendForbidden(reply, 'Tenant scope is required')
+    }
+
+    const parsedParams = ProjectParamsSchema.safeParse(request.params)
+    if (!parsedParams.success) {
+      return sendBadRequest(reply, parsedParams.error.errors[0].message)
+    }
+
+    const project = await findProjectInTenantScope(parsedParams.data.id, tenantId)
+    if (!project) {
+      return sendNotFound(reply, 'Project not found in tenant scope')
+    }
+
+    const evaluation = evaluateRaumaufmassPayload(request.body)
+    if (!evaluation.valid) {
+      return reply.status(400).send(evaluation)
+    }
+
+    const sourceBuffer = Buffer.from(JSON.stringify(request.body ?? {}), 'utf8')
+    const importJob = await createQueuedImportJob(
+      project.id,
+      'raumaufmass_json',
+      evaluation.source_filename,
+      sourceBuffer.byteLength,
+    )
+
+    try {
+      const createdRooms = [] as Array<{ id: string }>
+
+      for (const preparedRoom of evaluation.prepared_rooms) {
+        const room = await prisma.room.create({
+          data: {
+            project_id: project.id,
+            name: preparedRoom.name,
+            ceiling_height_mm: preparedRoom.ceiling_height_mm,
+            boundary: preparedRoom.boundary as Prisma.InputJsonValue,
+            openings: preparedRoom.openings as Prisma.InputJsonValue,
+            measure_lines: preparedRoom.measure_lines as Prisma.InputJsonValue,
+            ...(preparedRoom.reference_image
+              ? { reference_image: preparedRoom.reference_image as Prisma.InputJsonValue }
+              : {}),
+          },
+          select: { id: true },
+        })
+
+        createdRooms.push(room)
+      }
+
+      const protocol = [
+        {
+          entity_id: null,
+          status: 'imported' as const,
+          reason: `Imported ${createdRooms.length} room(s) from ${evaluation.source_filename}.`,
+        },
+        ...evaluation.diagnostics.warnings.map((warning) => ({
+          entity_id: null,
+          status: 'needs_review' as const,
+          reason: `${warning.path}: ${warning.message}`,
+        })),
+      ]
+
+      const importAsset = {
+        id: randomUUID(),
+        import_job_id: importJob.id,
+        source_format: 'raumaufmass_json',
+        source_filename: evaluation.source_filename,
+        created_at: nowIsoString(),
+        diagnostics: evaluation.diagnostics,
+        preview: evaluation.preview,
+        imported_room_ids: createdRooms.map((room) => room.id),
+      }
+
+      const completedJob = await finalizeImportJob(importJob.id, importAsset, protocol)
+
+      await registerProjectDocument({
+        projectId: project.id,
+        tenantId,
+        filename: evaluation.source_filename,
+        originalFilename: evaluation.source_filename,
+        mimeType: 'application/json',
+        uploadedBy: 'system:raumaufmass-import',
+        type: 'cad_import',
+        tags: ['import', 'raumaufmass', 'json'],
+        sourceKind: 'import_job',
+        sourceId: importJob.id,
+        buffer: sourceBuffer,
+      })
+
+      return reply.status(201).send({
+        job_id: completedJob.id,
+        imported_rooms: createdRooms.length,
+        room_ids: createdRooms.map((room) => room.id),
+        diagnostics: evaluation.diagnostics,
+        preview: evaluation.preview,
+      })
+    } catch (error) {
+      const message = await failImportJob(importJob.id, error)
+      return sendServerError(reply, message)
+    }
+  })
+
+  app.get<{ Params: { id: string } }>('/projects/:id/raumaufmass-jobs', async (request, reply) => {
+    const tenantId = getTenantId(request)
+    if (!tenantId) {
+      return sendForbidden(reply, 'Tenant scope is required')
+    }
+
+    const parsedParams = ProjectParamsSchema.safeParse(request.params)
+    if (!parsedParams.success) {
+      return sendBadRequest(reply, parsedParams.error.errors[0].message)
+    }
+
+    const project = await findProjectInTenantScope(parsedParams.data.id, tenantId)
+    if (!project) {
+      return sendNotFound(reply, 'Project not found in tenant scope')
+    }
+
+    const jobs = await prisma.importJob.findMany({
+      where: {
+        project_id: project.id,
+        source_format: 'raumaufmass_json',
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    })
+
+    return reply.send(jobs)
   })
 
   app.post('/imports', async (request, reply) => {

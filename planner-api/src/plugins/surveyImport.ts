@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import type { OkpPlugin } from './pluginRegistry.js'
+import { surveyImportRoutes } from '../routes/surveyImport.js'
 
-async function surveyImportPluginRoutes(_app: FastifyInstance): Promise<void> {
-  // Measurement-Import wird aktuell über Core-Route bereitgestellt,
-  // die Aktivierung erfolgt tenant-spezifisch über dieses Plugin.
+async function surveyImportPluginRoutes(app: FastifyInstance): Promise<void> {
+  await app.register(surveyImportRoutes)
 }
 
 export const surveyImportPlugin: OkpPlugin = {

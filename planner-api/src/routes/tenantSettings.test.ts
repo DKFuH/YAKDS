@@ -9,7 +9,7 @@ const { prismaMock } = vi.hoisted(() => {
       findUnique: vi.fn(),
       upsert: vi.fn(),
     },
-    quote: { findUnique: vi.fn() },
+    quote: { findFirst: vi.fn() },
     lead: { findFirst: vi.fn() },
   }
   return { prismaMock: mock }
@@ -39,6 +39,9 @@ function makeApp() {
 
 function makeQuoteApp() {
   const app = Fastify()
+  app.addHook('onRequest', async (req) => {
+    ;(req as unknown as { tenantId: string }).tenantId = TENANT_ID
+  })
   app.register(quoteRoutes, { prefix: '/api/v1' })
   return app
 }
@@ -250,7 +253,7 @@ describe('tenantSettingsRoutes', () => {
 
   // Test 4: export-pdf with TenantSetting → PDF contains company_name
   it('POST /quotes/:id/export-pdf with TenantSetting includes company_name in PDF', async () => {
-    prismaMock.quote.findUnique.mockResolvedValue({
+    prismaMock.quote.findFirst.mockResolvedValue({
       id: '44444444-4444-4444-4444-444444444444',
       version: 1,
       quote_number: 'ANG-2026-0001',
@@ -294,7 +297,7 @@ describe('tenantSettingsRoutes', () => {
 
   // Test 5: export-pdf without TenantSetting → no crash
   it('POST /quotes/:id/export-pdf without TenantSetting does not crash', async () => {
-    prismaMock.quote.findUnique.mockResolvedValue({
+    prismaMock.quote.findFirst.mockResolvedValue({
       id: '44444444-4444-4444-4444-444444444444',
       version: 1,
       quote_number: 'ANG-2026-0002',
@@ -324,7 +327,7 @@ describe('tenantSettingsRoutes', () => {
 
   // Test 6: export-pdf with Lead → recipient block set
   it('POST /quotes/:id/export-pdf with Lead sets recipient block', async () => {
-    prismaMock.quote.findUnique.mockResolvedValue({
+    prismaMock.quote.findFirst.mockResolvedValue({
       id: '44444444-4444-4444-4444-444444444444',
       version: 1,
       quote_number: 'ANG-2026-0003',
