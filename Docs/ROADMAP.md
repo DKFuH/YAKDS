@@ -1229,7 +1229,7 @@ Editor-Spielerei. Die Phase trennt bewusst 2D-Kern, Bemaßung/Layout und
 |--------|--------|-------|--------------|
 | 71 | `done` | Gebogene Waende im 2D-Kern | Arc-Wall-Typ, Radius-Handles, Snap-Logik, Oeffnungen auf Boegen |
 | 72 | `done` | Bogen-Bemaßung & Layout | Radius-, Bogenlaengen- und Sehnenmasse, Arc-Annotations in Sheets |
-| 73 | `planned` | Gebogene Waende in 3D & Interop | segmentierte Extrusion, GLTF-/IFC-/DXF-Unterstuetzung |
+| 73 | `done` | Gebogene Waende in 3D & Interop | segmentierte Extrusion, GLTF-/IFC-/DXF-Unterstuetzung |
 
 ### Sprint-Metadaten
 

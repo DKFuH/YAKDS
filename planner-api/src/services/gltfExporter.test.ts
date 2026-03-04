@@ -51,4 +51,25 @@ describe('gltfExporter', () => {
 
     expect(result).toBeInstanceOf(Buffer)
   })
+
+  it('exports arc walls as GLB', async () => {
+    const result = await exportToGlb({
+      walls: [
+        {
+          id: 'arc-1',
+          kind: 'arc',
+          start: { x_mm: 1000, y_mm: 0 },
+          end: { x_mm: 0, y_mm: 1000 },
+          center: { x_mm: 0, y_mm: 0 },
+          radius_mm: 1000,
+          clockwise: false,
+          thickness_mm: 100,
+        },
+      ],
+      placements: [],
+    })
+
+    expect(result).toBeInstanceOf(Buffer)
+    expect(result.length).toBeGreaterThan(100)
+  })
 })

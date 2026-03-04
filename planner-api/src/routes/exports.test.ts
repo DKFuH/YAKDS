@@ -246,6 +246,47 @@ describe('exportRoutes', () => {
     await app.close()
   })
 
+  it('exports GLB when room contains arc wall segment', async () => {
+    prismaMock.project.findFirst.mockResolvedValueOnce({
+      id: projectId,
+      rooms: [
+        {
+          ceiling_height_mm: 2500,
+          boundary: {
+            wall_segments: [
+              {
+                id: 'arc-1',
+                kind: 'arc',
+                start: { x_mm: 1000, y_mm: 0 },
+                end: { x_mm: 0, y_mm: 1000 },
+                center: { x_mm: 0, y_mm: 0 },
+                radius_mm: 1000,
+                clockwise: false,
+                thickness_mm: 100,
+              },
+            ],
+          },
+          placements: [],
+        },
+      ],
+    })
+
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(exportRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/alternatives/alt-1/export/gltf',
+      headers: { 'x-tenant-id': tenantId },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.rawPayload.readUInt32LE(0)).toBe(0x46546c67)
+
+    await app.close()
+  })
+
   it('returns 404 when alternative does not exist for tenant scope', async () => {
     prismaMock.alternative.findFirst.mockResolvedValueOnce(null)
 

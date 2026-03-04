@@ -1,7 +1,6 @@
 # AGENT_SPRINTS - Sprint-Dokumentation
 
-Sprints `S47` bis `S72` sind implementiert und gemergt.
-`S73` ist als naechster Backlog vorbereitet.
+Sprints `S47` bis `S73` sind implementiert und gemergt.
 
 Stand: 2026-03-04
 
@@ -37,6 +36,7 @@ Stand: 2026-03-04
 | 70 | `S70-spezifikationsblaetter-werkstattpaket.md` | done | `local` | +4 |
 | 71 | `S71-gebogene-waende-2d-kern.md` | done | `local` | +9 |
 | 72 | `S72-bogen-bemassung-layout.md` | done | `local` | +39 |
+| 73 | `S73-bogen-3d-interop.md` | done | `local` | +8 |
 
 ---
 
@@ -61,4 +61,4 @@ Stand: 2026-03-04
 | 70 | `S70-spezifikationsblaetter-werkstattpaket.md` | done | Spezifikationsblaetter und Werkstattpakete aus Quote, BOM, Cutlist und Nesting |
 | 71 | `S71-gebogene-waende-2d-kern.md` | done | Gebogene Waende als eigener 2D-Geometrietyp mit Oeffnungen und Snap-Logik |
 | 72 | `S72-bogen-bemassung-layout.md` | done | Radius-, Bogenlaengen- und Sehnenmasse in Sheets und Detailansichten |
-| 73 | `S73-bogen-3d-interop.md` | planned | Gebogene Waende in 3D, GLTF, IFC und DXF/DWG-Interop |
+| 73 | `S73-bogen-3d-interop.md` | done | Gebogene Waende in 3D, GLTF, IFC und DXF/DWG-Interop |

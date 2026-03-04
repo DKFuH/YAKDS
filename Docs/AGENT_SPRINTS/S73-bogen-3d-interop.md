@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-73-arc-walls-3d-interop`
 **Gruppe:** B (startbar nach S71)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S51 (GLTF), S52 (IFC), S53 (DWG/SKP), S71 (Arc-Walls), S72 (Arc-Bemaßung)
 
 ---
@@ -112,5 +112,5 @@ Mindestens:
 
 ## 6. Roadmap-Update
 
-- Sprint 73 in `Docs/ROADMAP.md` als `planned` aufnehmen
+- Sprint 73 in `Docs/ROADMAP.md` als `done` markieren
 - `Docs/AGENT_SPRINTS/README.md` um Sprint 73 erweitern

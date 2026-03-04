@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
+import { tessellateArcWall } from './arcWallMesher.js'
 
 function ensureNodeFileReader() {
   const globalScope = globalThis as unknown as { FileReader?: unknown }
@@ -55,10 +56,17 @@ export interface PlacedObject {
 
 export interface WallSegment {
   id: string
-  x0_mm: number
-  y0_mm: number
-  x1_mm: number
-  y1_mm: number
+  kind?: 'line' | 'arc'
+  x0_mm?: number
+  y0_mm?: number
+  x1_mm?: number
+  y1_mm?: number
+  start?: { x_mm: number; y_mm: number }
+  end?: { x_mm: number; y_mm: number }
+  center?: { x_mm: number; y_mm: number }
+  radius_mm?: number
+  clockwise?: boolean
+  thickness_mm?: number
 }
 
 export interface GltfExportInput {
@@ -76,6 +84,50 @@ export async function exportToGlb(input: GltfExportInput): Promise<Buffer> {
   const roomHeight = (input.room_height_mm ?? 2500) * MM_TO_M
 
   for (const wall of input.walls) {
+    if (
+      wall.kind === 'arc' &&
+      wall.start &&
+      wall.end &&
+      wall.center &&
+      typeof wall.radius_mm === 'number'
+    ) {
+      const meshed = tessellateArcWall({
+        start: wall.start,
+        end: wall.end,
+        center: wall.center,
+        radius_mm: wall.radius_mm,
+        clockwise: Boolean(wall.clockwise),
+        thickness_mm: wall.thickness_mm ?? 100,
+      }, {
+        wall_height_mm: input.room_height_mm ?? 2500,
+      })
+
+      const shape = new THREE.Shape(
+        meshed.footprint.map((point, index) => new THREE.Vector2(point.x_mm * MM_TO_M, point.y_mm * MM_TO_M)),
+      )
+
+      const arcGeometry = new THREE.ExtrudeGeometry(shape, {
+        depth: roomHeight,
+        bevelEnabled: false,
+      })
+      arcGeometry.rotateX(Math.PI / 2)
+
+      const arcMesh = new THREE.Mesh(arcGeometry, new THREE.MeshStandardMaterial({ color: 0xcccccc }))
+      arcMesh.position.set(0, roomHeight, 0)
+      arcMesh.name = `wall_${wall.id}`
+      scene.add(arcMesh)
+      continue
+    }
+
+    if (
+      typeof wall.x0_mm !== 'number' ||
+      typeof wall.y0_mm !== 'number' ||
+      typeof wall.x1_mm !== 'number' ||
+      typeof wall.y1_mm !== 'number'
+    ) {
+      continue
+    }
+
     const dx = (wall.x1_mm - wall.x0_mm) * MM_TO_M
     const dy = (wall.y1_mm - wall.y0_mm) * MM_TO_M
     const length = Math.hypot(dx, dy)

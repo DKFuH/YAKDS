@@ -9,7 +9,20 @@ const ParamsSchema = z.object({
 })
 
 type ExportBoundary = {
-  wall_segments?: Array<{ x0_mm: number; y0_mm: number; x1_mm: number; y1_mm: number }>
+  wall_segments?: Array<{
+    id?: string
+    kind?: 'line' | 'arc'
+    x0_mm?: number
+    y0_mm?: number
+    x1_mm?: number
+    y1_mm?: number
+    start?: { x_mm: number; y_mm: number }
+    end?: { x_mm: number; y_mm: number }
+    center?: { x_mm: number; y_mm: number }
+    radius_mm?: number
+    clockwise?: boolean
+    thickness_mm?: number
+  }>
 }
 
 type ExportPlacement = {

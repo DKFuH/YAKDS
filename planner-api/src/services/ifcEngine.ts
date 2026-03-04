@@ -1,6 +1,7 @@
 import path from 'path'
 import { pathToFileURL } from 'url'
 import * as WebIFC from 'web-ifc'
+import { flattenWallsToLineSegments } from './arcInterop.js'
 
 type IfcEntityWithValue = { value?: unknown }
 type IfcPointLike = Array<IfcEntityWithValue | number>
@@ -25,10 +26,18 @@ async function getApi(): Promise<WebIFC.IfcAPI> {
 }
 
 export interface IfcWallSegment {
+  kind?: 'line' | 'arc'
+  id?: string
   x0_mm: number
   y0_mm: number
   x1_mm: number
   y1_mm: number
+  start?: { x_mm: number; y_mm: number }
+  end?: { x_mm: number; y_mm: number }
+  center?: { x_mm: number; y_mm: number }
+  radius_mm?: number
+  clockwise?: boolean
+  thickness_mm?: number
 }
 
 export interface IfcRoom {
@@ -88,6 +97,43 @@ function getCoordinatesFromWallLine(wallLine: unknown): IfcPointLike | null {
   return coordinates
 }
 
+function segmentTag(segment: IfcWallSegment): string {
+  return [
+    'WALL',
+    Math.round(segment.x0_mm),
+    Math.round(segment.y0_mm),
+    Math.round(segment.x1_mm),
+    Math.round(segment.y1_mm),
+  ].join('|')
+}
+
+function parseSegmentTag(rawName: unknown): IfcWallSegment | null {
+  if (typeof rawName !== 'string') {
+    return null
+  }
+
+  const match = /^WALL\|(-?\d+)\|(-?\d+)\|(-?\d+)\|(-?\d+)$/.exec(rawName.trim())
+  if (!match) {
+    return null
+  }
+
+  const x0 = Number.parseInt(match[1] ?? '', 10)
+  const y0 = Number.parseInt(match[2] ?? '', 10)
+  const x1 = Number.parseInt(match[3] ?? '', 10)
+  const y1 = Number.parseInt(match[4] ?? '', 10)
+
+  if (!Number.isFinite(x0) || !Number.isFinite(y0) || !Number.isFinite(x1) || !Number.isFinite(y1)) {
+    return null
+  }
+
+  return {
+    x0_mm: x0,
+    y0_mm: y0,
+    x1_mm: x1,
+    y1_mm: y1,
+  }
+}
+
 function buildStepHeader(projectName: string): string[] {
   return [
     'ISO-10303-21;',
@@ -117,6 +163,12 @@ function buildStepEntities(options: IfcExportOptions): string[] {
 
   for (const room of options.rooms) {
     next(`IFCSPACE('0','$','${sanitizeIfcText(room.name)}',$,$,$,$,$,$,$)`)
+
+    const boundaryWalls = room.boundary?.wall_segments ?? []
+    const approximatedWalls = flattenWallsToLineSegments(boundaryWalls)
+    for (const wall of approximatedWalls) {
+      next(`IFCWALL('0','$','${segmentTag(wall)}',$,$,$,$,$)`)
+    }
 
     for (const placement of room.placements) {
       const itemName = sanitizeIfcText(placement.article_name)
@@ -156,13 +208,17 @@ export async function parseIfcRooms(buffer: Buffer): Promise<IfcRoom[]> {
       const lineId = walls.get(index)
       const wallLine = api.GetLine(modelId, lineId, true)
       const coordinates = getCoordinatesFromWallLine(wallLine)
-      if (!coordinates) {
-        continue
+
+      let segmentFromName: IfcWallSegment | null = null
+      if (!coordinates && wallLine && typeof wallLine === 'object') {
+        const named = wallLine as { Name?: IfcEntityWithValue }
+        segmentFromName = parseSegmentTag(named.Name?.value)
       }
 
-      const x = toMm(coordinates[0])
-      const y = toMm(coordinates[1])
-      if (x === null || y === null) {
+      const x = coordinates ? toMm(coordinates[0]) : null
+      const y = coordinates ? toMm(coordinates[1]) : null
+
+      if (!segmentFromName && (x === null || y === null)) {
         continue
       }
 
@@ -174,12 +230,19 @@ export async function parseIfcRooms(buffer: Buffer): Promise<IfcRoom[]> {
         })
       }
 
-      rooms[0].wall_segments.push({
-        x0_mm: x,
-        y0_mm: y,
-        x1_mm: x + 1000,
-        y1_mm: y,
-      })
+      if (segmentFromName) {
+        rooms[0].wall_segments.push(segmentFromName)
+        continue
+      }
+
+      if (x !== null && y !== null) {
+        rooms[0].wall_segments.push({
+          x0_mm: x,
+          y0_mm: y,
+          x1_mm: x + 1000,
+          y1_mm: y,
+        })
+      }
     }
   } finally {
     api.CloseModel(modelId)

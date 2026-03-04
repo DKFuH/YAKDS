@@ -93,6 +93,43 @@ const DXF_WITHOUT_LINE = [
   'EOF',
 ].join('\n')
 
+const DXF_WITH_ARC = [
+  '0',
+  'SECTION',
+  '2',
+  'HEADER',
+  '9',
+  '$ACADVER',
+  '1',
+  'AC1015',
+  '0',
+  'ENDSEC',
+  '0',
+  'SECTION',
+  '2',
+  'ENTITIES',
+  '0',
+  'ARC',
+  '8',
+  'WALLS',
+  '10',
+  '0',
+  '20',
+  '0',
+  '30',
+  '0',
+  '40',
+  '1000',
+  '50',
+  '0',
+  '51',
+  '90',
+  '0',
+  'ENDSEC',
+  '0',
+  'EOF',
+].join('\n')
+
 async function createApp() {
   const app = Fastify()
   await app.register(cadInteropRoutes, { prefix: '/api/v1' })
@@ -188,6 +225,28 @@ describe('cadInteropRoutes', () => {
     await app.close()
   })
 
+  it('imports ARC entities and reports detection count', async () => {
+    const app = await createApp()
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/import/dwg`,
+      headers: {
+        'content-type': 'application/octet-stream',
+        'x-filename': 'bogen.dxf',
+      },
+      payload: Buffer.from(DXF_WITH_ARC, 'utf8'),
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(response.json()).toMatchObject({
+      arc_entities_detected: 1,
+      needs_review: false,
+    })
+
+    await app.close()
+  })
+
   it('returns 400 for empty body', async () => {
     const app = await createApp()
 
@@ -248,6 +307,42 @@ describe('cadInteropRoutes', () => {
 
     expect(response.statusCode).toBe(200)
     expect(response.body.includes('ENTITIES')).toBe(true)
+
+    await app.close()
+  })
+
+  it('exports ARC entities for arc walls in boundary', async () => {
+    prismaMock.room.findMany.mockResolvedValueOnce([
+      {
+        id: 'room-arc',
+        name: 'Bogenraum',
+        ceiling_height_mm: 2600,
+        boundary: {
+          wall_segments: [
+            {
+              id: 'arc-1',
+              kind: 'arc',
+              start: { x_mm: 1000, y_mm: 0 },
+              end: { x_mm: 0, y_mm: 1000 },
+              center: { x_mm: 0, y_mm: 0 },
+              radius_mm: 1000,
+              clockwise: false,
+            },
+          ],
+        },
+        placements: [],
+      },
+    ])
+
+    const app = await createApp()
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alternatives/${alternativeId}/export/dwg`,
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.body.includes('\nARC\n')).toBe(true)
 
     await app.close()
   })

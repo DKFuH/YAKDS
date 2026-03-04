@@ -5,6 +5,7 @@ import { sendBadRequest, sendNotFound } from '../errors.js'
 import { parseDwgBuffer } from '../services/interop/dwgImport.js'
 import { buildDwgBuffer } from '../services/interop/dwgExport.js'
 import { buildSkpRubyScript } from '../services/interop/skpExport.js'
+import { arcToLineSegments, isArcWallSegment } from '../services/arcInterop.js'
 
 const IdParamsSchema = z.object({
   id: z.string().uuid(),
@@ -16,10 +17,17 @@ const BatchExportQuerySchema = z.object({
 
 type BoundaryWall = {
   id?: string
-  x0_mm: number
-  y0_mm: number
-  x1_mm: number
-  y1_mm: number
+  kind?: 'line' | 'arc'
+  x0_mm?: number
+  y0_mm?: number
+  x1_mm?: number
+  y1_mm?: number
+  start?: { x_mm: number; y_mm: number }
+  end?: { x_mm: number; y_mm: number }
+  center?: { x_mm: number; y_mm: number }
+  radius_mm?: number
+  clockwise?: boolean
+  thickness_mm?: number
 }
 
 type RoomBoundary = {
@@ -49,7 +57,20 @@ function ensureBuffer(raw: unknown): Buffer | null {
 function mapRoomsForCadExport(
   rooms: Array<{ boundary: unknown; placements: unknown; ceiling_height_mm: number }>,
 ) {
-  const wallSegments: Array<{ id: string; x0_mm: number; y0_mm: number; x1_mm: number; y1_mm: number }> = []
+  const wallSegments: Array<{
+    id: string
+    kind?: 'line' | 'arc'
+    x0_mm?: number
+    y0_mm?: number
+    x1_mm?: number
+    y1_mm?: number
+    start?: { x_mm: number; y_mm: number }
+    end?: { x_mm: number; y_mm: number }
+    center?: { x_mm: number; y_mm: number }
+    radius_mm?: number
+    clockwise?: boolean
+    thickness_mm?: number
+  }> = []
   const skpWallSegments: Array<{ x0_mm: number; y0_mm: number; x1_mm: number; y1_mm: number }> = []
   const dwgPlacements: Array<{ offset_mm: number; width_mm: number; depth_mm: number; wall_id: string }> = []
   const skpPlacements: Array<{ offset_mm: number; width_mm: number; depth_mm: number; height_mm?: number }> = []
@@ -66,8 +87,47 @@ function mapRoomsForCadExport(
 
     localWalls.forEach((wall, index) => {
       const wallId = wall.id ?? `wall-${wallSegments.length + index + 1}`
+
+      if (isArcWallSegment(wall)) {
+        wallSegments.push({
+          id: wallId,
+          kind: 'arc',
+          start: wall.start,
+          end: wall.end,
+          center: wall.center,
+          radius_mm: wall.radius_mm,
+          clockwise: wall.clockwise,
+          thickness_mm: wall.thickness_mm,
+        })
+
+        const approximated = arcToLineSegments({
+          id: wallId,
+          kind: 'arc',
+          start: wall.start,
+          end: wall.end,
+          center: wall.center,
+          radius_mm: wall.radius_mm,
+          clockwise: wall.clockwise,
+          thickness_mm: wall.thickness_mm,
+        })
+        for (const segment of approximated) {
+          skpWallSegments.push(segment)
+        }
+        return
+      }
+
+      if (
+        typeof wall.x0_mm !== 'number' ||
+        typeof wall.y0_mm !== 'number' ||
+        typeof wall.x1_mm !== 'number' ||
+        typeof wall.y1_mm !== 'number'
+      ) {
+        return
+      }
+
       wallSegments.push({
         id: wallId,
+        kind: 'line',
         x0_mm: wall.x0_mm,
         y0_mm: wall.y0_mm,
         x1_mm: wall.x1_mm,
@@ -161,6 +221,7 @@ export async function cadInteropRoutes(app: FastifyInstance) {
     return reply.status(201).send({
       room_id: room.id,
       wall_segments_count: parsedImport.wall_segments.length,
+      arc_entities_detected: parsedImport.arc_entities_detected,
       needs_review: parsedImport.needs_review,
       warnings: parsedImport.warnings,
     })
