@@ -54,6 +54,19 @@ const ProjectListQuerySchema = z.object({
   search: z.string().min(1).max(200).optional(),
   status_filter: z.enum(projectWorkflowStatusValues).optional(),
   sales_rep: z.string().min(1).max(200).optional(),
+  include_archived: z.coerce.boolean().optional(),
+})
+
+const ProjectArchiveQuerySchema = z.object({
+  search: z.string().min(1).max(200).optional(),
+  archive_reason: z.string().min(1).max(500).optional(),
+  retention_until_before: z.string().datetime().optional(),
+  retention_until_after: z.string().datetime().optional(),
+})
+
+const ArchiveProjectBodySchema = z.object({
+  archive_reason: z.string().min(1).max(500).optional(),
+  retention_days: z.number().int().min(1).max(3650).optional(),
 })
 
 const ProjectBoardQuerySchema = z.object({
@@ -85,6 +98,9 @@ function projectBoardSelect() {
     assigned_to: true,
     advisor: true,
     sales_rep: true,
+    archived_at: true,
+    retention_until: true,
+    archive_reason: true,
     progress_pct: true,
     lead_status: true,
     quote_value: true,
@@ -97,18 +113,32 @@ function projectBoardSelect() {
   } as const
 }
 
+function resolveTenantScope(request: { tenantId?: string | null }) {
+  return request.tenantId ? { tenant_id: request.tenantId } : {}
+}
+
 export async function projectRoutes(app: FastifyInstance) {
-  app.get<{ Querystring: { user_id?: string; search?: string; status_filter?: string; sales_rep?: string } }>('/projects', async (request, reply) => {
+  app.get<{
+    Querystring: {
+      user_id?: string
+      search?: string
+      status_filter?: string
+      sales_rep?: string
+      include_archived?: boolean
+    }
+  }>('/projects', async (request, reply) => {
     const parsedQuery = ProjectListQuerySchema.safeParse(request.query)
     if (!parsedQuery.success) {
       return sendBadRequest(reply, parsedQuery.error.errors[0]?.message ?? 'Invalid query')
     }
 
-    const { user_id, search, status_filter, sales_rep } = parsedQuery.data
+    const { user_id, search, status_filter, sales_rep, include_archived } = parsedQuery.data
 
     const projects = await prisma.project.findMany({
       where: {
         ...(user_id ? { user_id } : {}),
+        ...resolveTenantScope(request),
+        ...(!include_archived ? { status: 'active' } : {}),
         ...(status_filter ? { project_status: status_filter as typeof projectWorkflowStatusValues[number] } : {}),
         ...(sales_rep ? { sales_rep } : {}),
         ...(search
@@ -116,6 +146,55 @@ export async function projectRoutes(app: FastifyInstance) {
           : {}),
       },
       orderBy: { updated_at: 'desc' },
+      select: projectBoardSelect(),
+    })
+
+    return reply.send(projects)
+  })
+
+  app.get<{
+    Querystring: {
+      search?: string
+      archive_reason?: string
+      retention_until_before?: string
+      retention_until_after?: string
+    }
+  }>('/projects/archive', async (request, reply) => {
+    const parsedQuery = ProjectArchiveQuerySchema.safeParse(request.query)
+    if (!parsedQuery.success) {
+      return sendBadRequest(reply, parsedQuery.error.errors[0]?.message ?? 'Invalid query')
+    }
+
+    const retentionUntilBefore = parsedQuery.data.retention_until_before
+      ? new Date(parsedQuery.data.retention_until_before)
+      : undefined
+    const retentionUntilAfter = parsedQuery.data.retention_until_after
+      ? new Date(parsedQuery.data.retention_until_after)
+      : undefined
+
+    const projects = await prisma.project.findMany({
+      where: {
+        ...resolveTenantScope(request),
+        status: 'archived',
+        ...(parsedQuery.data.search
+          ? { name: { contains: parsedQuery.data.search, mode: 'insensitive' } }
+          : {}),
+        ...(parsedQuery.data.archive_reason
+          ? { archive_reason: { contains: parsedQuery.data.archive_reason, mode: 'insensitive' } }
+          : {}),
+        ...((retentionUntilBefore || retentionUntilAfter)
+          ? {
+              retention_until: {
+                ...(retentionUntilAfter ? { gte: retentionUntilAfter } : {}),
+                ...(retentionUntilBefore ? { lte: retentionUntilBefore } : {}),
+              },
+            }
+          : {}),
+      },
+      orderBy: [
+        { archived_at: 'desc' },
+        { updated_at: 'desc' },
+      ],
       select: projectBoardSelect(),
     })
 
@@ -199,18 +278,120 @@ export async function projectRoutes(app: FastifyInstance) {
       return sendNotFound(reply, 'User not found')
     }
 
-    const project = await prisma.project.create({
+    const tenantId = user.tenant_id ?? request.tenantId ?? null
+    const defaults = tenantId
+      ? await prisma.tenantSetting.findUnique({
+          where: { tenant_id: tenantId },
+          select: {
+            default_advisor: true,
+            default_processor: true,
+            default_area_name: true,
+            default_alternative_name: true,
+          },
+        })
+      : null
+
+    const defaultAreaName = defaults?.default_area_name?.trim() || 'Bereich 1'
+    const defaultAlternativeName = defaults?.default_alternative_name?.trim() || 'Variante A'
+
+    const project = await prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          name,
+          description,
+          user_id,
+          tenant_id: tenantId ?? undefined,
+          branch_id: user.branch_id ?? request.branchId ?? undefined,
+          advisor: defaults?.default_advisor?.trim() || null,
+          assigned_to: defaults?.default_processor?.trim() || null,
+        },
+        select: projectBoardSelect(),
+      })
+
+      const area = await tx.area.create({
+        data: {
+          project_id: created.id,
+          name: defaultAreaName,
+          sort_order: 0,
+        },
+      })
+
+      await tx.alternative.create({
+        data: {
+          area_id: area.id,
+          name: defaultAlternativeName,
+          is_active: true,
+          sort_order: 0,
+        },
+      })
+
+      return created
+    })
+
+    return reply.status(201).send(project)
+  })
+
+  app.post<{ Params: { id: string } }>('/projects/:id/archive', async (request, reply) => {
+    const parsedBody = ArchiveProjectBodySchema.safeParse(request.body ?? {})
+    if (!parsedBody.success) {
+      return sendBadRequest(reply, parsedBody.error.errors[0]?.message ?? 'Invalid payload')
+    }
+
+    const existing = await prisma.project.findFirst({
+      where: {
+        id: request.params.id,
+        ...resolveTenantScope(request),
+      },
+      select: { id: true },
+    })
+    if (!existing) {
+      return sendNotFound(reply, 'Project not found')
+    }
+
+    const now = new Date()
+    const retentionDays = parsedBody.data.retention_days ?? 365
+    const retentionUntil = new Date(now.getTime() + retentionDays * 24 * 60 * 60 * 1000)
+
+    const project = await prisma.project.update({
+      where: { id: request.params.id },
       data: {
-        name,
-        description,
-        user_id,
-        tenant_id: user.tenant_id ?? request.tenantId ?? undefined,
-        branch_id: user.branch_id ?? request.branchId ?? undefined,
+        status: 'archived',
+        project_status: 'archived',
+        archived_at: now,
+        retention_until: retentionUntil,
+        archive_reason: parsedBody.data.archive_reason ?? null,
       },
       select: projectBoardSelect(),
     })
 
-    return reply.status(201).send(project)
+    return reply.send(project)
+  })
+
+  app.post<{ Params: { id: string } }>('/projects/:id/restore', async (request, reply) => {
+    const existing = await prisma.project.findFirst({
+      where: {
+        id: request.params.id,
+        ...resolveTenantScope(request),
+      },
+      select: { id: true },
+    })
+    if (!existing) {
+      return sendNotFound(reply, 'Project not found')
+    }
+
+    const project = await prisma.project.update({
+      where: { id: request.params.id },
+      data: {
+        status: 'active',
+        project_status: 'lead',
+        archived_at: null,
+        retention_until: null,
+        archive_reason: null,
+      },
+      select: projectBoardSelect(),
+    })
+
+    return reply.send(project)
   })
 
   app.get<{ Params: { id: string } }>('/projects/:id', async (request, reply) => {
@@ -444,7 +625,13 @@ export async function projectRoutes(app: FastifyInstance) {
     if (parsedQuery.data.action === 'archive') {
       const project = await prisma.project.update({
         where: { id: request.params.id },
-        data: { status: 'archived', project_status: 'archived' },
+        data: {
+          status: 'archived',
+          project_status: 'archived',
+          archived_at: new Date(),
+          retention_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          archive_reason: 'Archiviert über 3dots-Menü',
+        },
         select: projectBoardSelect(),
       })
       return reply.send(project)
@@ -453,7 +640,13 @@ export async function projectRoutes(app: FastifyInstance) {
     // unarchive
     const project = await prisma.project.update({
       where: { id: request.params.id },
-      data: { status: 'active', project_status: 'lead' },
+      data: {
+        status: 'active',
+        project_status: 'lead',
+        archived_at: null,
+        retention_until: null,
+        archive_reason: null,
+      },
       select: projectBoardSelect(),
     })
     return reply.send(project)

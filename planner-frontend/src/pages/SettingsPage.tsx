@@ -28,6 +28,9 @@ export function SettingsPage() {
           <button type="button" className={styles.btnPrimary} onClick={() => navigate('/settings/company')}>
             {t('settings.companyProfile')}
           </button>
+          <button type="button" className={styles.btnSecondary} onClick={() => navigate('/settings/project-defaults')}>
+            Projekt-Defaults
+          </button>
           <button type="button" className={styles.btnSecondary} onClick={() => navigate('/settings/plugins')}>
             {t('settings.plugins')}
           </button>

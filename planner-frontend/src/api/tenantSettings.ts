@@ -40,6 +40,13 @@ export interface TenantPluginsResponse {
   enabled: string[]
 }
 
+export interface ProjectDefaults {
+  default_advisor: string | null
+  default_processor: string | null
+  default_area_name: string | null
+  default_alternative_name: string | null
+}
+
 export function getTenantSettings(): Promise<TenantSettings> {
   return api.get<TenantSettings>('/tenant/settings')
 }
@@ -54,4 +61,12 @@ export function getTenantPlugins(): Promise<TenantPluginsResponse> {
 
 export function updateTenantPlugins(enabled: string[]): Promise<{ enabled: string[] }> {
   return api.put<{ enabled: string[] }>('/tenant/plugins', { enabled })
+}
+
+export function getProjectDefaults(): Promise<ProjectDefaults> {
+  return api.get<ProjectDefaults>('/tenant/project-defaults')
+}
+
+export function updateProjectDefaults(payload: Partial<ProjectDefaults>): Promise<ProjectDefaults> {
+  return api.put<ProjectDefaults>('/tenant/project-defaults', payload)
 }

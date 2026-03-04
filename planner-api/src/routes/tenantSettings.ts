@@ -31,6 +31,13 @@ const TenantPluginsBodySchema = z.object({
   enabled: z.array(z.string().min(1)).default([]),
 })
 
+const ProjectDefaultsBodySchema = z.object({
+  default_advisor: z.string().max(200).nullable().optional(),
+  default_processor: z.string().max(200).nullable().optional(),
+  default_area_name: z.string().max(200).nullable().optional(),
+  default_alternative_name: z.string().max(200).nullable().optional(),
+})
+
 type TenantSettingsStore = {
   findUnique: (args: unknown) => Promise<{ enabled_plugins?: unknown } | null>
   upsert: (args: unknown) => Promise<{ enabled_plugins?: unknown }>
@@ -43,6 +50,14 @@ function getTenantSettingsStore(): TenantSettingsStore {
 function normalizeEnabledPlugins(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+}
+
+function normalizeOptionalName(value: string | null | undefined): string | null {
+  if (value == null) {
+    return null
+  }
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 export async function tenantSettingsRoutes(app: FastifyInstance) {
@@ -121,5 +136,66 @@ export async function tenantSettingsRoutes(app: FastifyInstance) {
     })
 
     return reply.send({ enabled: normalizeEnabledPlugins(updated.enabled_plugins) })
+  })
+
+  app.get('/tenant/project-defaults', async (request, reply) => {
+    const tenantId = (request as { tenantId?: string }).tenantId
+    if (!tenantId) {
+      return reply.status(403).send({ error: 'FORBIDDEN', message: 'Missing tenant scope' })
+    }
+
+    const settings = await prisma.tenantSetting.findUnique({
+      where: { tenant_id: tenantId },
+      select: {
+        default_advisor: true,
+        default_processor: true,
+        default_area_name: true,
+        default_alternative_name: true,
+      },
+    })
+
+    return reply.send({
+      default_advisor: settings?.default_advisor ?? null,
+      default_processor: settings?.default_processor ?? null,
+      default_area_name: settings?.default_area_name ?? null,
+      default_alternative_name: settings?.default_alternative_name ?? null,
+    })
+  })
+
+  app.put('/tenant/project-defaults', async (request, reply) => {
+    const tenantId = (request as { tenantId?: string }).tenantId
+    if (!tenantId) {
+      return reply.status(403).send({ error: 'FORBIDDEN', message: 'Missing tenant scope' })
+    }
+
+    const parsed = ProjectDefaultsBodySchema.safeParse(request.body)
+    if (!parsed.success) {
+      return sendBadRequest(reply, parsed.error.errors[0].message)
+    }
+
+    const updated = await prisma.tenantSetting.upsert({
+      where: { tenant_id: tenantId },
+      update: {
+        default_advisor: normalizeOptionalName(parsed.data.default_advisor),
+        default_processor: normalizeOptionalName(parsed.data.default_processor),
+        default_area_name: normalizeOptionalName(parsed.data.default_area_name),
+        default_alternative_name: normalizeOptionalName(parsed.data.default_alternative_name),
+      },
+      create: {
+        tenant_id: tenantId,
+        default_advisor: normalizeOptionalName(parsed.data.default_advisor),
+        default_processor: normalizeOptionalName(parsed.data.default_processor),
+        default_area_name: normalizeOptionalName(parsed.data.default_area_name),
+        default_alternative_name: normalizeOptionalName(parsed.data.default_alternative_name),
+      },
+      select: {
+        default_advisor: true,
+        default_processor: true,
+        default_area_name: true,
+        default_alternative_name: true,
+      },
+    })
+
+    return reply.send(updated)
   })
 }

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'
@@ -104,7 +105,7 @@ export async function productionOrderRoutes(app: FastifyInstance) {
         project_id: request.params.id,
         tenant_id: tenantId,
         quote_id: quote_id ?? null,
-        bom_snapshot: bom_snapshot ?? {},
+        bom_snapshot: (bom_snapshot ?? {}) as Prisma.InputJsonValue,
         due_date: due_date ? new Date(due_date) : null,
         created_by,
         notes: notes ?? null,

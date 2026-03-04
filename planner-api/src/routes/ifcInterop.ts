@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'
@@ -165,8 +166,8 @@ export async function ifcInteropRoutes(app: FastifyInstance) {
             project_id: parsedParams.data.id,
             name: ifcRoom.name,
             ceiling_height_mm: ifcRoom.ceiling_height_mm,
-            boundary: { wall_segments: ifcRoom.wall_segments },
-            placements: [],
+            boundary: ({ wall_segments: ifcRoom.wall_segments } as unknown as Prisma.InputJsonValue),
+            placements: [] as unknown as Prisma.InputJsonValue,
           },
         })
         roomsCreated += 1
@@ -276,7 +277,7 @@ export async function ifcInteropRoutes(app: FastifyInstance) {
 
     const buffer = await buildIfcBuffer({
       projectName: project.name,
-      rooms: exportRooms,
+      rooms: exportRooms as any,
       metadata: {
         level_id: level?.id ?? sectionLine?.level_id ?? null,
         level_name: level?.name ?? null,

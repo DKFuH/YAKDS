@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'
@@ -43,11 +44,13 @@ export async function fengshuiRoutes(app: FastifyInstance) {
       const created = await prisma.fengShuiAnalysis.create({
         data: {
           project_id: request.params.id,
-          tenant_id: project.tenant_id,
+          tenant_id: project.tenant_id ?? request.tenantId ?? '',
           mode: parsed.data.mode,
-          entry_refs: parsed.data.entry ?? null,
+          entry_refs: parsed.data.entry
+            ? (parsed.data.entry as unknown as Prisma.InputJsonValue)
+            : Prisma.JsonNull,
           compass_deg: parsed.data.compass_deg,
-          bounds_mm: parsed.data.bounds_mm,
+          bounds_mm: parsed.data.bounds_mm as unknown as Prisma.InputJsonValue,
           zones_geojson: result.zones_geojson,
           findings: result.findings,
           score_total: result.score_total,

@@ -232,8 +232,8 @@ export async function dimensionRoutes(app: FastifyInstance) {
     const walls = boundary.wall_segments
       .map((wall) => wallEndpoints(boundary, wall.id))
       .filter((wall): wall is NonNullable<typeof wall> => Boolean(wall))
-      .filter((wall) => {
-        if (wall.kind === 'arc') return false
+      .filter((wall): wall is Extract<NonNullable<typeof wall>, { kind: 'line' }> => {
+        if (wall.kind !== 'line') return false
         const dx = wall.x1_mm - wall.x0_mm
         const dy = wall.y1_mm - wall.y0_mm
         return Math.hypot(dx, dy) >= 50
@@ -468,7 +468,10 @@ export async function dimensionRoutes(app: FastifyInstance) {
       const wall = wallEndpoints(boundary, wallSegment.id)
       if (!wall) return sendNotFound(reply, 'Wall not found')
 
-      const wallLength = Math.hypot(wall.x1_mm - wall.x0_mm, wall.y1_mm - wall.y0_mm)
+      const wallLength =
+        wall.kind === 'arc'
+          ? arcLengthMm(wall.arc)
+          : Math.hypot(wall.x1_mm - wall.x0_mm, wall.y1_mm - wall.y0_mm)
       const roomHeight = room.ceiling_height_mm
       const placements = ((room.placements as RoomPlacement[] | null) ?? [])
         .filter((placement) => placement.wall_id === wallSegment.id)

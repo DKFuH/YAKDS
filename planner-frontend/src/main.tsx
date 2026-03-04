@@ -7,6 +7,7 @@ import { CatalogPage } from './pages/CatalogPage.js'
 import { BIDashboard } from './pages/BIDashboard.js'
 import { ContactsPage } from './pages/ContactsPage.js'
 import { DocumentsPage } from './pages/DocumentsPage.js'
+import { ProjectArchivePage } from './pages/ProjectArchivePage.js'
 import { WebplannerPage } from './pages/WebplannerPage.js'
 import { QuoteLinesPage } from './pages/QuoteLinesPage.js'
 import { ProductionOrdersPage } from './pages/ProductionOrdersPage.js'
@@ -15,6 +16,7 @@ import { SupplierPortalPage } from './pages/SupplierPortalPage.js'
 import { ReportsPage } from './pages/ReportsPage.js'
 import { CompliancePage } from './pages/CompliancePage.js'
 import { TenantSettingsPage } from './pages/TenantSettingsPage.js'
+import { ProjectDefaultsPage } from './pages/ProjectDefaultsPage.js'
 import { PluginsSettingsPage } from './pages/PluginsSettingsPage.js'
 import { SettingsPage } from './pages/SettingsPage.js'
 import { LanguagePacksPage } from './pages/LanguagePacksPage.js'
@@ -108,6 +110,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/bi" element={<BIDashboard />} />
         <Route path="/contacts" element={<ContactsPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/projects/archive" element={<ProjectArchivePage />} />
         <Route path="/webplanner" element={<WebplannerPage />} />
         <Route path="/projects/:id" element={<Editor />} />
         <Route path="/projects/:id/panorama-tours" element={<PanoramaToursPage />} />
@@ -139,6 +142,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/language-packs" element={<LanguagePacksPage />} />
         <Route path="/settings/company" element={<TenantSettingsPage />} />
+        <Route path="/settings/project-defaults" element={<ProjectDefaultsPage />} />
         <Route path="/settings/plugins" element={<PluginsSettingsPage />} />
         <Route path="/settings/layout-styles" element={<LayoutStylesPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -36,14 +36,40 @@ interface DemoStore {
     size_bytes: number
     uploaded_by: string
     uploaded_at: string
-    type: 'quote_pdf' | 'render_image' | 'cad_import' | 'email' | 'contract' | 'other'
-    source_kind: 'manual_upload' | 'quote_export' | 'render_job' | 'import_job'
+    type:
+      | 'quote_pdf'
+      | 'order_pdf'
+      | 'spec_package'
+      | 'manual_upload'
+      | 'render_image'
+      | 'cad_import'
+      | 'email'
+      | 'contract'
+      | 'conflict_entry'
+      | 'other'
+    source_kind:
+      | 'manual_upload'
+      | 'quote_export'
+      | 'order_export'
+      | 'spec_export'
+      | 'render_job'
+      | 'import_job'
+      | 'archive_version'
+      | 'offline_sync'
+      | 'conflict_local'
     source_id: string | null
     storage_provider: 'demo_memory'
     storage_bucket: null
     storage_key: string
+    storage_path: string | null
     storage_version: number
+    version_no: number
+    checksum: string | null
     external_url: string | null
+    sent_at: string | null
+    archived_at: string | null
+    version_metadata: Record<string, unknown>
+    conflict_marker: boolean
     tags: string[]
     is_public: boolean
     download_url: string
@@ -53,6 +79,8 @@ interface DemoStore {
     id: string
     tenant_id: string
     type: 'end_customer' | 'architect' | 'contractor'
+    party_kind: 'company' | 'private_person' | 'contact_person'
+    contact_role: string | null
     company: string | null
     first_name: string | null
     last_name: string
@@ -193,8 +221,15 @@ function seedStore(): DemoStore {
         storage_provider: 'demo_memory',
         storage_bucket: null,
         storage_key: uid('storage'),
+        storage_path: null,
         storage_version: 1,
+        version_no: 1,
+        checksum: 'demo-seed-checksum',
         external_url: null,
+        sent_at: null,
+        archived_at: null,
+        version_metadata: {},
+        conflict_marker: false,
         tags: ['quote', 'demo'],
         is_public: false,
         download_url: 'data:application/pdf;base64,JVBERi0xLjQKJURlbW8gUERGCg==',
@@ -206,6 +241,8 @@ function seedStore(): DemoStore {
         id: uid('contact'),
         tenant_id: '00000000-0000-0000-0000-000000000001',
         type: 'end_customer',
+        party_kind: 'private_person',
+        contact_role: null,
         company: null,
         first_name: 'Max',
         last_name: 'Mustermann',
@@ -410,16 +447,38 @@ export function deleteProject(id: string): void {
   }))
 }
 
-export function listContacts(search?: string) {
+export function listContacts(searchOrParams?: string | {
+  search?: string
+  type?: 'end_customer' | 'architect' | 'contractor'
+  party_kind?: 'company' | 'private_person' | 'contact_person'
+  contact_role?: string
+}) {
   const store = loadStore()
   let contacts = [...store.contacts]
-  if (search?.trim()) {
-    const query = search.trim().toLowerCase()
+  const params = typeof searchOrParams === 'string'
+    ? { search: searchOrParams }
+    : (searchOrParams ?? {})
+
+  if (params.search?.trim()) {
+    const query = params.search.trim().toLowerCase()
     contacts = contacts.filter((contact) =>
       [contact.first_name, contact.last_name, contact.company, contact.email, contact.phone]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query))
     )
+  }
+
+  if (params.type) {
+    contacts = contacts.filter((contact) => contact.type === params.type)
+  }
+
+  if (params.party_kind) {
+    contacts = contacts.filter((contact) => contact.party_kind === params.party_kind)
+  }
+
+  if (params.contact_role?.trim()) {
+    const role = params.contact_role.trim().toLowerCase()
+    contacts = contacts.filter((contact) => (contact.contact_role ?? '').toLowerCase().includes(role))
   }
 
   return contacts.map((contact) => {
@@ -450,6 +509,8 @@ export function createContact(
   tenantId: string,
   data: {
     type?: 'end_customer' | 'architect' | 'contractor'
+    party_kind?: 'company' | 'private_person' | 'contact_person'
+    contact_role?: string | null
     company?: string | null
     first_name?: string | null
     last_name: string
@@ -471,6 +532,8 @@ export function createContact(
         id: contactId,
         tenant_id: tenantId,
         type: data.type ?? 'end_customer',
+        party_kind: data.party_kind ?? 'private_person',
+        contact_role: data.contact_role ?? null,
         company: data.company ?? null,
         first_name: data.first_name ?? null,
         last_name: data.last_name,
@@ -510,8 +573,31 @@ export function attachContactToProject(projectId: string, contactId: string) {
 }
 
 export function listDocuments(projectId: string, params?: {
-  type?: 'quote_pdf' | 'render_image' | 'cad_import' | 'email' | 'contract' | 'other'
+  type?:
+    | 'quote_pdf'
+    | 'order_pdf'
+    | 'spec_package'
+    | 'manual_upload'
+    | 'render_image'
+    | 'cad_import'
+    | 'email'
+    | 'contract'
+    | 'conflict_entry'
+    | 'other'
   tag?: string
+  source_kind?:
+    | 'manual_upload'
+    | 'quote_export'
+    | 'order_export'
+    | 'spec_export'
+    | 'render_job'
+    | 'import_job'
+    | 'archive_version'
+    | 'offline_sync'
+    | 'conflict_local'
+  created_from?: string
+  created_to?: string
+  include_conflicts?: boolean
 }) {
   let documents = loadStore().documents.filter((document) => document.project_id === projectId)
 
@@ -524,7 +610,42 @@ export function listDocuments(projectId: string, params?: {
     documents = documents.filter((document) => document.tags.some((entry) => entry.toLowerCase() === tag))
   }
 
-  return documents.sort((left, right) => right.uploaded_at.localeCompare(left.uploaded_at))
+  if (params?.source_kind) {
+    documents = documents.filter((document) => document.source_kind === params.source_kind)
+  }
+
+  if (!params?.include_conflicts) {
+    documents = documents.filter((document) => !document.conflict_marker)
+  }
+
+  if (params?.created_from) {
+    const from = new Date(params.created_from)
+    if (!Number.isNaN(from.getTime())) {
+      documents = documents.filter((document) => new Date(document.uploaded_at).getTime() >= from.getTime())
+    }
+  }
+
+  if (params?.created_to) {
+    const to = new Date(params.created_to)
+    if (!Number.isNaN(to.getTime())) {
+      documents = documents.filter((document) => new Date(document.uploaded_at).getTime() <= to.getTime())
+    }
+  }
+
+  return documents.sort((left, right) => {
+    if (left.version_no !== right.version_no) {
+      return right.version_no - left.version_no
+    }
+    return right.uploaded_at.localeCompare(left.uploaded_at)
+  })
+}
+
+function computeDemoChecksum(value: string): string {
+  let hash = 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0
+  }
+  return `demo-${Math.abs(hash).toString(16)}`
 }
 
 export function createDocument(
@@ -535,14 +656,49 @@ export function createDocument(
     mime_type: string
     file_base64: string
     uploaded_by: string
-    type: 'quote_pdf' | 'render_image' | 'cad_import' | 'email' | 'contract' | 'other'
+    type:
+      | 'quote_pdf'
+      | 'order_pdf'
+      | 'spec_package'
+      | 'manual_upload'
+      | 'render_image'
+      | 'cad_import'
+      | 'email'
+      | 'contract'
+      | 'conflict_entry'
+      | 'other'
     tags?: string[]
     is_public?: boolean
+    source_kind?:
+      | 'manual_upload'
+      | 'quote_export'
+      | 'order_export'
+      | 'spec_export'
+      | 'render_job'
+      | 'import_job'
+      | 'archive_version'
+      | 'offline_sync'
+      | 'conflict_local'
+    source_id?: string | null
+    sent_at?: string | null
+    archived_at?: string | null
+    version_metadata?: Record<string, unknown>
+    conflict_marker?: boolean
   },
 ) {
   const timestamp = now()
   const documentId = uid('doc')
+  const storageKey = uid('storage')
   const previewUrl = `data:${data.mime_type};base64,${data.file_base64}`
+  const currentVersions = loadStore().documents.filter(
+    (document) =>
+      document.project_id === projectId
+      && (data.source_id
+        ? document.source_kind === (data.source_kind ?? 'manual_upload') && document.source_id === data.source_id
+        : document.filename === data.filename && document.source_id === null),
+  )
+  const nextVersion = currentVersions.reduce((maxVersion, document) => Math.max(maxVersion, document.version_no), 0) + 1
+  const checksum = computeDemoChecksum(data.file_base64)
 
   const store = updateStore((current) => ({
     ...current,
@@ -558,13 +714,20 @@ export function createDocument(
         uploaded_by: data.uploaded_by,
         uploaded_at: timestamp,
         type: data.type,
-        source_kind: 'manual_upload',
-        source_id: null,
+        source_kind: data.source_kind ?? 'manual_upload',
+        source_id: data.source_id ?? null,
         storage_provider: 'demo_memory',
         storage_bucket: null,
-        storage_key: uid('storage'),
-        storage_version: 1,
+        storage_key: storageKey,
+        storage_path: storageKey,
+        storage_version: nextVersion,
+        version_no: nextVersion,
+        checksum,
         external_url: null,
+        sent_at: data.sent_at ?? null,
+        archived_at: data.archived_at ?? null,
+        version_metadata: data.version_metadata ?? {},
+        conflict_marker: data.conflict_marker ?? false,
         tags: data.tags ?? [],
         is_public: data.is_public ?? false,
         download_url: previewUrl,
@@ -575,6 +738,156 @@ export function createDocument(
   }))
 
   return store.documents.find((document) => document.id === documentId)!
+}
+
+export function archiveDocumentVersion(
+  projectId: string,
+  documentId: string,
+  payload: {
+    uploaded_by?: string
+    filename?: string
+    mime_type?: string
+    file_base64?: string
+    type?:
+      | 'quote_pdf'
+      | 'order_pdf'
+      | 'spec_package'
+      | 'manual_upload'
+      | 'render_image'
+      | 'cad_import'
+      | 'email'
+      | 'contract'
+      | 'conflict_entry'
+      | 'other'
+    source_kind?:
+      | 'manual_upload'
+      | 'quote_export'
+      | 'order_export'
+      | 'spec_export'
+      | 'render_job'
+      | 'import_job'
+      | 'archive_version'
+      | 'offline_sync'
+      | 'conflict_local'
+    source_id?: string | null
+    tags?: string[]
+    is_public?: boolean
+    sent_at?: string
+    mark_conflict?: boolean
+    conflict_reason?: string
+    local_updated_at?: string
+  },
+) {
+  const baseDocument = loadStore().documents.find(
+    (document) => document.project_id === projectId && document.id === documentId,
+  )
+
+  if (!baseDocument) {
+    throw new Error('Dokument nicht gefunden.')
+  }
+
+  const fallbackBase64 = baseDocument.download_url.includes('base64,')
+    ? baseDocument.download_url.split('base64,')[1] ?? ''
+    : ''
+
+  return createDocument(projectId, baseDocument.tenant_id, {
+    filename: payload.filename ?? baseDocument.filename,
+    mime_type: payload.mime_type ?? baseDocument.mime_type,
+    file_base64: payload.file_base64 ?? fallbackBase64,
+    uploaded_by: payload.uploaded_by ?? baseDocument.uploaded_by,
+    type: payload.mark_conflict ? 'conflict_entry' : (payload.type ?? baseDocument.type),
+    tags: payload.tags ?? baseDocument.tags,
+    is_public: payload.is_public ?? baseDocument.is_public,
+    source_kind: payload.mark_conflict
+      ? 'conflict_local'
+      : (payload.source_kind ?? baseDocument.source_kind),
+    source_id: payload.source_id ?? baseDocument.source_id,
+    sent_at: payload.sent_at ?? baseDocument.sent_at,
+    archived_at: now(),
+    conflict_marker: payload.mark_conflict ?? false,
+    version_metadata: {
+      archived_from_document_id: baseDocument.id,
+      archived_from_version_no: baseDocument.version_no,
+      conflict_reason: payload.conflict_reason ?? null,
+      local_updated_at: payload.local_updated_at ?? null,
+    },
+  })
+}
+
+export function versionCheckDocument(
+  projectId: string,
+  params?: {
+    source_kind?:
+      | 'manual_upload'
+      | 'quote_export'
+      | 'order_export'
+      | 'spec_export'
+      | 'render_job'
+      | 'import_job'
+      | 'archive_version'
+      | 'offline_sync'
+      | 'conflict_local'
+    source_id?: string
+    filename?: string
+    local_checksum?: string
+    local_updated_at?: string
+  },
+) {
+  const latestDocument = listDocuments(projectId, {
+    source_kind: params?.source_kind,
+  }).find((document) => (
+    (!params?.source_id || document.source_id === params.source_id)
+    && (!params?.filename || document.filename === params.filename)
+  ))
+
+  if (!latestDocument) {
+    return {
+      status: 'missing_on_server' as const,
+      hint: 'Keine Serverversion gefunden. Lokale Version kann hochgeladen werden.',
+      latest_document: null,
+      local_checksum: params?.local_checksum ?? null,
+      local_updated_at: params?.local_updated_at ?? null,
+    }
+  }
+
+  const localUpdatedAt = params?.local_updated_at ? new Date(params.local_updated_at) : null
+  const validLocalUpdatedAt = localUpdatedAt && !Number.isNaN(localUpdatedAt.getTime()) ? localUpdatedAt : null
+  let status: 'up_to_date' | 'local_newer' | 'server_newer' | 'conflict' = 'up_to_date'
+
+  if (params?.local_checksum && latestDocument.checksum) {
+    if (params.local_checksum !== latestDocument.checksum) {
+      if (!validLocalUpdatedAt) {
+        status = 'conflict'
+      } else {
+        const localMs = validLocalUpdatedAt.getTime()
+        const serverMs = new Date(latestDocument.uploaded_at).getTime()
+        status = localMs > serverMs ? 'local_newer' : (localMs < serverMs ? 'server_newer' : 'conflict')
+      }
+    }
+  } else if (validLocalUpdatedAt) {
+    const localMs = validLocalUpdatedAt.getTime()
+    const serverMs = new Date(latestDocument.uploaded_at).getTime()
+    status = localMs > serverMs ? 'local_newer' : (localMs < serverMs ? 'server_newer' : 'up_to_date')
+  }
+
+  if (latestDocument.conflict_marker && status === 'up_to_date') {
+    status = 'conflict'
+  }
+
+  const hintByStatus: Record<typeof status, string> = {
+    up_to_date: 'Lokale Datei entspricht dem Serverstand.',
+    local_newer: 'Lokale Datei ist neuer als die Serverversion. Archivierung empfohlen.',
+    server_newer: 'Serverversion ist neuer als die lokale Datei. Download oder Merge prüfen.',
+    conflict: 'Versionskonflikt erkannt. Als Konfliktversion archivieren.',
+  }
+
+  return {
+    status,
+    hint: hintByStatus[status],
+    latest_document: latestDocument,
+    local_checksum: params?.local_checksum ?? null,
+    local_updated_at: validLocalUpdatedAt?.toISOString() ?? null,
+  }
 }
 
 export function deleteDocument(projectId: string, documentId: string): void {

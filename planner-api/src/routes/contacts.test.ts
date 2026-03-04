@@ -46,6 +46,8 @@ describe('contactRoutes', () => {
         id: CONTACT_ID,
         tenant_id: TENANT_ID,
         type: 'end_customer',
+        party_kind: 'private_person',
+        contact_role: 'Bauherr',
         company: null,
         first_name: 'Max',
         last_name: 'Mustermann',
@@ -92,11 +94,38 @@ describe('contactRoutes', () => {
     await app.close()
   })
 
+  it('filters contacts by type, party_kind and contact_role', async () => {
+    prismaMock.contact.findMany.mockResolvedValue([])
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'GET',
+      url: '/contacts?type=architect&party_kind=contact_person&contact_role=Planer',
+      headers: { 'x-tenant-id': TENANT_ID },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(prismaMock.contact.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenant_id: TENANT_ID,
+          type: 'architect',
+          party_kind: 'contact_person',
+          contact_role: { contains: 'Planer', mode: 'insensitive' },
+        }),
+      })
+    )
+
+    await app.close()
+  })
+
   it('creates a contact in tenant scope', async () => {
     prismaMock.contact.create.mockResolvedValue({
       id: CONTACT_ID,
       tenant_id: TENANT_ID,
       type: 'end_customer',
+      party_kind: 'contact_person',
+      contact_role: 'Planer',
       company: null,
       first_name: 'Max',
       last_name: 'Mustermann',
@@ -116,6 +145,9 @@ describe('contactRoutes', () => {
       url: '/contacts',
       headers: { 'x-tenant-id': TENANT_ID },
       payload: {
+        type: 'end_customer',
+        party_kind: 'contact_person',
+        contact_role: '  Planer  ',
         first_name: 'Max',
         last_name: 'Mustermann',
         email: 'Max@Example.de',
@@ -128,6 +160,8 @@ describe('contactRoutes', () => {
     expect(prismaMock.contact.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         tenant_id: TENANT_ID,
+        party_kind: 'contact_person',
+        contact_role: 'Planer',
         email: 'max@example.de',
       }),
     })

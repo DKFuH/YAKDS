@@ -172,6 +172,82 @@ describe('tenantSettingsRoutes', () => {
     await app.close()
   })
 
+  it('GET /tenant/project-defaults returns tenant defaults', async () => {
+    prismaMock.tenantSetting.findUnique.mockResolvedValue({
+      tenant_id: TENANT_ID,
+      default_advisor: 'Fachberater A',
+      default_processor: 'Sachbearbeiter B',
+      default_area_name: 'Küche',
+      default_alternative_name: 'Variante A',
+    })
+
+    const app = makeApp()
+    const res = await app.inject({ method: 'GET', url: '/api/v1/tenant/project-defaults' })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({
+      default_advisor: 'Fachberater A',
+      default_processor: 'Sachbearbeiter B',
+      default_area_name: 'Küche',
+      default_alternative_name: 'Variante A',
+    })
+    await app.close()
+  })
+
+  it('PUT /tenant/project-defaults stores normalized defaults', async () => {
+    prismaMock.tenantSetting.upsert.mockResolvedValue({
+      tenant_id: TENANT_ID,
+      default_advisor: 'Fachberater A',
+      default_processor: 'Sachbearbeiter B',
+      default_area_name: 'Küche',
+      default_alternative_name: null,
+    })
+
+    const app = makeApp()
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/tenant/project-defaults',
+      payload: {
+        default_advisor: '  Fachberater A  ',
+        default_processor: 'Sachbearbeiter B',
+        default_area_name: 'Küche',
+        default_alternative_name: '   ',
+      },
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(prismaMock.tenantSetting.upsert).toHaveBeenCalledWith({
+      where: { tenant_id: TENANT_ID },
+      update: {
+        default_advisor: 'Fachberater A',
+        default_processor: 'Sachbearbeiter B',
+        default_area_name: 'Küche',
+        default_alternative_name: null,
+      },
+      create: {
+        tenant_id: TENANT_ID,
+        default_advisor: 'Fachberater A',
+        default_processor: 'Sachbearbeiter B',
+        default_area_name: 'Küche',
+        default_alternative_name: null,
+      },
+      select: {
+        default_advisor: true,
+        default_processor: true,
+        default_area_name: true,
+        default_alternative_name: true,
+      },
+    })
+    expect(res.json()).toMatchObject({
+      tenant_id: TENANT_ID,
+      default_advisor: 'Fachberater A',
+      default_processor: 'Sachbearbeiter B',
+      default_area_name: 'Küche',
+      default_alternative_name: null,
+    })
+    await app.close()
+  })
+
   // Test 4: export-pdf with TenantSetting → PDF contains company_name
   it('POST /quotes/:id/export-pdf with TenantSetting includes company_name in PDF', async () => {
     prismaMock.quote.findUnique.mockResolvedValue({

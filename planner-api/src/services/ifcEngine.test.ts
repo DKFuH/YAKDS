@@ -16,6 +16,10 @@ describe('ifcEngine', () => {
               {
                 id: 'arc-1',
                 kind: 'arc',
+                x0_mm: 2000,
+                y0_mm: 0,
+                x1_mm: 0,
+                y1_mm: 2000,
                 start: { x_mm: 2000, y_mm: 0 },
                 end: { x_mm: 0, y_mm: 2000 },
                 center: { x_mm: 0, y_mm: 0 },

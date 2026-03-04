@@ -57,7 +57,7 @@ function readRawBody(body: unknown, rawBody: unknown): Buffer | null {
 export async function acousticsRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string } }>(
     '/projects/:id/import/acoustics',
-    { config: { rawBody: true } },
+    { config: { rawBody: true } } as any,
     async (request, reply) => {
       const project = await prisma.project.findUnique({ where: { id: request.params.id } })
       if (!project) {

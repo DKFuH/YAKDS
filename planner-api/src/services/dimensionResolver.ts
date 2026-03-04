@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient } from '@prisma/client'
 import { arcLengthMm, pointOnArc, type ArcWallSegment } from './arcWallGeometry.js'
 
 export interface ResolvedPoint {
@@ -229,7 +229,10 @@ export async function refreshRoomDimensions(db: PrismaClient, roomId: string): P
     }
 
     if (JSON.stringify(points) !== JSON.stringify(nextPoints)) {
-      await db.dimension.update({ where: { id: dim.id }, data: { points: nextPoints } })
+      await db.dimension.update({
+        where: { id: dim.id },
+        data: { points: nextPoints as unknown as Prisma.InputJsonValue },
+      })
       updated += 1
     }
   }

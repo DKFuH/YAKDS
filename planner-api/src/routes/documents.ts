@@ -1,5 +1,5 @@
 import multipart from '@fastify/multipart'
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendForbidden, sendNotFound, sendServerError } from '../errors.js'
@@ -7,8 +7,29 @@ import { registerProjectDocument } from '../services/documentRegistry.js'
 import { deleteDocumentBlob, readDocumentBlob } from '../services/documentStorage.js'
 import { queueNotification } from '../services/notificationService.js'
 
-const documentTypeValues = ['quote_pdf', 'render_image', 'cad_import', 'email', 'contract', 'other'] as const
-const documentSourceKindValues = ['manual_upload', 'quote_export', 'render_job', 'import_job'] as const
+const documentTypeValues = [
+  'quote_pdf',
+  'order_pdf',
+  'spec_package',
+  'manual_upload',
+  'render_image',
+  'cad_import',
+  'email',
+  'contract',
+  'conflict_entry',
+  'other',
+] as const
+const documentSourceKindValues = [
+  'manual_upload',
+  'quote_export',
+  'order_export',
+  'spec_export',
+  'render_job',
+  'import_job',
+  'archive_version',
+  'offline_sync',
+  'conflict_local',
+] as const
 
 const DocumentParamsSchema = z.object({
   id: z.string().uuid(),
@@ -22,6 +43,10 @@ const DocumentIdParamsSchema = z.object({
 const DocumentListQuerySchema = z.object({
   type: z.enum(documentTypeValues).optional(),
   tag: z.string().min(1).max(100).optional(),
+  source_kind: z.enum(documentSourceKindValues).optional(),
+  created_from: z.string().optional(),
+  created_to: z.string().optional(),
+  include_conflicts: z.coerce.boolean().optional(),
 })
 
 const JsonUploadSchema = z.object({
@@ -34,6 +59,34 @@ const JsonUploadSchema = z.object({
   is_public: z.boolean().optional(),
   source_kind: z.enum(documentSourceKindValues).optional(),
   source_id: z.string().min(1).max(200).nullable().optional(),
+  sent_at: z.string().optional(),
+  archived_at: z.string().optional(),
+  version_metadata: z.record(z.unknown()).optional(),
+  conflict_marker: z.boolean().optional(),
+})
+
+const ArchiveVersionBodySchema = z.object({
+  uploaded_by: z.string().min(1).max(200).optional(),
+  filename: z.string().min(1).max(255).optional(),
+  mime_type: z.string().min(1).max(255).optional(),
+  file_base64: z.string().min(1).optional(),
+  type: z.enum(documentTypeValues).optional(),
+  source_kind: z.enum(documentSourceKindValues).optional(),
+  source_id: z.string().min(1).max(200).nullable().optional(),
+  tags: z.array(z.string().min(1).max(100)).optional(),
+  is_public: z.boolean().optional(),
+  sent_at: z.string().optional(),
+  mark_conflict: z.boolean().optional(),
+  conflict_reason: z.string().min(1).max(500).optional(),
+  local_updated_at: z.string().optional(),
+})
+
+const VersionCheckQuerySchema = z.object({
+  source_kind: z.enum(documentSourceKindValues).optional(),
+  source_id: z.string().min(1).max(200).optional(),
+  filename: z.string().min(1).max(255).optional(),
+  local_checksum: z.string().min(1).max(128).optional(),
+  local_updated_at: z.string().optional(),
 })
 
 const documentSelect = {
@@ -52,8 +105,15 @@ const documentSelect = {
   storage_provider: true,
   storage_bucket: true,
   storage_key: true,
+  storage_path: true,
   storage_version: true,
+  version_no: true,
+  checksum: true,
   external_url: true,
+  sent_at: true,
+  archived_at: true,
+  version_metadata: true,
+  conflict_marker: true,
   tags: true,
   is_public: true,
 } as const
@@ -102,10 +162,33 @@ function getDownloadUrl(projectId: string, documentId: string): string {
   return `/api/v1/projects/${projectId}/documents/${documentId}/download`
 }
 
+function parseOptionalDate(raw: string | undefined, fieldName: string): Date | null {
+  if (!raw) {
+    return null
+  }
+
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid ${fieldName} date`)
+  }
+
+  return parsed
+}
+
+function withDocumentLinks<T extends { id: string; project_id: string }>(document: T) {
+  return {
+    ...document,
+    download_url: getDownloadUrl(document.project_id, document.id),
+  }
+}
+
 export async function documentRoutes(app: FastifyInstance) {
   await app.register(multipart)
 
-  app.post<{ Params: { id: string } }>('/projects/:id/documents', async (request, reply) => {
+  const handleUpload = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply,
+  ) => {
     const tenantId = getTenantId(request)
     if (!tenantId) {
       return sendForbidden(reply, 'Tenant scope is required')
@@ -123,7 +206,7 @@ export async function documentRoutes(app: FastifyInstance) {
 
     try {
       const isMultipart = request.isMultipart()
-      let document
+      let document: Awaited<ReturnType<typeof registerProjectDocument>>
 
       if (isMultipart) {
         const upload = await request.file()
@@ -161,6 +244,10 @@ export async function documentRoutes(app: FastifyInstance) {
               ? (fields.source_kind.value as typeof documentSourceKindValues[number])
               : 'manual_upload',
           sourceId: fields.source_id?.value ?? null,
+          sentAt: parseOptionalDate(fields.sent_at?.value, 'sent_at'),
+          archivedAt: parseOptionalDate(fields.archived_at?.value, 'archived_at'),
+          conflictMarker: fields.conflict_marker?.value === 'true',
+          versionMetadata: fields.version_metadata?.value ? { note: fields.version_metadata.value } : {},
           buffer,
         })
       } else {
@@ -186,6 +273,10 @@ export async function documentRoutes(app: FastifyInstance) {
           isPublic: parsedBody.data.is_public ?? false,
           sourceKind: parsedBody.data.source_kind ?? 'manual_upload',
           sourceId: parsedBody.data.source_id ?? null,
+          sentAt: parseOptionalDate(parsedBody.data.sent_at, 'sent_at'),
+          archivedAt: parseOptionalDate(parsedBody.data.archived_at, 'archived_at'),
+          conflictMarker: parsedBody.data.conflict_marker ?? false,
+          versionMetadata: parsedBody.data.version_metadata ?? {},
           buffer,
         })
       }
@@ -201,19 +292,30 @@ export async function documentRoutes(app: FastifyInstance) {
         metadata: {
           project_id: document.project_id,
           document_type: document.type,
+          version_no: document.version_no,
         },
       })
 
-      return reply.status(201).send({
-        ...document,
-        download_url: getDownloadUrl(document.project_id, document.id),
-      })
+      return reply.status(201).send(withDocumentLinks(document))
     } catch (error) {
       return sendServerError(reply, error instanceof Error ? error.message : 'Document upload failed')
     }
-  })
+  }
 
-  app.get<{ Params: { id: string }; Querystring: { type?: typeof documentTypeValues[number]; tag?: string } }>(
+  app.post<{ Params: { id: string } }>('/projects/:id/documents', handleUpload)
+  app.post<{ Params: { id: string } }>('/projects/:id/documents/upload', handleUpload)
+
+  app.get<{
+    Params: { id: string }
+    Querystring: {
+      type?: typeof documentTypeValues[number]
+      tag?: string
+      source_kind?: typeof documentSourceKindValues[number]
+      created_from?: string
+      created_to?: string
+      include_conflicts?: boolean
+    }
+  }>(
     '/projects/:id/documents',
     async (request, reply) => {
       const tenantId = getTenantId(request)
@@ -231,6 +333,16 @@ export async function documentRoutes(app: FastifyInstance) {
         return sendBadRequest(reply, parsedQuery.error.errors[0]?.message ?? 'Invalid query')
       }
 
+      let createdFrom: Date | null = null
+      let createdTo: Date | null = null
+
+      try {
+        createdFrom = parseOptionalDate(parsedQuery.data.created_from, 'created_from')
+        createdTo = parseOptionalDate(parsedQuery.data.created_to, 'created_to')
+      } catch (error) {
+        return sendBadRequest(reply, error instanceof Error ? error.message : 'Invalid date range')
+      }
+
       const project = await assertProjectInTenantScope(parsedParams.data.id, tenantId)
       if (!project) {
         return sendNotFound(reply, 'Project not found in tenant scope')
@@ -242,17 +354,216 @@ export async function documentRoutes(app: FastifyInstance) {
           tenant_id: tenantId,
           ...(parsedQuery.data.type ? { type: parsedQuery.data.type } : {}),
           ...(parsedQuery.data.tag ? { tags: { has: parsedQuery.data.tag } } : {}),
+          ...(parsedQuery.data.source_kind ? { source_kind: parsedQuery.data.source_kind } : {}),
+          ...(!parsedQuery.data.include_conflicts ? { conflict_marker: false } : {}),
+          ...((createdFrom || createdTo)
+            ? {
+                uploaded_at: {
+                  ...(createdFrom ? { gte: createdFrom } : {}),
+                  ...(createdTo ? { lte: createdTo } : {}),
+                },
+              }
+            : {}),
         },
-        orderBy: { uploaded_at: 'desc' },
+        orderBy: [{ version_no: 'desc' }, { uploaded_at: 'desc' }],
         select: documentSelect,
       })
 
-      return reply.send(
-        documents.map((document) => ({
-          ...document,
-          download_url: getDownloadUrl(document.project_id, document.id),
-        })),
-      )
+      return reply.send(documents.map(withDocumentLinks))
+    },
+  )
+
+  app.post<{ Params: { id: string; documentId: string } }>(
+    '/projects/:id/documents/:documentId/archive-version',
+    async (request, reply) => {
+      const tenantId = getTenantId(request)
+      if (!tenantId) {
+        return sendForbidden(reply, 'Tenant scope is required')
+      }
+
+      const parsedParams = DocumentIdParamsSchema.safeParse(request.params)
+      if (!parsedParams.success) {
+        return sendBadRequest(reply, parsedParams.error.errors[0]?.message ?? 'Invalid route params')
+      }
+
+      const parsedBody = ArchiveVersionBodySchema.safeParse(request.body ?? {})
+      if (!parsedBody.success) {
+        return sendBadRequest(reply, parsedBody.error.errors[0]?.message ?? 'Invalid archive payload')
+      }
+
+      const project = await assertProjectInTenantScope(parsedParams.data.id, tenantId)
+      if (!project) {
+        return sendNotFound(reply, 'Project not found in tenant scope')
+      }
+
+      const baseDocument = await prisma.document.findFirst({
+        where: {
+          id: parsedParams.data.documentId,
+          project_id: parsedParams.data.id,
+          tenant_id: tenantId,
+        },
+        select: documentSelect,
+      })
+
+      if (!baseDocument) {
+        return sendNotFound(reply, 'Document not found')
+      }
+
+      let sentAt: Date | null = null
+      let localUpdatedAt: Date | null = null
+
+      try {
+        sentAt = parseOptionalDate(parsedBody.data.sent_at, 'sent_at')
+        localUpdatedAt = parseOptionalDate(parsedBody.data.local_updated_at, 'local_updated_at')
+      } catch (error) {
+        return sendBadRequest(reply, error instanceof Error ? error.message : 'Invalid archive payload')
+      }
+
+      const overrideBuffer = parsedBody.data.file_base64 ? decodeBase64(parsedBody.data.file_base64) : null
+      if (parsedBody.data.file_base64 && !overrideBuffer) {
+        return sendBadRequest(reply, 'Invalid file_base64 payload')
+      }
+
+      const inheritedBuffer = !overrideBuffer && !baseDocument.external_url
+        ? await readDocumentBlob(baseDocument.storage_key)
+        : null
+
+      if (!baseDocument.external_url && !overrideBuffer && !inheritedBuffer) {
+        return sendNotFound(reply, 'Document blob not found')
+      }
+
+      try {
+        const archivedDocument = await registerProjectDocument({
+          projectId: parsedParams.data.id,
+          tenantId,
+          filename: parsedBody.data.filename ?? baseDocument.filename,
+          originalFilename: parsedBody.data.filename ?? baseDocument.original_filename ?? baseDocument.filename,
+          mimeType: parsedBody.data.mime_type ?? baseDocument.mime_type,
+          uploadedBy: parsedBody.data.uploaded_by ?? baseDocument.uploaded_by,
+          type: parsedBody.data.mark_conflict ? 'conflict_entry' : (parsedBody.data.type ?? baseDocument.type),
+          tags: parsedBody.data.tags ?? baseDocument.tags,
+          isPublic: parsedBody.data.is_public ?? baseDocument.is_public,
+          sourceKind: parsedBody.data.mark_conflict
+            ? 'conflict_local'
+            : (parsedBody.data.source_kind ?? baseDocument.source_kind ?? 'archive_version'),
+          sourceId: parsedBody.data.source_id ?? baseDocument.source_id,
+          buffer: overrideBuffer ?? inheritedBuffer,
+          externalUrl: overrideBuffer || inheritedBuffer ? null : baseDocument.external_url,
+          sentAt,
+          archivedAt: new Date(),
+          conflictMarker: parsedBody.data.mark_conflict ?? false,
+          versionMetadata: {
+            archived_from_document_id: baseDocument.id,
+            archived_from_version_no: baseDocument.version_no,
+            conflict_reason: parsedBody.data.conflict_reason ?? null,
+            local_updated_at: localUpdatedAt?.toISOString() ?? null,
+          },
+        })
+
+        return reply.status(201).send(withDocumentLinks(archivedDocument))
+      } catch (error) {
+        return sendServerError(reply, error instanceof Error ? error.message : 'Archive version failed')
+      }
+    },
+  )
+
+  app.get<{
+    Params: { id: string }
+    Querystring: {
+      source_kind?: typeof documentSourceKindValues[number]
+      source_id?: string
+      filename?: string
+      local_checksum?: string
+      local_updated_at?: string
+    }
+  }>(
+    '/projects/:id/documents/version-check',
+    async (request, reply) => {
+      const tenantId = getTenantId(request)
+      if (!tenantId) {
+        return sendForbidden(reply, 'Tenant scope is required')
+      }
+
+      const parsedParams = DocumentParamsSchema.safeParse(request.params)
+      if (!parsedParams.success) {
+        return sendBadRequest(reply, parsedParams.error.errors[0]?.message ?? 'Invalid project id')
+      }
+
+      const parsedQuery = VersionCheckQuerySchema.safeParse(request.query)
+      if (!parsedQuery.success) {
+        return sendBadRequest(reply, parsedQuery.error.errors[0]?.message ?? 'Invalid query')
+      }
+
+      const project = await assertProjectInTenantScope(parsedParams.data.id, tenantId)
+      if (!project) {
+        return sendNotFound(reply, 'Project not found in tenant scope')
+      }
+
+      let localUpdatedAt: Date | null = null
+      try {
+        localUpdatedAt = parseOptionalDate(parsedQuery.data.local_updated_at, 'local_updated_at')
+      } catch (error) {
+        return sendBadRequest(reply, error instanceof Error ? error.message : 'Invalid local_updated_at date')
+      }
+
+      const latestDocument = await prisma.document.findFirst({
+        where: {
+          project_id: parsedParams.data.id,
+          tenant_id: tenantId,
+          ...(parsedQuery.data.source_kind ? { source_kind: parsedQuery.data.source_kind } : {}),
+          ...(parsedQuery.data.source_id ? { source_id: parsedQuery.data.source_id } : {}),
+          ...(parsedQuery.data.filename ? { filename: parsedQuery.data.filename } : {}),
+        },
+        orderBy: [{ version_no: 'desc' }, { uploaded_at: 'desc' }],
+        select: documentSelect,
+      })
+
+      if (!latestDocument) {
+        return reply.send({
+          status: 'missing_on_server',
+          hint: 'Keine Serverversion gefunden. Lokale Version kann hochgeladen werden.',
+          latest_document: null,
+          local_checksum: parsedQuery.data.local_checksum ?? null,
+          local_updated_at: localUpdatedAt?.toISOString() ?? null,
+        })
+      }
+
+      let status: 'up_to_date' | 'local_newer' | 'server_newer' | 'conflict' = 'up_to_date'
+
+      if (parsedQuery.data.local_checksum && latestDocument.checksum) {
+        if (parsedQuery.data.local_checksum !== latestDocument.checksum) {
+          if (!localUpdatedAt) {
+            status = 'conflict'
+          } else {
+            const localMs = localUpdatedAt.getTime()
+            const serverMs = latestDocument.uploaded_at.getTime()
+            status = localMs > serverMs ? 'local_newer' : (localMs < serverMs ? 'server_newer' : 'conflict')
+          }
+        }
+      } else if (localUpdatedAt) {
+        const localMs = localUpdatedAt.getTime()
+        const serverMs = latestDocument.uploaded_at.getTime()
+        status = localMs > serverMs ? 'local_newer' : (localMs < serverMs ? 'server_newer' : 'up_to_date')
+      }
+
+      if (latestDocument.conflict_marker && status === 'up_to_date') {
+        status = 'conflict'
+      }
+
+      const hintByStatus: Record<typeof status, string> = {
+        up_to_date: 'Lokale Datei entspricht dem Serverstand.',
+        local_newer: 'Lokale Datei ist neuer als die Serverversion. Archivierung empfohlen.',
+        server_newer: 'Serverversion ist neuer als die lokale Datei. Download oder Merge prüfen.',
+        conflict: 'Versionskonflikt erkannt. Als Konfliktversion archivieren.',
+      }
+
+      return reply.send({
+        status,
+        hint: hintByStatus[status],
+        latest_document: withDocumentLinks(latestDocument),
+        local_checksum: parsedQuery.data.local_checksum ?? null,
+        local_updated_at: localUpdatedAt?.toISOString() ?? null,
+      })
     },
   )
 

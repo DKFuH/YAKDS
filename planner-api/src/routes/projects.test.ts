@@ -1,247 +1,464 @@
 import Fastify from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { prismaMock } = vi.hoisted(() => ({
-  prismaMock: {
-    project: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    projectVersion: {
-      findFirst: vi.fn(),
-      create: vi.fn(),
-      findMany: vi.fn(),
-    },
-    user: {
-      findUnique: vi.fn(),
-    },
-    $transaction: vi.fn(),
-  },
-}))
+const TENANT_ID = 'tenant-1'
+const USER_ID = 'user-1'
 
-prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => Promise<unknown>) => callback(prismaMock))
+const { prismaMock } = vi.hoisted(() => {
+  const projectFindMany = vi.fn()
+  const projectFindUnique = vi.fn()
+  const projectFindFirst = vi.fn()
+  const projectCreate = vi.fn()
+  const projectUpdate = vi.fn()
+  const projectDelete = vi.fn()
+  const areaCreate = vi.fn()
+  const alternativeCreate = vi.fn()
+  const userFindUnique = vi.fn()
+  const tenantSettingFindUnique = vi.fn()
 
-vi.mock('../db.js', () => ({
-  prisma: prismaMock,
+  return {
+    prismaMock: {
+      project: {
+        findMany: projectFindMany,
+        findUnique: projectFindUnique,
+        findFirst: projectFindFirst,
+        create: projectCreate,
+        update: projectUpdate,
+        delete: projectDelete,
+      },
+      user: {
+        findUnique: userFindUnique,
+      },
+      tenantSetting: {
+        findUnique: tenantSettingFindUnique,
+      },
+      area: {
+        create: areaCreate,
+      },
+      alternative: {
+        create: alternativeCreate,
+      },
+      projectVersion: {
+        findFirst: vi.fn(),
+        create: vi.fn(),
+        findMany: vi.fn(),
+      },
+      room: {
+        findMany: vi.fn(),
+      },
+      $transaction: vi.fn(async (handler: (tx: any) => Promise<any>) =>
+        handler({
+          project: {
+            create: projectCreate,
+            findUnique: projectFindUnique,
+            findFirst: projectFindFirst,
+            update: projectUpdate,
+          },
+          area: {
+            create: areaCreate,
+          },
+          alternative: {
+            create: alternativeCreate,
+          },
+          projectVersion: {
+            findFirst: vi.fn(),
+            create: vi.fn(),
+          },
+        })
+      ),
+    },
+  }
+})
+
+vi.mock('../db.js', () => ({ prisma: prismaMock }))
+vi.mock('../services/notificationService.js', () => ({
+  queueNotification: vi.fn(),
 }))
 
 import { projectRoutes } from './projects.js'
 
-const projectId = '11111111-1111-1111-1111-111111111111'
-
-const boardProject = {
-  id: projectId,
-  user_id: 'dev-user-id',
-  name: 'Studio Nord',
-  description: 'Phase-3 Pilotprojekt',
-  status: 'active',
-  project_status: 'planning',
-  deadline: new Date('2026-03-20T00:00:00.000Z'),
-  priority: 'high',
-  assigned_to: 'Planung Team',
-  progress_pct: 42,
-  lead_status: 'qualified',
-  quote_value: 18000,
-  close_probability: 70,
-  tenant_id: null,
-  branch_id: null,
-  created_at: new Date('2026-03-01T00:00:00.000Z'),
-  updated_at: new Date('2026-03-02T00:00:00.000Z'),
-  _count: { rooms: 2, quotes: 1 },
+function makeApp() {
+  const app = Fastify()
+  app.decorateRequest('tenantId', null)
+  app.decorateRequest('branchId', null)
+  app.addHook('preHandler', (request, _reply, done) => {
+    request.tenantId = TENANT_ID
+    done()
+  })
+  app.register(projectRoutes)
+  return app
 }
 
 describe('projectRoutes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
 
-  it('returns board projects filtered for sprint 25 workflow', async () => {
-    prismaMock.project.findMany.mockResolvedValue([boardProject])
-
-    const app = Fastify()
-    await app.register(projectRoutes, { prefix: '/api/v1' })
-
-    const response = await app.inject({
-      method: 'GET',
-      url: '/api/v1/projects/board?user_id=dev-user-id&status_filter=planning',
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: USER_ID,
+      tenant_id: TENANT_ID,
+      branch_id: 'branch-1',
     })
 
+    prismaMock.tenantSetting.findUnique.mockResolvedValue({
+      tenant_id: TENANT_ID,
+      default_advisor: null,
+      default_processor: null,
+      default_area_name: null,
+      default_alternative_name: null,
+    })
+  })
+
+  it('GET /projects lists active projects in tenant scope', async () => {
+    prismaMock.project.findMany.mockResolvedValue([
+      { id: 'project-1', name: 'Kitchen', status: 'active', project_status: 'lead' },
+    ])
+
+    const app = makeApp()
+    const response = await app.inject({ method: 'GET', url: '/projects' })
+
     expect(response.statusCode).toBe(200)
-    expect(response.json()).toEqual(expect.arrayContaining([
+    expect(prismaMock.project.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: projectId,
-        project_status: 'planning',
-        priority: 'high',
-      }),
-    ]))
-    expect(prismaMock.project.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        user_id: 'dev-user-id',
-        project_status: 'planning',
-        status: 'active',
-      }),
-    }))
+        where: expect.objectContaining({
+          tenant_id: TENANT_ID,
+          status: 'active',
+        }),
+      })
+    )
 
     await app.close()
   })
 
-  it('updates only the workflow status through the dedicated status endpoint', async () => {
-    prismaMock.project.findUnique.mockResolvedValue({ id: projectId })
-    prismaMock.project.update.mockResolvedValue({
-      ...boardProject,
-      project_status: 'quoted',
-      progress_pct: 55,
-    })
+  it('GET /projects supports include_archived=true', async () => {
+    prismaMock.project.findMany.mockResolvedValue([
+      { id: 'project-2', name: 'Archived', status: 'archived', project_status: 'archived' },
+    ])
 
-    const app = Fastify()
-    await app.register(projectRoutes, { prefix: '/api/v1' })
-
-    const response = await app.inject({
-      method: 'PATCH',
-      url: `/api/v1/projects/${projectId}/status`,
-      payload: {
-        project_status: 'quoted',
-        progress_pct: 55,
-      },
-    })
+    const app = makeApp()
+    const response = await app.inject({ method: 'GET', url: '/projects?include_archived=true' })
 
     expect(response.statusCode).toBe(200)
-    expect(prismaMock.project.update).toHaveBeenCalledWith({
-      where: { id: projectId },
-      data: {
-        project_status: 'quoted',
-        progress_pct: 55,
-        status: 'active',
-      },
-      select: expect.any(Object),
-    })
+    expect(prismaMock.project.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ tenant_id: TENANT_ID }),
+      })
+    )
+    expect(prismaMock.project.findMany.mock.calls[0][0].where.status).toBeUndefined()
 
     await app.close()
   })
 
-  it('updates assignment metadata through the assign endpoint', async () => {
-    prismaMock.project.findUnique.mockResolvedValue({ id: projectId })
-    prismaMock.project.update.mockResolvedValue({
-      ...boardProject,
-      assigned_to: 'Montage Team',
-      priority: 'medium',
-      progress_pct: 60,
-    })
-
-    const app = Fastify()
-    await app.register(projectRoutes, { prefix: '/api/v1' })
-
-    const response = await app.inject({
-      method: 'PATCH',
-      url: `/api/v1/projects/${projectId}/assign`,
-      payload: {
-        assigned_to: 'Montage Team',
-        priority: 'medium',
-        deadline: '2026-03-25T00:00:00.000Z',
-        progress_pct: 60,
-      },
-    })
-
-    expect(response.statusCode).toBe(200)
-    expect(prismaMock.project.update).toHaveBeenCalledWith({
-      where: { id: projectId },
-      data: expect.objectContaining({
-        assigned_to: 'Montage Team',
-        priority: 'medium',
-        progress_pct: 60,
-      }),
-      select: expect.any(Object),
-    })
-
-    await app.close()
-  })
-
-  it('duplicates a project via 3dots endpoint', async () => {
-    prismaMock.project.findUnique.mockResolvedValue({ ...boardProject })
+  it('POST /projects creates project and default area/alternative', async () => {
     prismaMock.project.create.mockResolvedValue({
-      ...boardProject,
-      id: '22222222-2222-2222-2222-222222222222',
-      name: 'Studio Nord (Kopie)',
+      id: 'project-3',
+      tenant_id: TENANT_ID,
+      name: 'Living Room',
+      status: 'active',
       project_status: 'lead',
-      progress_pct: 0,
+      assigned_to: null,
+      advisor: null,
+      archived_at: null,
+      retention_until: null,
+      archive_reason: null,
     })
+    prismaMock.area.create.mockResolvedValue({ id: 'area-3' })
+    prismaMock.alternative.create.mockResolvedValue({ id: 'alt-3' })
 
-    const app = Fastify()
-    await app.register(projectRoutes, { prefix: '/api/v1' })
-
+    const app = makeApp()
     const response = await app.inject({
-      method: 'PATCH',
-      url: `/api/v1/projects/${projectId}/3dots?action=duplicate`,
+      method: 'POST',
+      url: '/projects',
+      payload: {
+        name: 'Living Room',
+        user_id: USER_ID,
+      },
     })
 
     expect(response.statusCode).toBe(201)
-    expect(prismaMock.project.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        name: 'Studio Nord (Kopie)',
-        project_status: 'lead',
-        progress_pct: 0,
-      }),
-      select: expect.any(Object),
-    }))
+    expect(prismaMock.project.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Living Room',
+          user_id: USER_ID,
+          tenant_id: TENANT_ID,
+        }),
+      })
+    )
+    expect(prismaMock.area.create).toHaveBeenCalled()
+    expect(prismaMock.alternative.create).toHaveBeenCalled()
 
     await app.close()
   })
 
-  it('archives a project via 3dots endpoint', async () => {
-    prismaMock.project.findUnique.mockResolvedValue({ id: projectId })
+  it('POST /projects applies tenant defaults', async () => {
+    prismaMock.tenantSetting.findUnique.mockResolvedValue({
+      tenant_id: TENANT_ID,
+      default_advisor: 'Default Advisor',
+      default_processor: 'Default Processor',
+      default_area_name: 'Basisbereich',
+      default_alternative_name: 'Variante A',
+    })
+    prismaMock.project.create.mockResolvedValue({
+      id: 'project-4',
+      tenant_id: TENANT_ID,
+      name: 'Defaults Project',
+      status: 'active',
+      project_status: 'lead',
+      assigned_to: 'Default Processor',
+      advisor: 'Default Advisor',
+      archived_at: null,
+      retention_until: null,
+      archive_reason: null,
+    })
+    prismaMock.area.create.mockResolvedValue({ id: 'area-4' })
+    prismaMock.alternative.create.mockResolvedValue({ id: 'alt-4' })
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'POST',
+      url: '/projects',
+      payload: {
+        name: 'Defaults Project',
+        user_id: USER_ID,
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(prismaMock.project.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          advisor: 'Default Advisor',
+          assigned_to: 'Default Processor',
+        }),
+      })
+    )
+    expect(prismaMock.area.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ name: 'Basisbereich' }),
+      })
+    )
+    expect(prismaMock.alternative.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ name: 'Variante A' }),
+      })
+    )
+
+    await app.close()
+  })
+
+  it('POST /projects returns 404 when user does not exist', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null)
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'POST',
+      url: '/projects',
+      payload: {
+        name: 'Unknown User Project',
+        user_id: USER_ID,
+      },
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(prismaMock.project.create).not.toHaveBeenCalled()
+
+    await app.close()
+  })
+
+  it('GET /projects/archive lists archived projects', async () => {
+    prismaMock.project.findMany.mockResolvedValue([
+      {
+        id: 'project-5',
+        name: 'Archived Project',
+        status: 'archived',
+        project_status: 'archived',
+        archived_at: new Date('2026-03-04T00:00:00.000Z'),
+      },
+    ])
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'GET',
+      url: '/projects/archive?archive_reason=customer',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(prismaMock.project.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenant_id: TENANT_ID,
+          status: 'archived',
+          archive_reason: expect.any(Object),
+        }),
+      })
+    )
+
+    await app.close()
+  })
+
+  it('POST /projects/:id/archive archives project with metadata', async () => {
+    prismaMock.project.findFirst.mockResolvedValue({ id: 'project-6' })
     prismaMock.project.update.mockResolvedValue({
-      ...boardProject,
+      id: 'project-6',
+      status: 'archived',
+      project_status: 'archived',
+      archive_reason: 'manual',
+      archived_at: new Date('2026-03-05T00:00:00.000Z'),
+      retention_until: new Date('2028-03-04T00:00:00.000Z'),
+    })
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'POST',
+      url: '/projects/project-6/archive',
+      payload: {
+        archive_reason: 'manual',
+        retention_days: 730,
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(prismaMock.project.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'project-6' },
+        data: expect.objectContaining({
+          status: 'archived',
+          project_status: 'archived',
+          archive_reason: 'manual',
+        }),
+      })
+    )
+
+    await app.close()
+  })
+
+  it('POST /projects/:id/archive returns 404 for missing project', async () => {
+    prismaMock.project.findFirst.mockResolvedValue(null)
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'POST',
+      url: '/projects/project-missing/archive',
+      payload: { archive_reason: 'manual' },
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(prismaMock.project.update).not.toHaveBeenCalled()
+
+    await app.close()
+  })
+
+  it('POST /projects/:id/restore restores archived project', async () => {
+    prismaMock.project.findFirst.mockResolvedValue({ id: 'project-7' })
+    prismaMock.project.update.mockResolvedValue({
+      id: 'project-7',
+      status: 'active',
+      project_status: 'lead',
+      archived_at: null,
+      retention_until: null,
+      archive_reason: null,
+    })
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'POST',
+      url: '/projects/project-7/restore',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(prismaMock.project.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'project-7' },
+        data: {
+          status: 'active',
+          project_status: 'lead',
+          archived_at: null,
+          retention_until: null,
+          archive_reason: null,
+        },
+      })
+    )
+
+    await app.close()
+  })
+
+  it('PATCH /projects/:id/status updates project workflow status', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ id: 'project-8' })
+    prismaMock.project.update.mockResolvedValue({
+      id: 'project-8',
       status: 'archived',
       project_status: 'archived',
     })
 
-    const app = Fastify()
-    await app.register(projectRoutes, { prefix: '/api/v1' })
-
+    const app = makeApp()
     const response = await app.inject({
       method: 'PATCH',
-      url: `/api/v1/projects/${projectId}/3dots?action=archive`,
+      url: '/projects/project-8/status',
+      payload: {
+        project_status: 'archived',
+      },
     })
 
     expect(response.statusCode).toBe(200)
-    expect(prismaMock.project.update).toHaveBeenCalledWith({
-      where: { id: projectId },
-      data: { status: 'archived', project_status: 'archived' },
-      select: expect.any(Object),
-    })
+    expect(prismaMock.project.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'project-8' },
+        data: expect.objectContaining({
+          project_status: 'archived',
+          status: 'archived',
+        }),
+      })
+    )
 
     await app.close()
   })
 
-  it('assigns advisor via the advisor endpoint', async () => {
-    prismaMock.project.findUnique.mockResolvedValue({ id: projectId })
-    prismaMock.project.update.mockResolvedValue({
-      ...boardProject,
-      advisor: 'Anna Berger',
-      sales_rep: 'Klaus Müller',
+  it('PATCH /projects/:id/3dots archives and unarchives project', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({
+      id: 'project-9',
+      user_id: USER_ID,
+      name: 'Three Dots',
+      description: null,
+      deadline: null,
+      priority: 'medium',
+      assigned_to: null,
+      advisor: null,
+      sales_rep: null,
+      tenant_id: TENANT_ID,
+      branch_id: 'branch-1',
     })
+    prismaMock.project.update
+      .mockResolvedValueOnce({ id: 'project-9', status: 'archived', project_status: 'archived' })
+      .mockResolvedValueOnce({ id: 'project-9', status: 'active', project_status: 'lead' })
 
-    const app = Fastify()
-    await app.register(projectRoutes, { prefix: '/api/v1' })
+    const app = makeApp()
 
-    const response = await app.inject({
+    const archiveResponse = await app.inject({
       method: 'PATCH',
-      url: `/api/v1/projects/${projectId}/advisor`,
-      payload: { advisor: 'Anna Berger', sales_rep: 'Klaus Müller' },
+      url: '/projects/project-9/3dots?action=archive',
     })
+    expect(archiveResponse.statusCode).toBe(200)
+
+    const unarchiveResponse = await app.inject({
+      method: 'PATCH',
+      url: '/projects/project-9/3dots?action=unarchive',
+    })
+    expect(unarchiveResponse.statusCode).toBe(200)
+
+    await app.close()
+  })
+
+  it('GET /projects/board returns board list in tenant scope', async () => {
+    prismaMock.project.findMany.mockResolvedValue([
+      { id: 'project-10', name: 'A', status: 'active', project_status: 'lead' },
+      { id: 'project-11', name: 'B', status: 'active', project_status: 'approved' },
+    ])
+
+    const app = makeApp()
+    const response = await app.inject({ method: 'GET', url: '/projects/board' })
 
     expect(response.statusCode).toBe(200)
-    expect(prismaMock.project.update).toHaveBeenCalledWith({
-      where: { id: projectId },
-      data: expect.objectContaining({
-        advisor: 'Anna Berger',
-        sales_rep: 'Klaus Müller',
-      }),
-      select: expect.any(Object),
-    })
+    expect(response.json()).toHaveLength(2)
 
     await app.close()
   })

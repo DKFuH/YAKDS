@@ -611,7 +611,7 @@ export async function callMcpTool(
             : typeof placement.article_id === 'string'
               ? placement.article_id
               : null
-        const article = articleId ? articleMap.get(articleId) : null
+        const article = articleId ? (articleMap.get(articleId) as any) : null
         return {
           ...placement,
           article: article

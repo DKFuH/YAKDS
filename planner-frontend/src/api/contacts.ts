@@ -2,6 +2,7 @@ import { api, shouldUseDemoFallback } from './client.js'
 import { attachContactToProject as attachDemoContactToProject, createContact as createDemoContact, listContacts as listDemoContacts } from './demoBackend.js'
 
 export type ContactType = 'end_customer' | 'architect' | 'contractor'
+export type ContactPartyKind = 'company' | 'private_person' | 'contact_person'
 export type ContactLeadSource = 'web_planner' | 'showroom' | 'referral' | 'other'
 
 export interface ContactProjectSummary {
@@ -17,6 +18,8 @@ export interface Contact {
   id: string
   tenant_id: string
   type: ContactType
+  party_kind: ContactPartyKind
+  contact_role: string | null
   company: string | null
   first_name: string | null
   last_name: string
@@ -36,6 +39,8 @@ export interface Contact {
 
 export interface CreateContactPayload {
   type?: ContactType
+  party_kind?: ContactPartyKind
+  contact_role?: string | null
   company?: string | null
   first_name?: string | null
   last_name: string
@@ -55,16 +60,30 @@ export interface CreateContactPayload {
 const TENANT_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001'
 
 export const contactsApi = {
-  list: async (search?: string) => {
+  list: async (params?: {
+    search?: string
+    type?: ContactType
+    party_kind?: ContactPartyKind
+    contact_role?: string
+  }) => {
     const query = new URLSearchParams()
-    if (search?.trim()) {
-      query.set('search', search.trim())
+    if (params?.search?.trim()) {
+      query.set('search', params.search.trim())
+    }
+    if (params?.type) {
+      query.set('type', params.type)
+    }
+    if (params?.party_kind) {
+      query.set('party_kind', params.party_kind)
+    }
+    if (params?.contact_role?.trim()) {
+      query.set('contact_role', params.contact_role.trim())
     }
     const suffix = query.toString() ? `?${query.toString()}` : ''
     try {
       return await api.get<Contact[]>(`/contacts${suffix}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
-      if (shouldUseDemoFallback(error)) return listDemoContacts(search)
+      if (shouldUseDemoFallback(error)) return listDemoContacts(params)
       throw error
     }
   },

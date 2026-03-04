@@ -4,14 +4,20 @@ import { prisma } from '../db.js'
 import { sendBadRequest, sendForbidden, sendNotFound } from '../errors.js'
 
 const contactTypeValues = ['end_customer', 'architect', 'contractor'] as const
+const contactPartyKindValues = ['company', 'private_person', 'contact_person'] as const
 const leadSourceValues = ['web_planner', 'showroom', 'referral', 'other'] as const
 
 const ContactQuerySchema = z.object({
   search: z.string().min(1).max(200).optional(),
+  type: z.enum(contactTypeValues).optional(),
+  party_kind: z.enum(contactPartyKindValues).optional(),
+  contact_role: z.string().min(1).max(200).optional(),
 })
 
 const CreateContactSchema = z.object({
   type: z.enum(contactTypeValues).default('end_customer'),
+  party_kind: z.enum(contactPartyKindValues).default('private_person'),
+  contact_role: z.string().max(200).nullable().optional(),
   company: z.string().max(200).nullable().optional(),
   first_name: z.string().max(120).nullable().optional(),
   last_name: z.string().min(1).max(120),
@@ -46,7 +52,14 @@ function getTenantId(request: { tenantId?: string | null }): string | null {
 }
 
 export async function contactRoutes(app: FastifyInstance) {
-  app.get<{ Querystring: { search?: string } }>('/contacts', async (request, reply) => {
+  app.get<{
+    Querystring: {
+      search?: string
+      type?: typeof contactTypeValues[number]
+      party_kind?: typeof contactPartyKindValues[number]
+      contact_role?: string
+    }
+  }>('/contacts', async (request, reply) => {
     const tenantId = getTenantId(request)
     if (!tenantId) {
       return sendForbidden(reply, 'Tenant scope is required')
@@ -58,10 +71,14 @@ export async function contactRoutes(app: FastifyInstance) {
     }
 
     const search = parsedQuery.data.search?.trim()
+    const contactRole = parsedQuery.data.contact_role?.trim()
 
     const contacts = await prisma.contact.findMany({
       where: {
         tenant_id: tenantId,
+        ...(parsedQuery.data.type ? { type: parsedQuery.data.type } : {}),
+        ...(parsedQuery.data.party_kind ? { party_kind: parsedQuery.data.party_kind } : {}),
+        ...(contactRole ? { contact_role: { contains: contactRole, mode: 'insensitive' } } : {}),
         ...(search
           ? {
               OR: [
@@ -137,6 +154,8 @@ export async function contactRoutes(app: FastifyInstance) {
       data: {
         tenant_id: tenantId,
         type: data.type,
+        party_kind: data.party_kind,
+        contact_role: normalizeNullable(data.contact_role),
         company: normalizeNullable(data.company),
         first_name: normalizeNullable(data.first_name),
         last_name: data.last_name.trim(),

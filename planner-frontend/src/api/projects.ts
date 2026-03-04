@@ -14,6 +14,9 @@ export interface Project {
   assigned_to: string | null
   advisor: string | null
   sales_rep: string | null
+  archived_at?: string | null
+  retention_until?: string | null
+  archive_reason?: string | null
   progress_pct: number
   lead_status?: 'new' | 'qualified' | 'quoted' | 'won' | 'lost'
   quote_value?: number | null
@@ -151,6 +154,13 @@ export interface ProjectAssignmentUpdate {
   progress_pct?: number
 }
 
+export interface ProjectArchiveFilters {
+  search?: string
+  archive_reason?: string
+  retention_until_before?: string
+  retention_until_after?: string
+}
+
 export const projectsApi = {
   list: async (userId = USER_ID_PLACEHOLDER) => {
     try {
@@ -180,6 +190,32 @@ export const projectsApi = {
         return filters.status_filter
           ? projects.filter((project) => project.project_status === filters.status_filter)
           : projects
+      }
+      throw error
+    }
+  },
+  archiveList: async (filters: ProjectArchiveFilters = {}) => {
+    const query = new URLSearchParams()
+    if (filters.search?.trim()) {
+      query.set('search', filters.search.trim())
+    }
+    if (filters.archive_reason?.trim()) {
+      query.set('archive_reason', filters.archive_reason.trim())
+    }
+    if (filters.retention_until_before) {
+      query.set('retention_until_before', filters.retention_until_before)
+    }
+    if (filters.retention_until_after) {
+      query.set('retention_until_after', filters.retention_until_after)
+    }
+
+    const suffix = query.toString() ? `?${query.toString()}` : ''
+
+    try {
+      return await api.get<Project[]>(`/projects/archive${suffix}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) {
+        return listDemoProjects().filter((project) => project.status === 'archived')
       }
       throw error
     }
@@ -274,6 +310,22 @@ export const projectsApi = {
         }
         return updateDemoProject(id, { status: action === 'archive' ? 'archived' : 'active' })
       }
+      throw error
+    }
+  },
+  archive: async (id: string, payload?: { archive_reason?: string; retention_days?: number }) => {
+    try {
+      return await api.post<Project>(`/projects/${id}/archive`, payload ?? {}, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return updateDemoProject(id, { status: 'archived' })
+      throw error
+    }
+  },
+  restore: async (id: string) => {
+    try {
+      return await api.post<Project>(`/projects/${id}/restore`, {}, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) return updateDemoProject(id, { status: 'active' })
       throw error
     }
   },

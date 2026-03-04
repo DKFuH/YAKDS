@@ -53,6 +53,9 @@ model Project {
   branch_id         String?
   advisor           String?   // Phase 4 – Sprint 34: Fachberater/Sachbearbeiter
   sales_rep         String?   // Phase 4 – Sprint 34: Verkäufer (for branch filter)
+  archived_at       DateTime?
+  retention_until   DateTime?
+  archive_reason    String?   @db.VarChar(500)
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 
@@ -889,8 +892,15 @@ model Document {
   storage_provider String   @default("local_fs")
   storage_bucket String?
   storage_key String
+  storage_path String?
   storage_version Int       @default(1)
+  version_no   Int          @default(1)
+  checksum     String?
   external_url String?
+  sent_at      DateTime?
+  archived_at  DateTime?
+  version_metadata Json     @default("{}")
+  conflict_marker Boolean   @default(false)
   tags        String[]     @default([])
   is_public   Boolean      @default(false)
 
@@ -899,23 +909,34 @@ model Document {
   @@index([tenant_id, project_id])
   @@index([project_id, type])
   @@index([tenant_id, source_kind, source_id])
+  @@index([tenant_id, project_id, source_kind, source_id, version_no])
+  @@index([tenant_id, project_id, filename, version_no])
   @@map("documents")
 }
 
 enum DocumentType {
   quote_pdf
+  order_pdf
+  spec_package
+  manual_upload
   render_image
   cad_import
   email
   contract
+  conflict_entry
   other
 }
 
 enum DocumentSourceKind {
   manual_upload
   quote_export
+  order_export
+  spec_export
   render_job
   import_job
+  archive_version
+  offline_sync
+  conflict_local
 }
 
 // ─────────────────────────────────────────
@@ -1000,6 +1021,10 @@ model TenantSetting {
   vat_id             String?  @db.VarChar(30)
   tax_number         String?  @db.VarChar(30)
   quote_footer       String?
+  default_advisor    String?  @db.VarChar(200)
+  default_processor  String?  @db.VarChar(200)
+  default_area_name  String?  @db.VarChar(200)
+  default_alternative_name String? @db.VarChar(200)
   enabled_plugins    Json     @default("[]")
   preferred_locale   String?  @db.VarChar(10)  // Sprint 84 – Core-i18n
   fallback_locale    String?  @db.VarChar(10)  // Sprint 84 – Core-i18n
@@ -1480,6 +1505,8 @@ model Contact {
   id              String          @id @default(uuid())
   tenant_id       String
   type            ContactType     @default(end_customer)
+  party_kind      ContactPartyKind @default(private_person)
+  contact_role    String?
   company         String?
   first_name      String?
   last_name       String
@@ -1519,6 +1546,12 @@ enum ContactType {
   end_customer
   architect
   contractor
+}
+
+enum ContactPartyKind {
+  company
+  private_person
+  contact_person
 }
 
 enum ContactLeadSource {

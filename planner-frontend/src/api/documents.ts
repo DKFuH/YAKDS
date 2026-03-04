@@ -1,11 +1,34 @@
 import { api, shouldUseDemoFallback } from './client.js'
 import {
+  archiveDocumentVersion as archiveDemoDocumentVersion,
   createDocument as createDemoDocument,
   deleteDocument as deleteDemoDocument,
   listDocuments as listDemoDocuments,
+  versionCheckDocument as versionCheckDemoDocument,
 } from './demoBackend.js'
 
-export type DocumentType = 'quote_pdf' | 'render_image' | 'cad_import' | 'email' | 'contract' | 'other'
+export type DocumentType =
+  | 'quote_pdf'
+  | 'order_pdf'
+  | 'spec_package'
+  | 'manual_upload'
+  | 'render_image'
+  | 'cad_import'
+  | 'email'
+  | 'contract'
+  | 'conflict_entry'
+  | 'other'
+
+export type DocumentSourceKind =
+  | 'manual_upload'
+  | 'quote_export'
+  | 'order_export'
+  | 'spec_export'
+  | 'render_job'
+  | 'import_job'
+  | 'archive_version'
+  | 'offline_sync'
+  | 'conflict_local'
 
 export interface ProjectDocument {
   id: string
@@ -18,13 +41,20 @@ export interface ProjectDocument {
   uploaded_by: string
   uploaded_at: string
   type: DocumentType
-  source_kind: 'manual_upload' | 'quote_export' | 'render_job' | 'import_job'
+  source_kind: DocumentSourceKind
   source_id: string | null
   storage_provider: string
   storage_bucket: string | null
   storage_key: string
+  storage_path: string | null
   storage_version: number
+  version_no: number
+  checksum: string | null
   external_url: string | null
+  sent_at: string | null
+  archived_at: string | null
+  version_metadata: Record<string, unknown>
+  conflict_marker: boolean
   tags: string[]
   is_public: boolean
   download_url: string
@@ -34,6 +64,42 @@ export interface ProjectDocument {
 export interface DocumentListParams {
   type?: DocumentType
   tag?: string
+  source_kind?: DocumentSourceKind
+  created_from?: string
+  created_to?: string
+  include_conflicts?: boolean
+}
+
+export interface ArchiveDocumentVersionPayload {
+  uploaded_by?: string
+  filename?: string
+  mime_type?: string
+  file_base64?: string
+  type?: DocumentType
+  source_kind?: DocumentSourceKind
+  source_id?: string | null
+  tags?: string[]
+  is_public?: boolean
+  sent_at?: string
+  mark_conflict?: boolean
+  conflict_reason?: string
+  local_updated_at?: string
+}
+
+export interface DocumentVersionCheckResult {
+  status: 'up_to_date' | 'local_newer' | 'server_newer' | 'conflict' | 'missing_on_server'
+  hint: string
+  latest_document: ProjectDocument | null
+  local_checksum: string | null
+  local_updated_at: string | null
+}
+
+export interface DocumentVersionCheckParams {
+  source_kind?: DocumentSourceKind
+  source_id?: string
+  filename?: string
+  local_checksum?: string
+  local_updated_at?: string
 }
 
 const TENANT_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001'
@@ -75,6 +141,18 @@ export const documentsApi = {
     if (params.tag?.trim()) {
       query.set('tag', params.tag.trim())
     }
+    if (params.source_kind) {
+      query.set('source_kind', params.source_kind)
+    }
+    if (params.created_from) {
+      query.set('created_from', params.created_from)
+    }
+    if (params.created_to) {
+      query.set('created_to', params.created_to)
+    }
+    if (params.include_conflicts) {
+      query.set('include_conflicts', 'true')
+    }
     const suffix = query.toString() ? `?${query.toString()}` : ''
 
     try {
@@ -103,7 +181,7 @@ export const documentsApi = {
       for (const file of files) {
         const fileBase64 = await fileToBase64(file)
         const document = await api.post<ProjectDocument>(
-          `/projects/${projectId}/documents`,
+          `/projects/${projectId}/documents/upload`,
           {
             filename: file.name,
             mime_type: file.type || 'application/octet-stream',
@@ -137,6 +215,64 @@ export const documentsApi = {
           }))
         }
         return uploaded
+      }
+      throw error
+    }
+  },
+  archiveVersion: async (projectId: string, documentId: string, payload: ArchiveDocumentVersionPayload = {}) => {
+    try {
+      const document = await api.post<ProjectDocument>(
+        `/projects/${projectId}/documents/${documentId}/archive-version`,
+        payload,
+        { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER },
+      )
+      return {
+        ...document,
+        download_url: withAbsoluteBase(document.download_url),
+      }
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) {
+        return archiveDemoDocumentVersion(projectId, documentId, payload)
+      }
+      throw error
+    }
+  },
+  versionCheck: async (projectId: string, params: DocumentVersionCheckParams = {}) => {
+    const query = new URLSearchParams()
+    if (params.source_kind) {
+      query.set('source_kind', params.source_kind)
+    }
+    if (params.source_id?.trim()) {
+      query.set('source_id', params.source_id.trim())
+    }
+    if (params.filename?.trim()) {
+      query.set('filename', params.filename.trim())
+    }
+    if (params.local_checksum?.trim()) {
+      query.set('local_checksum', params.local_checksum.trim())
+    }
+    if (params.local_updated_at) {
+      query.set('local_updated_at', params.local_updated_at)
+    }
+    const suffix = query.toString() ? `?${query.toString()}` : ''
+
+    try {
+      const result = await api.get<DocumentVersionCheckResult>(
+        `/projects/${projectId}/documents/version-check${suffix}`,
+        { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER },
+      )
+      return {
+        ...result,
+        latest_document: result.latest_document
+          ? {
+              ...result.latest_document,
+              download_url: withAbsoluteBase(result.latest_document.download_url),
+            }
+          : null,
+      }
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) {
+        return versionCheckDemoDocument(projectId, params)
       }
       throw error
     }

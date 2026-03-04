@@ -129,7 +129,9 @@ export function ProjectList() {
 
   async function handleArchive(id: string) {
     try {
-      const updated = await projectsApi.threeDots(id, 'archive')
+      const updated = await projectsApi.archive(id, {
+        archive_reason: 'Archiviert über Projektboard',
+      })
       setProjects((prev) => prev.filter((p) => p.id !== id))
       setGanttProjects((prev) => prev.filter((p) => p.id !== id))
       if (updated) {
@@ -233,6 +235,7 @@ export function ProjectList() {
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/bi')}>BI Dashboard</button>
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/contacts')}>Kontakte</button>
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/documents')}>Dokumente</button>
+        <button type="button" className={styles.topNavLink} onClick={() => navigate('/projects/archive')}>Projektarchiv</button>
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/catalog')}>Katalog</button>
         <button type="button" className={styles.topNavLink} onClick={() => navigate('/settings')}>{t('nav.settings')}</button>
         <button type="button" className={styles.topNavLink} onClick={() => void platformApi.exportProjectsCsv()}>CSV Export</button>

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { FastifyInstance } from 'fastify'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendNotFound, sendBadRequest } from '../errors.js'
@@ -244,7 +245,7 @@ export async function roomRoutes(app: FastifyInstance) {
 
     const updated = await prisma.room.update({
       where: { id: request.params.id },
-      data: { reference_image: null },
+      data: { reference_image: Prisma.JsonNull },
     })
     return reply.send(updated)
   })

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendForbidden, sendNotFound } from '../errors.js'
@@ -151,7 +152,7 @@ export async function levelsRoutes(app: FastifyInstance) {
         height_mm: parsed.data.height_mm,
         order_index: parsed.data.order_index ?? ((maxOrderLevel?.order_index ?? -1) + 1),
         visible: parsed.data.visible ?? true,
-        config_json: parsed.data.config_json ?? {},
+        config_json: (parsed.data.config_json ?? {}) as unknown as Prisma.InputJsonValue,
       },
     })
 
@@ -191,7 +192,9 @@ export async function levelsRoutes(app: FastifyInstance) {
         ...(parsed.data.height_mm !== undefined ? { height_mm: parsed.data.height_mm } : {}),
         ...(parsed.data.order_index !== undefined ? { order_index: parsed.data.order_index } : {}),
         ...(parsed.data.visible !== undefined ? { visible: parsed.data.visible } : {}),
-        ...(parsed.data.config_json !== undefined ? { config_json: parsed.data.config_json } : {}),
+        ...(parsed.data.config_json !== undefined
+          ? { config_json: parsed.data.config_json as unknown as Prisma.InputJsonValue }
+          : {}),
       },
     })
 
