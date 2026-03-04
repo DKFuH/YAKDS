@@ -16,6 +16,28 @@ Aufmass-/Blueprint-Daten vorbereitet.
 
 Inspiration: Sweet Home 3D offline usage und Tape Measure App Workflow.
 
+**Architekturregel:** hybrid
+
+- Offline-/PWA-Basis bleibt Core
+- Aufmass-/Measurement-Import wird als Plugin `survey-import` umgesetzt
+
+---
+
+## 0. Core-vs-Plugin-Schnitt
+
+Core:
+
+- Manifest
+- Service Worker
+- Offline-Projektbundle
+- Sync-Status und Grundcache
+
+Plugin `survey-import`:
+
+- Measurement-Import-Endpunkt
+- Import-Dialog fuer aufgemessene Punkte / Segmentlaengen
+- Uebergang in SiteSurvey- und Blueprint-Workflows
+
 ---
 
 ## 1. Frontend/PWA-Basis
@@ -67,6 +89,7 @@ Zusatzpfad fuer Aufmassimport:
 
 Neue oder angepasste Dateien:
 
+- `planner-api/src/plugins/surveyImport.ts`
 - `planner-api/src/routes/offlineSync.ts`
 - Erweiterungen in `siteSurveys.ts` oder `rooms.ts`
 
@@ -83,6 +106,7 @@ Endpoints:
 Neue oder angepasste Dateien:
 
 - `planner-frontend/src/pwa/*`
+- `planner-frontend/src/plugins/surveyImport/*`
 - `planner-frontend/src/api/offlineSync.ts`
 - `planner-frontend/src/pages/SiteSurveyPage.tsx`
 - `planner-frontend/src/pages/Editor.tsx`
@@ -93,6 +117,7 @@ Funktionen:
 - Offline-Badge/Status
 - lokale Speicherung zuletzt geoeffneter Projekte
 - Aufmass-/Blueprint-Import in den Nachzeichnen-Workflow
+- Import-UI nur bei aktivem Plugin
 
 ---
 
@@ -103,6 +128,7 @@ Funktionen:
 - Sync-Queue fuer Aenderungen
 - Measurement-Import-Endpunkt
 - Offline-Status im Frontend
+- Plugin-Registrierung fuer Aufmassimport
 - 10-16 Tests
 
 ---
@@ -113,4 +139,3 @@ Funktionen:
 - Nutzer sieht klar, ob online/offline gearbeitet wird
 - lokale Aenderungen koennen spaeter synchronisiert werden
 - Aufmassdaten koennen in einen Raum- oder Blueprint-Workflow uebernommen werden
-

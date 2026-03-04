@@ -1,6 +1,6 @@
-# Sprint 83 - Mehr-Ebenen-Layout, Sektionen & Interop
+# Sprint 83 - Multilevel-Docs-Plugin: Layout, Sektionen & Interop
 
-**Branch:** `feature/sprint-83-multilevel-layout-sections`
+**Branch:** `feature/sprint-83-multilevel-docs-plugin`
 **Gruppe:** B (startbar nach S81, sinnvoll nach S82)
 **Status:** `planned`
 **Abhaengigkeiten:** S64 (Layout-Sheets), S72 (Bogen-Bemaßung), S80 (Vektor-Exporte), S81 (Levels), S82 (Treppen)
@@ -15,12 +15,32 @@ grundlegende Mehr-Ebenen-Daten in Exporten.
 
 Inspiration: Sweet Home 3D Side View, more levels, export thinking.
 
+**Plugin-Zuschnitt:** `multilevel-docs`
+
+---
+
+## 0. Plugin-Einordnung
+
+Das Plugin kapselt:
+
+- Section-Views
+- level-aware Layout-Sheets
+- vertikale Schnittdarstellung
+- Export-/Interop-Erweiterungen fuer Mehr-Ebenen-Dokumentation
+
+Der Core liefert nur:
+
+- Levels aus `S81`
+- Basissheets aus `S64`
+- Export-Extension-Points
+
 ---
 
 ## 1. Backend
 
 Neue oder angepasste Dateien:
 
+- `planner-api/src/plugins/multilevelDocs.ts`
 - `planner-api/src/routes/sections.ts`
 - Erweiterungen in `layoutSheets.ts`, `exports.ts`, `cadInterop.ts`, `ifcInterop.ts`
 
@@ -60,6 +80,7 @@ model SectionView {
 
 Neue oder angepasste Dateien:
 
+- `planner-frontend/src/plugins/multilevelDocs/*`
 - `planner-frontend/src/api/sections.ts`
 - `planner-frontend/src/components/editor/SectionPanel.tsx`
 - Anpassungen in `LayoutSheetTabs.tsx`, `ExportsPage.tsx`
@@ -70,6 +91,7 @@ Funktionen:
 - Seiten-/Schnittansicht generieren
 - Sheets nach Ebene und Section filtern
 - Export von Level- und Schnittansichten
+- Plugin-Sichtbarkeit tenant- und route-aware
 
 ---
 
@@ -80,6 +102,7 @@ Funktionen:
 - level-aware Layout-Sheets
 - einfache Vertikalschnitte
 - Export- und Interop-Erweiterungen fuer Mehr-Ebenen-Metadaten
+- Plugin-Registrierung und tenant-aware Aktivierung
 - 10-14 Tests
 
 ---
@@ -90,4 +113,3 @@ Funktionen:
 - vertikale Schnittansichten sind speicher- und exportierbar
 - Treppen und Deckenaussparungen erscheinen sinnvoll in Layout und Export
 - Level-Metadaten gehen in Exportpfaden nicht verloren
-

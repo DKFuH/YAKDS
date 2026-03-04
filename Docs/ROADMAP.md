@@ -1266,13 +1266,19 @@ Asset-Import und klarer Praesentationsmodus.
 - nur Workflow- und Bedienideen adaptieren
 - vollstaendige Eigenimplementierung in React, Konva und Three.js
 
+**Core-vs-Plugin:**
+
+- `S74` bleibt Core
+- `S75` wird als Plugin `asset-library` umgesetzt
+- `S76` wird als Plugin `presentation` umgesetzt
+
 ### Sprint-Uebersicht
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
 | 74 | `planned` | Split-View & Virtual Visitor | 2D/3D-Split, synchroner Kameravisitor, persistente View-Settings |
-| 75 | `planned` | Modell-Import & Asset-Browser Light | OBJ/DAE-Import, Bounding-Box, Auto-Scale, Asset-Bibliothek |
-| 76 | `planned` | Render-UX & Praesentationsmodus | Render-Presets, reduzierter Kundenmodus, vereinfachter Export |
+| 75 | `planned` | Plugin `asset-library`: Modell-Import & Asset-Browser Light | OBJ/DAE-Import, Bounding-Box, Auto-Scale, Asset-Bibliothek |
+| 76 | `planned` | Plugin `presentation`: Render-UX & Praesentationsmodus | Render-Presets, reduzierter Kundenmodus, vereinfachter Export |
 
 ### Sprint-Metadaten
 
@@ -1310,14 +1316,21 @@ Offline-Nutzung und leichtere Sharing-/Exportpfade erweitern.
 - generische Dachgeneratoren ohne klaren Kuechen-ROI
 - direkte GPL-Code- oder Asset-Nutzung
 
+**Core-vs-Plugin:**
+
+- `S77` als Plugin `daylight`
+- `S78` als Plugin `materials`
+- `S79` hybrid: Core-PWA plus Plugin `survey-import`
+- `S80` als Plugin `viewer-export`
+
 ### Sprint-Uebersicht
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
-| 77 | `planned` | Nordkompass, Sonnenstand & Tageslicht | Umweltmodell, Kompassoverlay, Sonnenpreview, Nordpfeil in Sheets |
-| 78 | `planned` | Textur- & Materialbibliothek | Materialkatalog, Resolver, Texturzuweisung, Vorschau |
-| 79 | `planned` | Offline-PWA & Aufmass-Import | Manifest, Service Worker, Sync-Queue, Measurement-Import |
-| 80 | `planned` | HTML-Viewer & Vektor-Exporte | HTML/WebGL-Viewer, SVG-Planexport, SVG-Sheetexport |
+| 77 | `planned` | Plugin `daylight`: Nordkompass, Sonnenstand & Tageslicht | Umweltmodell, Kompassoverlay, Sonnenpreview, Nordpfeil in Sheets |
+| 78 | `planned` | Plugin `materials`: Textur- & Materialbibliothek | Materialkatalog, Resolver, Texturzuweisung, Vorschau |
+| 79 | `planned` | Core + Plugin `survey-import`: Offline-PWA & Aufmass-Import | Manifest, Service Worker, Sync-Queue, Measurement-Import |
+| 80 | `planned` | Plugin `viewer-export`: HTML-Viewer & Vektor-Exporte | HTML/WebGL-Viewer, SVG-Planexport, SVG-Sheetexport |
 
 ### Sprint-Metadaten
 
@@ -1351,13 +1364,32 @@ levelfaehige Layout-/Exportpfade.
 - Staircase Generator als Workflow-Idee, nicht als Codevorlage
 - Side View / vertikale Ansichten
 
+**Core-vs-Plugin:**
+
+- `S81` bleibt Core
+- `S82` wird als Plugin `stairs` umgesetzt
+- `S83` wird als Plugin `multilevel-docs` umgesetzt
+
 ### Sprint-Uebersicht
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
 | 81 | `planned` | Mehr-Ebenen-Projektmodell | `BuildingLevel`, Level-CRUD, level-spezifische Raumlogik |
-| 82 | `planned` | Treppen & vertikale Verbindungen | Treppengeometrie, Vertikalverbindungen, Deckenaussparungen |
-| 83 | `planned` | Mehr-Ebenen-Layout, Sektionen & Interop | Vertikalschnitte, level-aware Sheets und Exportpfade |
+| 82 | `planned` | Plugin `stairs`: Treppen & vertikale Verbindungen | Treppengeometrie, Vertikalverbindungen, Deckenaussparungen |
+| 83 | `planned` | Plugin `multilevel-docs`: Mehr-Ebenen-Layout, Sektionen & Interop | Vertikalschnitte, level-aware Sheets und Exportpfade |
+
+### Plugin-Matrix
+
+| Plugin-ID | Sprint | Bereich | Core-Hooks |
+|-----------|--------|---------|------------|
+| `asset-library` | 75 | Katalog / Assets | Katalogslots, Placement-Extensions, Upload |
+| `presentation` | 76 | Rendering / Kundenmodus | Preview-Slots, Renderjobs, Tourdaten |
+| `daylight` | 77 | Umwelt / Licht | Overlay-Slots, 3D-Licht, Sheet-Extensions |
+| `materials` | 78 | Materialien / Texturen | Material-Resolver-Hooks, Upload, Preview |
+| `survey-import` | 79 | Aufmass / Import | SiteSurvey, Blueprint-Import, Offline-Sync |
+| `viewer-export` | 80 | Exporte / Sharing | Export-Registry, Share-Tokens, Document-Pipeline |
+| `stairs` | 82 | Vertikale Geometrie | Level-Geometry-Hooks, 2D/3D-Extensions |
+| `multilevel-docs` | 83 | Layout / Export | Sheets, Sections, Export-Extensions |
 
 ### Sprint-Metadaten
 

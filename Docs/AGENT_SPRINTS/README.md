@@ -66,12 +66,12 @@ Stand: 2026-03-04
 | 72 | `S72-bogen-bemassung-layout.md` | done | Radius-, Bogenlaengen- und Sehnenmasse in Sheets und Detailansichten |
 | 73 | `S73-bogen-3d-interop.md` | done | Gebogene Waende in 3D, GLTF, IFC und DXF/DWG-Interop |
 | 74 | `S74-split-view-virtual-visitor.md` | planned | Split-View im Editor und synchroner Virtual Visitor zwischen 2D und 3D |
-| 75 | `S75-modell-import-asset-browser-light.md` | planned | OBJ/DAE-Import, Bounding-Box/Auto-Scale und einfacher Asset-Browser |
-| 76 | `S76-render-ux-praesentationsmodus.md` | planned | Render-Presets, Praesentationsmodus und vereinfachte Bild-/Videoexporte |
-| 77 | `S77-nordkompass-sonnenstand-tageslicht.md` | planned | Nordkompass, Sonnenstand und Tageslichtsteuerung fuer Plan, 3D und Sheets |
-| 78 | `S78-textur-materialbibliothek.md` | planned | Textur- und Materialbibliothek fuer Flaechen, Fronten und importierte Assets |
-| 79 | `S79-offline-pwa-und-aufmass-import.md` | planned | Offline-PWA, Sync-Queue und mobiler Aufmass-/Blueprint-Import |
-| 80 | `S80-html-viewer-und-vektor-exporte.md` | planned | HTML-Webviewer sowie SVG-/Vektor-Exporte fuer Plan und Sheets |
+| 75 | `S75-modell-import-asset-browser-light.md` | planned | Plugin `asset-library`: OBJ/DAE-Import, Bounding-Box/Auto-Scale und Asset-Browser |
+| 76 | `S76-render-ux-praesentationsmodus.md` | planned | Plugin `presentation`: Render-Presets und Praesentationsmodus |
+| 77 | `S77-nordkompass-sonnenstand-tageslicht.md` | planned | Plugin `daylight`: Nordkompass, Sonnenstand und Tageslichtsteuerung |
+| 78 | `S78-textur-materialbibliothek.md` | planned | Plugin `materials`: Textur- und Materialbibliothek fuer Flaechen und Assets |
+| 79 | `S79-offline-pwa-und-aufmass-import.md` | planned | Core-PWA plus Plugin `survey-import` fuer mobilen Aufmass-/Blueprint-Import |
+| 80 | `S80-html-viewer-und-vektor-exporte.md` | planned | Plugin `viewer-export`: HTML-Webviewer und SVG-/Vektor-Exporte |
 | 81 | `S81-mehr-ebenen-projektmodell.md` | planned | Mehr-Ebenen-Projekte mit Levels, Sichtbarkeit und level-spezifischen Raeumen |
-| 82 | `S82-treppen-und-vertikale-verbindungen.md` | planned | Treppen, Treppenaugen und vertikale Verbindungen zwischen Ebenen |
-| 83 | `S83-mehr-ebenen-layout-sektionen-interop.md` | planned | Mehr-Ebenen-Sheets, Vertikalschnitte und Level-Metadaten in Exporten |
+| 82 | `S82-treppen-und-vertikale-verbindungen.md` | planned | Plugin `stairs`: Treppen, Treppenaugen und vertikale Verbindungen |
+| 83 | `S83-mehr-ebenen-layout-sektionen-interop.md` | planned | Plugin `multilevel-docs`: Mehr-Ebenen-Sheets, Vertikalschnitte und Export-Metadaten |

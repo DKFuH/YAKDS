@@ -1,6 +1,6 @@
-# Sprint 80 - HTML-Viewer & Vektor-Exporte
+# Sprint 80 - Viewer-Export-Plugin & Vektor-Exporte
 
-**Branch:** `feature/sprint-80-html-viewer-vector-export`
+**Branch:** `feature/sprint-80-viewer-export-plugin`
 **Gruppe:** B (startbar nach S69 und S76)
 **Status:** `planned`
 **Abhaengigkeiten:** S64 (Layout-Sheets), S69 (Panorama-Touren), S76 (Praesentationsmodus)
@@ -15,12 +15,31 @@ Sheet-Grafiken.
 
 Inspiration: Sweet Home 3D Export to HTML5, Export plan image, Side View.
 
+**Plugin-Zuschnitt:** `viewer-export`
+
+---
+
+## 0. Plugin-Einordnung
+
+Das Plugin kapselt:
+
+- HTML/WebGL-Viewer-Export
+- SVG-/Vektor-Export-Aktionen
+- Exportseite und Download-UI
+
+Der Core liefert nur:
+
+- Exportjob-/Document-Basis
+- Share-/Token-Infrastruktur
+- Plugin-Slots in Export- und Projekt-UI
+
 ---
 
 ## 1. Backend
 
 Neue oder angepasste Dateien:
 
+- `planner-api/src/plugins/viewerExport.ts`
 - `planner-api/src/routes/viewerExports.ts`
 - `planner-api/src/services/vectorExportService.ts`
 
@@ -48,6 +67,7 @@ Vektor-Export-V1:
 
 Neue oder angepasste Dateien:
 
+- `planner-frontend/src/plugins/viewerExport/*`
 - `planner-frontend/src/api/viewerExports.ts`
 - `planner-frontend/src/pages/ExportsPage.tsx`
 
@@ -64,6 +84,7 @@ Funktionen:
 - keine Kopie des kompletten Editors in den Viewer exportieren
 - Viewer bekommt nur lesende Daten und definierte Kamera-/Tourdaten
 - SVG-Ausgabe soll druckbar und layout-stabil sein
+- keine globale Core-Exportseite fuer Plugin-Features
 
 ---
 
@@ -73,6 +94,7 @@ Funktionen:
 - SVG-Export fuer Plan und Sheet
 - optional einfache Seitenansicht
 - Export-UI im Frontend
+- Plugin-Registrierung und tenant-aware Aktivierung
 - 8-12 Tests
 
 ---
@@ -83,4 +105,3 @@ Funktionen:
 - Grundriss und Sheet lassen sich als SVG exportieren
 - Exportdaten sind ohne Editor verwendbar
 - Viewer/Export respektieren Tenant- und Share-Regeln
-

@@ -1,6 +1,6 @@
-# Sprint 77 - Nordkompass, Sonnenstand & Tageslicht
+# Sprint 77 - Daylight-Plugin: Nordkompass, Sonnenstand & Tageslicht
 
-**Branch:** `feature/sprint-77-sun-compass-daylight`
+**Branch:** `feature/sprint-77-daylight-plugin`
 **Gruppe:** A (startbar nach S74)
 **Status:** `planned`
 **Abhaengigkeiten:** S14 (3D-Preview), S67 (Layout-Styles), S76 (Praesentationsmodus)
@@ -14,6 +14,25 @@ und einfachen Sonnenstand erweitern. Damit werden Tageslichtwirkung,
 Fensterorientierung und Schatten glaubwuerdig und im Plan dokumentierbar.
 
 Inspiration: Sweet Home 3D Compass, Sunlight by time of day and location.
+
+**Plugin-Zuschnitt:** `daylight`
+
+---
+
+## 0. Plugin-Einordnung
+
+Das Plugin kapselt:
+
+- Kompassoverlay
+- Projektumgebung fuer Sonne/Nordrichtung
+- Tageslichtpanel
+- Praesentations-/Sheet-Erweiterungen rund um Nordpfeil und Licht
+
+Der Core liefert nur:
+
+- 3D-Preview-Basis
+- Overlay-Slots im Editor
+- optionale Sheet-Extension-Points
 
 ---
 
@@ -47,6 +66,7 @@ model ProjectEnvironment {
 
 Neue Dateien:
 
+- `planner-api/src/plugins/daylight.ts`
 - `planner-api/src/routes/projectEnvironment.ts`
 - `planner-api/src/services/sunPositionService.ts`
 
@@ -68,6 +88,7 @@ Service:
 
 Neue oder angepasste Dateien:
 
+- `planner-frontend/src/plugins/daylight/*`
 - `planner-frontend/src/api/projectEnvironment.ts`
 - `planner-frontend/src/components/editor/CompassOverlay.tsx`
 - `planner-frontend/src/components/editor/DaylightPanel.tsx`
@@ -80,6 +101,7 @@ Funktionen:
 - Datum/Uhrzeit/Ort im Projekt speichern
 - 3D-Schatten und Sonnenrichtung aktualisieren
 - Nordpfeil optional in Layout-Sheets anzeigen
+- Plugin-UI nur bei aktivem Plugin
 
 ---
 
@@ -90,6 +112,7 @@ Funktionen:
 - Grundriss-Kompass
 - Tageslichtpanel fuer 3D/Praesentation
 - Nordpfeil in Sheets
+- Plugin-Registrierung und tenant-aware Aktivierung
 - 10-14 Tests
 
 ---
@@ -100,4 +123,3 @@ Funktionen:
 - Sonnenstand reagiert auf Ort und Tageszeit
 - 3D-Preview zeigt sichtbare Aenderungen in Schatten/Licht
 - Nordpfeil kann in Zeichnungsblaettern eingeblendet werden
-

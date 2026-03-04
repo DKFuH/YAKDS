@@ -1,6 +1,6 @@
-# Sprint 75 - Modell-Import & Asset-Browser Light
+# Sprint 75 - Asset-Library-Plugin & Modell-Import
 
-**Branch:** `feature/sprint-75-model-import-browser`
+**Branch:** `feature/sprint-75-asset-library-plugin`
 **Gruppe:** B (startbar nach S51 oder parallel zu S74)
 **Status:** `planned`
 **Abhaengigkeiten:** S20 (Katalog), S51 (GLTF/GLB), S53 (DWG/SKP Interop)
@@ -16,17 +16,39 @@ Auto-Scale und einfacher Platzierung.
 
 Inspiration: Sweet Home 3D Model Import Wizard und einfacher Moebelbrowser.
 
+**Plugin-Zuschnitt:** `asset-library`
+
 Wichtig:
 
 - kein Kopieren von SH3D-Bibliotheken oder Assets
 - keine Uebernahme des SH3F-Formats
 - nur UX-Ideen, eigene Implementierung
+- Umsetzung als Plugin, nicht als Core-Katalogumbau
+
+---
+
+## 0. Plugin-Einordnung
+
+Das Plugin liefert:
+
+- Asset-Library-Routen
+- Asset-Browser-Panel
+- Import-Dialog
+- Placement-/Catalog-Hooks fuer importierte Assets
+
+Der Core liefert nur:
+
+- Plugin-Registry
+- Panel-Slots im Editor/Katalog
+- Placement-Extension-Points
+- Datei-/Upload-Grundfunktionen
 
 ---
 
 ## 1. Datenmodell
 
-Ans Ende von `planner-api/prisma/schema.prisma` anhaengen:
+Ans Ende von `planner-api/prisma/schema.prisma` anhaengen oder in ein
+pluginfaehiges Schema-Modul uebernehmen:
 
 ```prisma
 model AssetLibraryItem {
@@ -60,6 +82,7 @@ model AssetLibraryItem {
 
 Neue Dateien:
 
+- `planner-api/src/plugins/assetLibrary.ts`
 - `planner-api/src/routes/assetLibrary.ts`
 - `planner-api/src/services/modelImportService.ts`
 
@@ -69,6 +92,11 @@ Endpoints:
 - `POST /tenant/assets/import`
 - `PATCH /tenant/assets/:id`
 - `DELETE /tenant/assets/:id`
+
+Plugin-Registrierung:
+
+- Plugin registriert eigene Routen und optional Metadaten fuer UI-Slots
+- Plugin kann tenantweise deaktiviert werden
 
 Service-Aufgaben:
 
@@ -89,6 +117,7 @@ V1 reicht:
 
 Neue oder angepasste Dateien:
 
+- `planner-frontend/src/plugins/assetLibrary/*`
 - `planner-frontend/src/api/assetLibrary.ts`
 - `planner-frontend/src/components/catalog/AssetBrowser.tsx`
 - `planner-frontend/src/components/catalog/AssetImportDialog.tsx`
@@ -100,6 +129,11 @@ Funktionen:
 - Kartenansicht mit Preview, Groesse, Format
 - Import-Dialog mit Name, Kategorie, Scale-Vorschlag
 - Platzieren eines AssetLibraryItem als Placement oder Katalogobjekt
+
+UI-Einbindung:
+
+- Katalog/Sidebar nur wenn Plugin aktiv ist
+- keine globale Core-Navigation ohne Plugin-Check
 
 UX-V1:
 
@@ -114,6 +148,7 @@ UX-V1:
 - importierte Modelle bleiben tenant-spezifisch
 - Speicherung nur als Referenz plus Metadaten, kein eigener proprietaerer Blob-Standard
 - spaeterer GLTF-Konvertierungspfad darf folgen, ist aber nicht Teil von V1
+- Plugin darf Core-Katalog nicht hart forken, sondern nur erweitern
 
 ---
 
@@ -124,6 +159,7 @@ UX-V1:
 - Asset-Library-CRUD
 - Asset-Browser-Light im Frontend
 - Importdialog mit Bounding-Box/Auto-Scale
+- Plugin-Registrierung und tenant-aware Aktivierung
 - 10-14 Tests
 
 ---
@@ -135,4 +171,3 @@ UX-V1:
 - importierte Assets erscheinen in einer filterbaren Bibliothek
 - Assets koennen anschliessend platziert werden
 - fehlerhafte Dateien liefern klare Fehlermeldungen
-

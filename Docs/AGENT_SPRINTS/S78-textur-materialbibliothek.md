@@ -1,6 +1,6 @@
-# Sprint 78 - Textur- und Materialbibliothek
+# Sprint 78 - Materials-Plugin: Textur- und Materialbibliothek
 
-**Branch:** `feature/sprint-78-textures-material-library`
+**Branch:** `feature/sprint-78-materials-plugin`
 **Gruppe:** B (startbar nach S75)
 **Status:** `planned`
 **Abhaengigkeiten:** S20 (Katalog), S51 (GLTF/GLB), S75 (Asset-Browser Light)
@@ -14,6 +14,25 @@ Modelle erhalten eine einfache Textur- und Materialbibliothek mit Kategorien,
 Vorschau und Wiederverwendung ueber Projekte hinweg.
 
 Inspiration: Sweet Home 3D imported textures und TexturesLibraryEditor.
+
+**Plugin-Zuschnitt:** `materials`
+
+---
+
+## 0. Plugin-Einordnung
+
+Das Plugin kapselt:
+
+- Materialbibliothek
+- Resolver fuer Textur-/Materialzuweisung
+- Materialbrowser und Materialpanel
+- Materialzuweisung fuer Flaechen und Assets
+
+Der Core liefert nur:
+
+- Rendering-Schnittstellen fuer Materialien
+- Plugin-Slots im Editor und Katalog
+- gemeinsame Upload-/Storage-Bausteine
 
 ---
 
@@ -58,6 +77,7 @@ Zu bestehenden Flaechen-/Placement-Daten nur Referenzen speichern:
 
 Neue Dateien:
 
+- `planner-api/src/plugins/materials.ts`
 - `planner-api/src/routes/materialLibrary.ts`
 - `planner-api/src/services/materialResolver.ts`
 
@@ -81,6 +101,7 @@ Resolver:
 
 Neue oder angepasste Dateien:
 
+- `planner-frontend/src/plugins/materials/*`
 - `planner-frontend/src/api/materialLibrary.ts`
 - `planner-frontend/src/components/catalog/MaterialBrowser.tsx`
 - `planner-frontend/src/components/editor/MaterialPanel.tsx`
@@ -91,6 +112,7 @@ Funktionen:
 - Bildvorschau und Suchfunktion
 - Material auf Wand, Boden, Decke, Placement oder Asset anwenden
 - einfache Parameter: Rotation, Skalierung, Wiederholung
+- Plugin-Sichtbarkeit tenant- und route-aware
 
 ---
 
@@ -100,6 +122,7 @@ Funktionen:
 - CRUD fuer Materialien
 - Resolver fuer 2D/3D
 - Materialbrowser und Zuweisungspanel
+- Plugin-Registrierung und tenant-aware Aktivierung
 - 10-14 Tests
 
 ---
@@ -110,4 +133,3 @@ Funktionen:
 - Materialien lassen sich auf Flaechen und Objekte anwenden
 - Vorschau in 2D/3D bleibt konsistent
 - fehlende Texturen brechen die Szene nicht
-

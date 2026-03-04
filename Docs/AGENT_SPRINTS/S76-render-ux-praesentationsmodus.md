@@ -1,6 +1,6 @@
-# Sprint 76 - Render-UX & Praesentationsmodus
+# Sprint 76 - Presentation-Plugin & Render-UX
 
-**Branch:** `feature/sprint-76-render-ux-presentation`
+**Branch:** `feature/sprint-76-presentation-plugin`
 **Gruppe:** B (startbar nach S61 und S74)
 **Status:** `planned`
 **Abhaengigkeiten:** S14 (3D-Preview), S69 (Panorama), S74 (Split-View)
@@ -14,6 +14,25 @@ Qualitaetsstufen fuer Bild-/Videoexport, schneller Praesentationsmodus ohne
 Editorrauschen und direkte Nutzung vorhandener Kamera-/Tourdaten.
 
 Inspiration: Sweet Home 3D Foto-/Video-Export mit wenigen Presets.
+
+**Plugin-Zuschnitt:** `presentation`
+
+---
+
+## 0. Plugin-Einordnung
+
+Das Plugin kapselt:
+
+- Praesentationsmodus-Seite
+- Render-Presets auf Produktebene
+- Viewer-/Tour-Einstieg fuer Kundenpraesentation
+- vereinfachte Export-UI
+
+Der Core liefert nur:
+
+- Split-View und Kamera-Basis aus `S74`
+- Renderjob-Infrastruktur
+- Plugin-Slots in Preview/Editor
 
 ---
 
@@ -46,6 +65,7 @@ V1 bewusst ohne frei definierbare 30-Parameter-Engine.
 
 Betroffene Routen:
 
+- `planner-api/src/plugins/presentation.ts`
 - `renderJobs.ts`
 - optional neue Route `presentation.ts`
 
@@ -72,6 +92,7 @@ liefert ein leichtgewichtiges Payload fuer den Praesentationsmodus mit:
 
 Neue oder angepasste Dateien:
 
+- `planner-frontend/src/plugins/presentation/*`
 - `planner-frontend/src/pages/PresentationModePage.tsx`
 - `planner-frontend/src/api/presentation.ts`
 - Anpassungen in `Preview3D.tsx`, `Editor.tsx`, `renderJobs` UI
@@ -83,6 +104,11 @@ Funktionen:
 - Render-Preset-Auswahl: `Schnell`, `Ausgewogen`, `Beste`
 - Export-Button fuer Bild und optional Kamerafahrt/Video
 - Start aus Split-View oder aus Panorama-Tour
+
+UI-Einbindung:
+
+- Praesentationsmodus nur bei aktivem Plugin
+- Toolbar-/Route-Eintrag ueber Plugin-Registry
 
 UX:
 
@@ -111,6 +137,7 @@ stabile Produkt-API, nicht ein bestimmter Shader-Ansatz.
 - Praesentationsmodus-Seite
 - vereinfachte Export-UI fuer Bild/Video
 - Verknuepfung zu Panorama-Touren oder Visitor-Kameras
+- Plugin-Registrierung mit tenant-aware Aktivierung
 - 8-12 Tests
 - Frontend-Build gruen
 
@@ -123,4 +150,3 @@ stabile Produkt-API, nicht ein bestimmter Shader-Ansatz.
 - Bildexport nutzt das ausgewaehlte Preset sichtbar
 - Einstieg aus Split-View oder Tour ist moeglich
 - Tenant-Branding wird korrekt uebernommen
-
