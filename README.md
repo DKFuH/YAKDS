@@ -65,7 +65,7 @@ open-kitchen-planner/
 └── Docs/                  # Architecture & sprint planning
 ```
 
-## Quick start
+## Quick start (Node.js)
 
 ```bash
 # Install dependencies
@@ -79,6 +79,47 @@ cd planner-frontend && npm run dev
 
 # Start API
 cd planner-api && npm run dev
+```
+
+## Docker quick start (API + PostgreSQL)
+
+For reproducible setup on remote environments and local onboarding, use Docker
+Compose from the repository root.
+
+Prerequisites:
+
+- Docker Desktop (Windows/macOS) or Docker Engine + Compose
+
+```bash
+# Build and start database + API
+docker-compose up -d --build postgres api
+
+# Apply Prisma schema to the running database
+docker-compose exec api npm run db:push
+
+# Follow API logs
+docker-compose logs -f api
+```
+
+Services:
+
+- API: `http://localhost:3000`
+- PostgreSQL: `localhost:5432` (`yakds` / `yakds_dev`, database `yakds`)
+
+Frontend is not part of `docker-compose.yml` and can be started locally:
+
+```bash
+npm run dev --workspace planner-frontend
+```
+
+Stop/reset:
+
+```bash
+# Stop containers
+docker-compose down
+
+# Stop and remove PostgreSQL volume data
+docker-compose down -v
 ```
 
 ## Documentation
