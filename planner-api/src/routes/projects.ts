@@ -85,6 +85,27 @@ function parseOptionalDate(value: string | null | undefined): Date | null | unde
   return new Date(value)
 }
 
+function parseLockedBy(raw: string | null | undefined): { user: string | null; host: string | null } {
+  if (!raw) {
+    return { user: null, host: null }
+  }
+
+  const atIndex = raw.lastIndexOf('@')
+  if (atIndex > 0 && atIndex < raw.length - 1) {
+    const userPart = raw.slice(0, atIndex)
+    const hostPart = raw.slice(atIndex + 1)
+    return {
+      user: userPart || null,
+      host: hostPart || null,
+    }
+  }
+
+  return {
+    user: raw,
+    host: null,
+  }
+}
+
 function projectBoardSelect() {
   return {
     id: true,
@@ -411,6 +432,50 @@ export async function projectRoutes(app: FastifyInstance) {
     }
 
     return reply.send(project)
+  })
+
+  app.get<{ Params: { id: string } }>('/projects/:id/lock-state', async (request, reply) => {
+    const project = await prisma.project.findFirst({
+      where: {
+        id: request.params.id,
+        ...resolveTenantScope(request),
+      },
+      select: { id: true },
+    })
+
+    if (!project) {
+      return sendNotFound(reply, 'Project not found')
+    }
+
+    const lockedAlternative = await prisma.alternative.findFirst({
+      where: {
+        area: {
+          project_id: request.params.id,
+        },
+        locked_at: {
+          not: null,
+        },
+      },
+      orderBy: {
+        locked_at: 'desc',
+      },
+      select: {
+        id: true,
+        locked_by: true,
+        locked_at: true,
+      },
+    })
+
+    const parsedActor = parseLockedBy(lockedAlternative?.locked_by ?? null)
+
+    return reply.send({
+      project_id: request.params.id,
+      locked: Boolean(lockedAlternative),
+      alternative_id: lockedAlternative?.id ?? null,
+      locked_by_user: parsedActor.user,
+      locked_by_host: parsedActor.host,
+      locked_at: lockedAlternative?.locked_at ?? null,
+    })
   })
 
   app.put<{ Params: { id: string } }>('/projects/:id', async (request, reply) => {

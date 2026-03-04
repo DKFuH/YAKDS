@@ -38,6 +38,10 @@ const QuoteExportBodySchema = z.object({
   locale_code: z.string().min(2).max(10).optional(),
 })
 
+const ResequenceLinesBodySchema = z.object({
+  start_position: z.number().int().min(1).max(1000000).default(1),
+})
+
 function plusDaysIso(days: number): string {
   const date = new Date()
   date.setDate(date.getDate() + days)
@@ -71,6 +75,16 @@ function toQuoteItems(lines: z.infer<typeof BomLineSchema>[]) {
 }
 
 export async function quoteRoutes(app: FastifyInstance) {
+  const resolveQuoteTenantScope = (request: { tenantId?: string | null }) => (
+    request.tenantId
+      ? {
+          project: {
+            tenant_id: request.tenantId,
+          },
+        }
+      : {}
+  )
+
   app.post<{ Params: { id: string } }>('/projects/:id/create-quote', async (request, reply) => {
     const parsedParams = QuoteParamsSchema.safeParse(request.params)
     if (!parsedParams.success) {
@@ -207,6 +221,75 @@ export async function quoteRoutes(app: FastifyInstance) {
     }
 
     return reply.send(quote)
+  })
+
+  app.post<{ Params: { id: string } }>('/quotes/:id/resequence-lines', async (request, reply) => {
+    const parsedParams = QuoteParamsSchema.safeParse(request.params)
+    if (!parsedParams.success) {
+      return sendBadRequest(reply, parsedParams.error.errors[0].message)
+    }
+
+    const parsedBody = ResequenceLinesBodySchema.safeParse(request.body ?? {})
+    if (!parsedBody.success) {
+      return sendBadRequest(reply, parsedBody.error.errors[0].message)
+    }
+
+    const quote = await prisma.quote.findFirst({
+      where: {
+        id: parsedParams.data.id,
+        ...resolveQuoteTenantScope(request),
+      },
+      include: {
+        items: {
+          orderBy: [{ position: 'asc' }, { id: 'asc' }],
+        },
+      },
+    })
+
+    if (!quote) {
+      return sendNotFound(reply, 'Quote not found')
+    }
+
+    if (quote.items.length === 0) {
+      return reply.send({
+        quote_id: quote.id,
+        start_position: parsedBody.data.start_position,
+        updated_count: 0,
+        items: [],
+      })
+    }
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      for (const [index, item] of quote.items.entries()) {
+        await tx.quoteItem.update({
+          where: { id: item.id },
+          data: { position: parsedBody.data.start_position + index },
+        })
+      }
+    })
+
+    const updatedQuote = await prisma.quote.findFirst({
+      where: {
+        id: parsedParams.data.id,
+        ...resolveQuoteTenantScope(request),
+      },
+      include: {
+        items: {
+          orderBy: [{ position: 'asc' }, { id: 'asc' }],
+        },
+      },
+    })
+
+    if (!updatedQuote) {
+      return sendNotFound(reply, 'Quote not found')
+    }
+
+    return reply.send({
+      quote_id: updatedQuote.id,
+      start_position: parsedBody.data.start_position,
+      updated_count: updatedQuote.items.length,
+      items: updatedQuote.items.map((item) => ({ id: item.id, position: item.position })),
+    })
   })
 
   app.post<{ Params: { id: string }; Body: z.infer<typeof QuoteExportBodySchema> }>('/quotes/:id/export-pdf', async (request, reply) => {

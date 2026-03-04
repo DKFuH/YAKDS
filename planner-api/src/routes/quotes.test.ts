@@ -5,6 +5,7 @@ const { prismaMock } = vi.hoisted(() => {
   const mock = {
     project: { findUnique: vi.fn() },
     quote: { findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+    quoteItem: { update: vi.fn() },
     quoteSettings: { findUnique: vi.fn() },
     tenantSetting: { findUnique: vi.fn() },
     lead: { findFirst: vi.fn() },
@@ -208,6 +209,153 @@ describe('quoteRoutes', () => {
     })
 
     expect(response.statusCode).toBe(404)
+
+    await app.close()
+  })
+
+  it('resequences quote line positions starting at a given index', async () => {
+    const quoteId = '55555555-5555-5555-5555-555555555555'
+
+    prismaMock.quote.findFirst
+      .mockResolvedValueOnce({
+        id: quoteId,
+        items: [
+          { id: 'it-1', position: 1 },
+          { id: 'it-2', position: 2 },
+        ],
+      })
+      .mockResolvedValueOnce({
+        id: quoteId,
+        items: [
+          { id: 'it-1', position: 100 },
+          { id: 'it-2', position: 101 },
+        ],
+      })
+
+    prismaMock.quoteItem.update.mockResolvedValue({})
+
+    const app = Fastify()
+    await app.register(quoteRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/quotes/${quoteId}/resequence-lines`,
+      payload: { start_position: 100 },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({
+      quote_id: quoteId,
+      start_position: 100,
+      updated_count: 2,
+      items: [
+        { id: 'it-1', position: 100 },
+        { id: 'it-2', position: 101 },
+      ],
+    })
+    expect(prismaMock.quoteItem.update).toHaveBeenNthCalledWith(1, {
+      where: { id: 'it-1' },
+      data: { position: 100 },
+    })
+    expect(prismaMock.quoteItem.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 'it-2' },
+      data: { position: 101 },
+    })
+
+    await app.close()
+  })
+
+  it('returns 404 when resequence target quote is missing', async () => {
+    prismaMock.quote.findFirst.mockResolvedValue(null)
+
+    const app = Fastify()
+    await app.register(quoteRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/quotes/55555555-5555-5555-5555-555555555555/resequence-lines',
+      payload: { start_position: 10 },
+    })
+
+    expect(response.statusCode).toBe(404)
+
+    await app.close()
+  })
+
+  it('returns 400 for invalid resequence payload', async () => {
+    const app = Fastify()
+    await app.register(quoteRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/quotes/55555555-5555-5555-5555-555555555555/resequence-lines',
+      payload: { start_position: 0 },
+    })
+
+    expect(response.statusCode).toBe(400)
+
+    await app.close()
+  })
+
+  it('returns zero updates when quote has no items to resequence', async () => {
+    const quoteId = '55555555-5555-5555-5555-555555555555'
+    prismaMock.quote.findFirst.mockResolvedValue({
+      id: quoteId,
+      items: [],
+    })
+
+    const app = Fastify()
+    await app.register(quoteRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/quotes/${quoteId}/resequence-lines`,
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({
+      quote_id: quoteId,
+      start_position: 1,
+      updated_count: 0,
+      items: [],
+    })
+    expect(prismaMock.quoteItem.update).not.toHaveBeenCalled()
+
+    await app.close()
+  })
+
+  it('applies tenant scope in resequence endpoint', async () => {
+    const quoteId = '55555555-5555-5555-5555-555555555555'
+    const tenantId = '00000000-0000-0000-0000-000000000001'
+    prismaMock.quote.findFirst.mockResolvedValue({
+      id: quoteId,
+      items: [],
+    })
+
+    const app = Fastify()
+    app.decorateRequest('tenantId', null)
+    app.addHook('preHandler', (request, _reply, done) => {
+      request.tenantId = tenantId
+      done()
+    })
+    await app.register(quoteRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/quotes/${quoteId}/resequence-lines`,
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(prismaMock.quote.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: quoteId,
+          project: { tenant_id: tenantId },
+        }),
+      }),
+    )
 
     await app.close()
   })

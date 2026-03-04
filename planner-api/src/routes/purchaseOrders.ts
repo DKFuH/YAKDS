@@ -47,6 +47,10 @@ const UpdateStatusSchema = z.object({
   status: z.enum(purchaseOrderStatusValues),
 })
 
+const AlternativeParamsSchema = z.object({
+  id: z.string().uuid(),
+})
+
 function parseOptionalDate(value: string | null | undefined): Date | null | undefined {
   if (value === undefined) return undefined
   if (value === null) return null
@@ -54,6 +58,8 @@ function parseOptionalDate(value: string | null | undefined): Date | null | unde
 }
 
 export async function purchaseOrderRoutes(app: FastifyInstance) {
+  const resolveTenantScope = (request: { tenantId?: string | null }) => (request.tenantId ? { tenant_id: request.tenantId } : {})
+
   // ─── Create purchase order for a project ────────────────────────────────────
 
   app.post<{ Params: { id: string } }>('/projects/:id/purchase-orders', async (request, reply) => {
@@ -212,6 +218,91 @@ export async function purchaseOrderRoutes(app: FastifyInstance) {
     }
 
     return reply.send(order)
+  })
+
+  // ─── Mark all open orders as delivered for an alternative's project ────────
+
+  app.post<{ Params: { id: string } }>('/alternatives/:id/orders/mark-delivered', async (request, reply) => {
+    const parsedParams = AlternativeParamsSchema.safeParse(request.params)
+    if (!parsedParams.success) {
+      return sendBadRequest(reply, parsedParams.error.errors[0]?.message ?? 'Invalid alternative id')
+    }
+
+    const alternative = await prisma.alternative.findFirst({
+      where: {
+        id: parsedParams.data.id,
+        ...(request.tenantId
+          ? {
+              area: {
+                project: {
+                  tenant_id: request.tenantId,
+                },
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        area: {
+          select: {
+            project_id: true,
+          },
+        },
+      },
+    })
+
+    if (!alternative) {
+      return sendNotFound(reply, 'Alternative not found')
+    }
+
+    const openOrders = await prisma.purchaseOrder.findMany({
+      where: {
+        project_id: alternative.area.project_id,
+        ...resolveTenantScope(request),
+        status: { in: ['draft', 'sent', 'confirmed', 'partially_delivered'] },
+      },
+      select: {
+        id: true,
+        tenant_id: true,
+        supplier_name: true,
+      },
+    })
+
+    if (openOrders.length === 0) {
+      return reply.send({ updated_count: 0, order_ids: [] as string[] })
+    }
+
+    await prisma.purchaseOrder.updateMany({
+      where: {
+        ...resolveTenantScope(request),
+        id: {
+          in: openOrders.map((order) => order.id),
+        },
+      },
+      data: {
+        status: 'delivered',
+      },
+    })
+
+    await Promise.all(
+      openOrders
+        .filter((order) => Boolean(order.tenant_id))
+        .map((order) => queueNotification({
+          tenantId: order.tenant_id ?? '',
+          eventType: 'custom',
+          entityType: 'purchase_order',
+          entityId: order.id,
+          recipientEmail: `alerts+${order.tenant_id}@yakds.local`,
+          subject: `Bestellstatus geändert: ${order.supplier_name}`,
+          message: `Bestellung ${order.id} bei ${order.supplier_name} wurde auf delivered gesetzt.`,
+          metadata: { status: 'delivered', source: 'bulk_mark_delivered' },
+        })),
+    )
+
+    return reply.send({
+      updated_count: openOrders.length,
+      order_ids: openOrders.map((order) => order.id),
+    })
   })
 
   // ─── Delete purchase order ───────────────────────────────────────────────────

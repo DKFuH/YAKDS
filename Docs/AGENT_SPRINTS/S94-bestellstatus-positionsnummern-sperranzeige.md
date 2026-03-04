@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-94-bestellstatus-positionsnummern-sperranzeige`
 **Gruppe:** A (startbar nach S46 und S48)
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S46, S48, S60
 
 ---
@@ -44,3 +44,17 @@ Neue Endpunkte:
 - Positionsnummern lassen sich kontrolliert neu nummerieren
 - aktive Sperren zeigen User und Zeitpunkt an
 - mindestens 10 Tests fuer Sammelstatus, Renummerierung und Lock-State
+
+---
+
+## 4. Umsetzung (abgeschlossen)
+
+- Backend-Endpunkte umgesetzt:
+	- `POST /alternatives/:id/orders/mark-delivered`
+	- `POST /quotes/:id/resequence-lines`
+	- `GET /projects/:id/lock-state`
+- Frontend umgesetzt:
+	- Projektliste zeigt Lock-Badge mit User/Host/Zeitpunkt.
+	- Editor zeigt Lock-Badge und Massenaktion **Alles geliefert**.
+	- Angebotspositionen: Aktion **Pos.-Nr. neu ab…** fuer Renummerierung ab Startwert.
+- Tests erweitert und validiert (deutlich >10 Faelle in den betroffenen Routentests).

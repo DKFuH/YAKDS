@@ -13,6 +13,7 @@ const { prismaMock } = vi.hoisted(() => {
   const projectDelete = vi.fn()
   const areaCreate = vi.fn()
   const alternativeCreate = vi.fn()
+  const alternativeFindFirst = vi.fn()
   const userFindUnique = vi.fn()
   const tenantSettingFindUnique = vi.fn()
 
@@ -37,6 +38,7 @@ const { prismaMock } = vi.hoisted(() => {
       },
       alternative: {
         create: alternativeCreate,
+        findFirst: alternativeFindFirst,
       },
       projectVersion: {
         findFirst: vi.fn(),
@@ -59,6 +61,7 @@ const { prismaMock } = vi.hoisted(() => {
           },
           alternative: {
             create: alternativeCreate,
+            findFirst: alternativeFindFirst,
           },
           projectVersion: {
             findFirst: vi.fn(),
@@ -292,6 +295,70 @@ describe('projectRoutes', () => {
         }),
       })
     )
+
+    await app.close()
+  })
+
+  it('GET /projects/:id/lock-state returns latest lock information', async () => {
+    prismaMock.project.findFirst.mockResolvedValue({ id: 'project-lock' })
+    prismaMock.alternative.findFirst.mockResolvedValue({
+      id: 'alt-lock',
+      locked_by: 'planner@example.com@workstation-7',
+      locked_at: new Date('2026-03-06T09:00:00.000Z'),
+    })
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'GET',
+      url: '/projects/project-lock/lock-state',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({
+      project_id: 'project-lock',
+      locked: true,
+      alternative_id: 'alt-lock',
+      locked_by_user: 'planner@example.com',
+      locked_by_host: 'workstation-7',
+    })
+
+    await app.close()
+  })
+
+  it('GET /projects/:id/lock-state returns unlocked state when no lock exists', async () => {
+    prismaMock.project.findFirst.mockResolvedValue({ id: 'project-unlocked' })
+    prismaMock.alternative.findFirst.mockResolvedValue(null)
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'GET',
+      url: '/projects/project-unlocked/lock-state',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({
+      project_id: 'project-unlocked',
+      locked: false,
+      alternative_id: null,
+      locked_by_user: null,
+      locked_by_host: null,
+      locked_at: null,
+    })
+
+    await app.close()
+  })
+
+  it('GET /projects/:id/lock-state returns 404 for unknown project', async () => {
+    prismaMock.project.findFirst.mockResolvedValue(null)
+
+    const app = makeApp()
+    const response = await app.inject({
+      method: 'GET',
+      url: '/projects/project-missing/lock-state',
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(prismaMock.alternative.findFirst).not.toHaveBeenCalled()
 
     await app.close()
   })

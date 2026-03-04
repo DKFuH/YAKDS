@@ -31,6 +31,20 @@ export interface ProjectDetail extends Project {
   quotes: { id: string; version: number; quote_number: string; status: string; valid_until: string }[]
 }
 
+export interface ProjectLockState {
+  project_id: string
+  locked: boolean
+  alternative_id: string | null
+  locked_by_user: string | null
+  locked_by_host: string | null
+  locked_at: string | null
+}
+
+export interface AlternativeBulkDeliveryResult {
+  updated_count: number
+  order_ids: string[]
+}
+
 export interface Room {
   id: string
   project_id: string
@@ -256,6 +270,36 @@ export const projectsApi = {
         return cachedDetail
       }
       if (shouldUseDemoFallback(error)) return getDemoProject(id)
+      throw error
+    }
+  },
+  lockState: async (id: string) => {
+    try {
+      return await api.get<ProjectLockState>(`/projects/${id}/lock-state`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) {
+        return {
+          project_id: id,
+          locked: false,
+          alternative_id: null,
+          locked_by_user: null,
+          locked_by_host: null,
+          locked_at: null,
+        }
+      }
+      throw error
+    }
+  },
+  markAlternativeOrdersDelivered: async (alternativeId: string) => {
+    try {
+      return await api.post<AlternativeBulkDeliveryResult>(`/alternatives/${alternativeId}/orders/mark-delivered`, {}, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+    } catch (error) {
+      if (shouldUseDemoFallback(error)) {
+        return {
+          updated_count: 0,
+          order_ids: [],
+        }
+      }
       throw error
     }
   },

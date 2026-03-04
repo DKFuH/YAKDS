@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { QuoteLine, PricingGroup } from '@shared/types'
 import { quoteLinesApi, pricingGroupsApi } from '../api/projectFeatures.js'
+import { projectsApi } from '../api/projects.js'
+import { resequenceQuoteLines } from '../api/quotes.js'
 import styles from './QuoteLinesPage.module.css'
 
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
@@ -36,6 +38,8 @@ export function QuoteLinesPage() {
   const [pricingGroups, setPricingGroups] = useState<PricingGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [resequenceMessage, setResequenceMessage] = useState<string | null>(null)
+  const [latestQuoteId, setLatestQuoteId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -44,14 +48,45 @@ export function QuoteLinesPage() {
     Promise.all([
       quoteLinesApi.list(projectId),
       pricingGroupsApi.list(projectId),
+      projectsApi.get(projectId),
     ])
-      .then(([ql, pg]) => {
+      .then(([ql, pg, project]) => {
         setLines(ql)
         setPricingGroups(pg)
+        const latestQuote = [...project.quotes].sort((left, right) => right.version - left.version)[0] ?? null
+        setLatestQuoteId(latestQuote?.id ?? null)
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [projectId])
+
+  async function handleResequenceFromPosition() {
+    if (!latestQuoteId) {
+      setError('Keine Angebotsversion vorhanden. Erstelle zuerst ein Angebot.')
+      return
+    }
+
+    const rawStart = window.prompt('Neue Start-Positionsnummer:', '1')
+    if (rawStart == null) {
+      return
+    }
+
+    const startPosition = Number.parseInt(rawStart, 10)
+    if (!Number.isFinite(startPosition) || startPosition < 1) {
+      setError('Bitte eine gültige Start-Positionsnummer (>= 1) eingeben.')
+      return
+    }
+
+    setError(null)
+    setResequenceMessage(null)
+
+    try {
+      const result = await resequenceQuoteLines(latestQuoteId, startPosition)
+      setResequenceMessage(`Positionen neu nummeriert: ${result.updated_count} Zeilen, Start bei ${result.start_position}.`)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Positionsnummern konnten nicht neu gesetzt werden.')
+    }
+  }
 
   // Neue Zeile anlegen
   async function handleAddLine(type: QuoteLine['type']) {
@@ -150,6 +185,15 @@ export function QuoteLinesPage() {
           >
             ← Zurück zum Editor
           </button>
+          <button
+            type="button"
+            className={styles.btnSecondary}
+            onClick={() => void handleResequenceFromPosition()}
+            disabled={!latestQuoteId}
+            title={latestQuoteId ? 'Positionsnummern ab Startwert neu setzen' : 'Erfordert eine bestehende Angebotsversion'}
+          >
+            Pos.-Nr. neu ab…
+          </button>
           <button type="button" className={styles.btnSecondary} onClick={() => void handleAddLine('text')}>
             + Textzeile
           </button>
@@ -163,6 +207,7 @@ export function QuoteLinesPage() {
       </header>
 
       {error && <div className={styles.error}>{error}</div>}
+  {resequenceMessage && <div className={styles.success}>{resequenceMessage}</div>}
 
       {/* Preisgruppen */}
       <section className={styles.groupSection}>

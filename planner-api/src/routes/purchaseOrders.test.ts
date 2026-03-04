@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const projectId = '11111111-1111-1111-1111-111111111111'
 const orderId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+const alternativeId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
 const tenantId = '00000000-0000-0000-0000-000000000001'
 
 const { prismaMock } = vi.hoisted(() => ({
@@ -10,11 +11,15 @@ const { prismaMock } = vi.hoisted(() => ({
     project: {
       findUnique: vi.fn(),
     },
+    alternative: {
+      findFirst: vi.fn(),
+    },
     purchaseOrder: {
       create: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       delete: vi.fn(),
     },
     purchaseOrderItem: {
@@ -224,6 +229,117 @@ describe('purchaseOrderRoutes', () => {
 
     expect(response.statusCode).toBe(200)
     expect(response.json()).toMatchObject({ status: 'sent' })
+
+    await app.close()
+  })
+
+  it('marks all open orders as delivered for an alternative project', async () => {
+    prismaMock.alternative.findFirst.mockResolvedValue({
+      id: alternativeId,
+      area: { project_id: projectId },
+    })
+    prismaMock.purchaseOrder.findMany.mockResolvedValue([
+      { id: orderId, tenant_id: tenantId, supplier_name: 'Nobilia GmbH' },
+      {
+        id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+        tenant_id: tenantId,
+        supplier_name: 'Blum GmbH',
+      },
+    ])
+    prismaMock.purchaseOrder.updateMany.mockResolvedValue({ count: 2 })
+
+    const app = Fastify()
+    app.decorateRequest('tenantId', null)
+    app.addHook('preHandler', (request, _reply, done) => {
+      request.tenantId = tenantId
+      done()
+    })
+    await app.register(purchaseOrderRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alternatives/${alternativeId}/orders/mark-delivered`,
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({
+      updated_count: 2,
+      order_ids: [orderId, 'cccccccc-cccc-cccc-cccc-cccccccccccc'],
+    })
+    expect(prismaMock.purchaseOrder.updateMany).toHaveBeenCalledWith({
+      where: {
+        tenant_id: tenantId,
+        id: {
+          in: [orderId, 'cccccccc-cccc-cccc-cccc-cccccccccccc'],
+        },
+      },
+      data: { status: 'delivered' },
+    })
+    expect(prismaMock.alternative.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: alternativeId,
+          area: {
+            project: {
+              tenant_id: tenantId,
+            },
+          },
+        }),
+      }),
+    )
+
+    await app.close()
+  })
+
+  it('returns 404 when alternative is missing for mark-delivered', async () => {
+    prismaMock.alternative.findFirst.mockResolvedValue(null)
+
+    const app = Fastify()
+    await app.register(purchaseOrderRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alternatives/${alternativeId}/orders/mark-delivered`,
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(prismaMock.purchaseOrder.updateMany).not.toHaveBeenCalled()
+
+    await app.close()
+  })
+
+  it('returns 400 for invalid alternative id on mark-delivered', async () => {
+    const app = Fastify()
+    await app.register(purchaseOrderRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/alternatives/not-a-uuid/orders/mark-delivered',
+    })
+
+    expect(response.statusCode).toBe(400)
+
+    await app.close()
+  })
+
+  it('returns zero updates when no open orders exist', async () => {
+    prismaMock.alternative.findFirst.mockResolvedValue({
+      id: alternativeId,
+      area: { project_id: projectId },
+    })
+    prismaMock.purchaseOrder.findMany.mockResolvedValue([])
+
+    const app = Fastify()
+    await app.register(purchaseOrderRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alternatives/${alternativeId}/orders/mark-delivered`,
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ updated_count: 0, order_ids: [] })
+    expect(prismaMock.purchaseOrder.updateMany).not.toHaveBeenCalled()
 
     await app.close()
   })

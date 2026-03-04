@@ -288,6 +288,20 @@
   font-size: 0.9rem;
 }
 
+.lockBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  width: fit-content;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--status-warning-bg);
+  border: 1px solid var(--status-warning-border);
+  color: var(--status-warning-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .progressRow {
   display: grid;
   gap: 0.35rem;

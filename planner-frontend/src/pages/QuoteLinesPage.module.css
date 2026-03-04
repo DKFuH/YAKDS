@@ -56,6 +56,17 @@
   max-width: 1400px;
 }
 
+.success {
+  background: color-mix(in srgb, var(--status-success) 12%, var(--surface-default));
+  color: var(--status-success);
+  border: 1px solid color-mix(in srgb, var(--status-success) 35%, var(--surface-default));
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  max-width: 1400px;
+}
+
 /* Preisgruppen */
 
 .groupSection {

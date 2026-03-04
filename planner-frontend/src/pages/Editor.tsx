@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import type { SectionLine, Vertex } from '@shared/types'
-import { projectsApi, type ProjectDetail } from '../api/projects.js'
+import { projectsApi, type ProjectDetail, type ProjectLockState } from '../api/projects.js'
 import {
   type CatalogArticle,
   type UnifiedCatalogItem,
@@ -280,8 +280,12 @@ export function Editor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [project, setProject] = useState<ProjectDetail | null>(null)
+  const [projectLockState, setProjectLockState] = useState<ProjectLockState | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [bulkDeliveredLoading, setBulkDeliveredLoading] = useState(false)
+  const [bulkDeliveredMessage, setBulkDeliveredMessage] = useState<string | null>(null)
+  const [bulkDeliveredError, setBulkDeliveredError] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
   const [levels, setLevels] = useState<BuildingLevel[]>([])
   const [activeLevelId, setActiveLevelId] = useState<string | null>(null)
@@ -363,9 +367,20 @@ export function Editor() {
 
   useEffect(() => {
     if (!id) return
-    projectsApi.get(id)
-      .then(p => {
+    Promise.all([
+      projectsApi.get(id),
+      projectsApi.lockState(id).catch(() => ({
+        project_id: id,
+        locked: false,
+        alternative_id: null,
+        locked_by_user: null,
+        locked_by_host: null,
+        locked_at: null,
+      })),
+    ])
+      .then(([p, lockState]) => {
         setProject(p)
+        setProjectLockState(lockState)
         setSelectedRoomId(p.rooms[0]?.id ?? null)
       })
       .catch((e: Error) => setError(e.message))
@@ -897,6 +912,11 @@ export function Editor() {
         setSelectedAlternativeId(null)
       })
   }, [id])
+
+  useEffect(() => {
+    setBulkDeliveredMessage(null)
+    setBulkDeliveredError(false)
+  }, [selectedAlternativeId])
 
   useEffect(() => {
     if (!id) {
@@ -1500,6 +1520,27 @@ export function Editor() {
     }
   }, [selectedAlternativeId])
 
+  const handleMarkAllDelivered = useCallback(async () => {
+    if (!selectedAlternativeId) {
+      alert('Keine Alternative ausgewählt')
+      return
+    }
+
+    setBulkDeliveredLoading(true)
+    setBulkDeliveredMessage(null)
+    setBulkDeliveredError(false)
+    try {
+      const result = await projectsApi.markAlternativeOrdersDelivered(selectedAlternativeId)
+      const plural = result.updated_count === 1 ? '' : 'en'
+      setBulkDeliveredMessage(`${result.updated_count} Bestellung${plural} als geliefert markiert`)
+    } catch (e) {
+      setBulkDeliveredError(true)
+      setBulkDeliveredMessage(e instanceof Error ? e.message : 'Bestellstatus konnte nicht aktualisiert werden')
+    } finally {
+      setBulkDeliveredLoading(false)
+    }
+  }, [selectedAlternativeId])
+
   // Geometrieprüfung ausführen
   const handleRunValidation = useCallback(async () => {
     if (!selectedRoomRef.current || !id) return
@@ -1593,6 +1634,9 @@ export function Editor() {
 
   const selectedRoom = roomsOnActiveLevel.find(r => r.id === selectedRoomId) ?? null
   selectedRoomRef.current = selectedRoom as unknown as RoomPayload | null
+  const lockStateLabel = projectLockState?.locked
+    ? `🔒 ${projectLockState.locked_by_user ?? 'Unbekannt'}${projectLockState.locked_by_host ? ` @ ${projectLockState.locked_by_host}` : ''}${projectLockState.locked_at ? ` · ${new Date(projectLockState.locked_at).toLocaleString()}` : ''}`
+    : null
 
   const effectiveViewMode: PlannerViewMode = compactLayout && viewMode === 'split' ? '2d' : viewMode
 
@@ -2001,6 +2045,11 @@ export function Editor() {
         <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>← Projekte</button>
         <span className={styles.projectName}>{project.name}</span>
         <div className={styles.topbarActions}>
+          {lockStateLabel && (
+            <span className={styles.lockBadge} title={lockStateLabel}>
+              {lockStateLabel}
+            </span>
+          )}
           {autoCompleteResult && (
             <span className={styles.autoCompleteHint}>
               ✓ {autoCompleteResult.created} Langteile generiert
@@ -2171,6 +2220,15 @@ export function Editor() {
                   role="menuitem"
                   type="button"
                   className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); void handleMarkAllDelivered() }}
+                  disabled={bulkDeliveredLoading || !selectedAlternativeId}
+                >
+                  {bulkDeliveredLoading ? 'Markiere geliefert…' : 'Alles geliefert'}
+                </button>
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); setShowAreasPanel((prev) => !prev) }}
                 >
                   {showAreasPanel ? 'Bereiche ausblenden' : 'Bereiche / Alternativen'}
@@ -2180,6 +2238,12 @@ export function Editor() {
           </div>
         </div>
       </header>
+
+      {bulkDeliveredMessage && (
+        <div className={bulkDeliveredError ? styles.bulkDeliveredError : styles.bulkDeliveredSuccess}>
+          {bulkDeliveredMessage}
+        </div>
+      )}
 
       {/* Workflow step tabs */}
       <nav className={styles.stepBar} aria-label="Arbeitsschritte">

@@ -50,6 +50,13 @@ export interface Quote {
   items: QuoteItem[]
 }
 
+export interface ResequenceQuoteLinesResponse {
+  quote_id: string
+  start_position: number
+  updated_count: number
+  items: Array<{ id: string; position: number }>
+}
+
 function parseFilename(contentDisposition: string | null, fallback: string): string {
   if (!contentDisposition) {
     return fallback
@@ -73,6 +80,12 @@ export function createQuote(projectId: string, payload: CreateQuotePayload = {})
 
 export function getQuote(id: string): Promise<Quote> {
   return api.get<Quote>(`/quotes/${id}`)
+}
+
+export function resequenceQuoteLines(id: string, startPosition = 1): Promise<ResequenceQuoteLinesResponse> {
+  return api.post<ResequenceQuoteLinesResponse>(`/quotes/${id}/resequence-lines`, {
+    start_position: startPosition,
+  })
 }
 
 export async function exportQuotePdf(id: string, localeCode?: string): Promise<void> {

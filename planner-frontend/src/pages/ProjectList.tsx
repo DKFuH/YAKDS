@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { platformApi, type GlobalSearchResult } from '../api/platform.js'
-import { projectsApi, type Project } from '../api/projects.js'
+import { projectsApi, type Project, type ProjectLockState } from '../api/projects.js'
 import { OnboardingWizard, shouldShowOnboarding } from '../components/OnboardingWizard.js'
 import { useLocale } from '../hooks/useLocale.js'
 import { formatDate as fmtDateRaw } from '../i18n/formatters.js'
@@ -52,8 +52,13 @@ export function ProjectList() {
     if (!value) return t('projects.noDeadline')
     return fmtDateRaw(new Date(value), locale)
   }
+  const formatDateTime = (value: string | null) => {
+    if (!value) return 'unbekannt'
+    return new Date(value).toLocaleString(locale)
+  }
   const [projects, setProjects] = useState<Project[]>([])
   const [ganttProjects, setGanttProjects] = useState<GanttProject[]>([])
+  const [lockStateByProject, setLockStateByProject] = useState<Record<string, ProjectLockState>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -87,8 +92,28 @@ export function ProjectList() {
         projectsApi.board(filter === 'all' ? {} : { status_filter: filter }),
         projectsApi.gantt(),
       ])
+
+      const lockStates = await Promise.all(
+        board.map(async (project) => {
+          try {
+            const lockState = await projectsApi.lockState(project.id)
+            return [project.id, lockState] as const
+          } catch {
+            return [project.id, {
+              project_id: project.id,
+              locked: false,
+              alternative_id: null,
+              locked_by_user: null,
+              locked_by_host: null,
+              locked_at: null,
+            }] as const
+          }
+        }),
+      )
+
       setProjects(board)
       setGanttProjects(gantt)
+      setLockStateByProject(Object.fromEntries(lockStates))
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Fehler beim Laden der Projekte')
     } finally {
@@ -369,6 +394,15 @@ export function ProjectList() {
                       </div>
 
                       <p className={styles.cardDescription}>{project.description ?? 'Kein Beschreibungstext'}</p>
+
+                      {lockStateByProject[project.id]?.locked && (
+                        <div className={styles.lockBadge}>
+                          🔒 {lockStateByProject[project.id]?.locked_by_user ?? 'Unbekannt'}
+                          {lockStateByProject[project.id]?.locked_by_host ? ` @ ${lockStateByProject[project.id]?.locked_by_host}` : ''}
+                          {' · '}
+                          {formatDateTime(lockStateByProject[project.id]?.locked_at ?? null)}
+                        </div>
+                      )}
 
                       <div className={styles.progressRow}>
                         <span>{project.progress_pct}% Fortschritt</span>
