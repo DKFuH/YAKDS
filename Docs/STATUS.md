@@ -15,7 +15,7 @@ Projektstatus per 2026-03-04.
 - Sprints 47-51: abgeschlossen
 - Sprint 56: abgeschlossen
 - Sprints 57-87: abgeschlossen
-- Sprint 98: abgeschlossen (Stabilisierungsphase)
+- Sprint 98 (Phase 21 - Stabilisierungsphase): abgeschlossen
 
 Aktuell auf `main`:
 
@@ -28,27 +28,16 @@ Aktuell auf `main`:
 - Sprint 85: Language Packs & Uebersetzungsverwaltung (`language_packs`, Resolver, CRUD, Admin-Seite)
 - Sprint 86: Mehrsprachige Dokumente & Shares (`locale_code` fuer Dokumente/Shares, locale-aware PDF/Viewer/Exporte)
 - Sprint 87: Navigation-UX & Input-Profile (Navigation-Profile, MMB-Pan, Touchpad-Modi, persistente Input-Settings)
+- Sprint 98: Stabilisierungsphase (Kern-Findings behoben, Goldene Pfade abgesichert)
 
 ---
 
 ## Aktueller Fokus
 
-- Phase 16 ist gestartet.
-- Sprint 81 und Sprint 82 sind abgeschlossen und auf `main`.
-- Phase 16 ist mit S83 abgeschlossen.
-- S84 (Core-i18n) ist abgeschlossen.
-- S85 (Language Packs) ist abgeschlossen.
-- S86 (Multilinguale Dokumente & Shares) ist abgeschlossen.
-- S87 (Navigation-UX und Input-Profile) ist abgeschlossen.
-- Naechster Fokus: Stabilitaetsnachlauf nach S98 und folgende Ausbau-Sprints gemaess ROADMAP.
-
----
-
-## Letzte Aenderungen (2026-03-04)
-
-- RC1-Tag veroeffentlicht: `v0.1.0-rc1` (remote vorhanden auf `origin`).
-- Verifikation fuer RC1 durchgefuehrt: Frontend-Build, API-Build, Full-Testlauf und Security-Smoke gruen.
-- Haupt-README ueberarbeitet (RC1-Status, Docker-Quickstart, Setup/Verifikation vereinheitlicht).
+- Phase 21 (Sprint 98 - Stabilisierungsphase) ist abgeschlossen.
+- Behobene Findings: `resolveLocale`-Fallback-Test-Isolation (navigator-Mock), `rooms.ts` reference-image-Clear-Regression (JsonNull → null).
+- Alle 987 Tests bestehen; keine kritischen Build-Breaker.
+- Naechster Fokus: weiterer Ausbau gemaess ROADMAP.
 
 ---
 

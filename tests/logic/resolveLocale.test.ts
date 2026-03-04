@@ -16,7 +16,8 @@ describe('isSupportedLocale', () => {
 
 describe('resolveLocale', () => {
   beforeEach(() => {
-    // Force unsupported browser locale so fallback assertions remain deterministic.
+    // Stub navigator with an unsupported language so the de-fallback tests are
+    // not influenced by the host environment's browser / Node language setting.
     vi.stubGlobal('navigator', { language: 'ja' })
   })
 

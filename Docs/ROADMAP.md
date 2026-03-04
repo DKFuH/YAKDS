@@ -1,8 +1,6 @@
 # ROADMAP.md
 
-Sprint-Planung für MVP (Sprints 0–19), Phase 2 (Sprints 20–24), Phase 3 (Sprints 25–30), Phase 4 (Sprints 31–40), Phase 5 (Sprints 41–45), Phase 6 (Sprints 46–50), Phase 7 (Sprints 51–55), Phase 8 (Sprints 56–60) und Phase 9 (Infrastruktur & Integration) inkl. aktuellem Fortschritt. Stand: 2026-03-04.
-
-Hinweis zum Produktstand: Sprint 98 (Stabilisierungsphase) ist abgeschlossen; RC1 (`v0.1.0-rc1`) ist veroeffentlicht und Build/Test/Security-Smoke sind fuer die Hauptpfade gruen.
+Sprint-Planung für MVP (Sprints 0–19), Phase 2 (Sprints 20–24), Phase 3 (Sprints 25–30), Phase 4 (Sprints 31–40), Phase 5 (Sprints 41–45), Phase 6 (Sprints 46–50), Phase 7 (Sprints 51–55), Phase 8 (Sprints 56–60) und Phase 9 (Infrastruktur & Integration) inkl. aktuellem Fortschritt. Stand: 2026-03-03.
 
 ---
 
@@ -1571,13 +1569,7 @@ sauber integrierter Produktkern.
 
 | Sprint | Status | Thema | Deliverables |
 |--------|--------|-------|--------------|
-| 98 | `done` | Stabilisierungsphase | Produktpfad stabilisiert, Kern-Findings abgebaut, Goldene Pfade abgesichert |
-
-### RC1-Snapshot (2026-03-04)
-
-- Tag `v0.1.0-rc1` ist auf `origin` veroeffentlicht.
-- Full-Stack-Verifikation gruen: Frontend-Build, API-Build, Full-Testlauf.
-- Security-Smoke fuer tenant-kritische Kernrouten gruen.
+| 98 | `done` | Stabilisierungsphase | Produktpfad stabilisieren, Kern-Findings abbauen, Goldene Pfade absichern |
 
 ### Sprint-Metadaten
 
