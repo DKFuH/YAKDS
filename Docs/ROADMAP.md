@@ -1246,3 +1246,46 @@ Editor-Spielerei. Die Phase trennt bewusst 2D-Kern, Bemaßung/Layout und
 | 71 | Gebogene Waende sind als echter Planungsprimitive im 2D-Kern verfuegbar |
 | 72 | Gebogene Geometrie ist in Zeichnung und Bemaßung professionell nutzbar |
 | 73 | Gebogene Waende funktionieren durchgaengig von 2D ueber 3D bis Interop |
+---
+
+## Phase 14 - Planer-UX nach SH3D-Prinzipien (Sprints 74-76)
+
+**Ziel:** Die bestehende technische Tiefe in eine schnellere, intuitivere
+Planer-UX ueberfuehren: Split-View, synchroner Virtual Visitor, einfacher
+Asset-Import und klarer Praesentationsmodus.
+
+**Inspiration bewusst nur auf UX-Ebene:**
+
+- Sweet Home 3D Split-View und Virtual Visitor
+- Sweet Home 3D Model Import Wizard
+- Sweet Home 3D Foto-/Videoexport mit wenigen klaren Presets
+
+**Lizenz-/Produktregel:**
+
+- keine SH3D-Assets, Icons oder Quellcode uebernehmen
+- nur Workflow- und Bedienideen adaptieren
+- vollstaendige Eigenimplementierung in React, Konva und Three.js
+
+### Sprint-Uebersicht
+
+| Sprint | Status | Thema | Deliverables |
+|--------|--------|-------|--------------|
+| 74 | `planned` | Split-View & Virtual Visitor | 2D/3D-Split, synchroner Kameravisitor, persistente View-Settings |
+| 75 | `planned` | Modell-Import & Asset-Browser Light | OBJ/DAE-Import, Bounding-Box, Auto-Scale, Asset-Bibliothek |
+| 76 | `planned` | Render-UX & Praesentationsmodus | Render-Presets, reduzierter Kundenmodus, vereinfachter Export |
+
+### Sprint-Metadaten
+
+| Sprint | Owner | ETA | Abhaengigkeiten | DoD-Kurzfassung |
+|--------|-------|-----|----------------|-----------------|
+| 74 | Full-Stack | Phase 14 | S14, S58, S69 | 2D- und 3D-View bleiben synchron, Visitor ist im Grundriss sichtbar |
+| 75 | Full-Stack | Phase 14 | S20, S51, S53 | importierte OBJ/DAE-Assets sind such- und platzierbar |
+| 76 | Full-Stack | Phase 14 | S14, S69, S74 | drei klare Render-Presets und ein echter Praesentationsmodus existieren |
+
+### Meilenstein Phase 14
+
+| Nach Sprint | Ergebnis |
+|-------------|----------|
+| 74 | Planen in 2D und Kontrollieren in 3D fuehlt sich simultan statt sequenziell an |
+| 75 | Eigene Modelle koennen schnell importiert, skaliert und wiederverwendet werden |
+| 76 | Kundenpraesentationen und schnelle Exporte funktionieren mit deutlich weniger UI-Reibung |

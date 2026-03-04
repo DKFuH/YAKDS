@@ -37,6 +37,9 @@ Stand: 2026-03-04
 | 71 | `S71-gebogene-waende-2d-kern.md` | done | `local` | +9 |
 | 72 | `S72-bogen-bemassung-layout.md` | done | `local` | +39 |
 | 73 | `S73-bogen-3d-interop.md` | done | `local` | +8 |
+| 74 | `S74-split-view-virtual-visitor.md` | planned | - | Frontend |
+| 75 | `S75-modell-import-asset-browser-light.md` | planned | - | +10 |
+| 76 | `S76-render-ux-praesentationsmodus.md` | planned | - | Frontend |
 
 ---
 
@@ -62,3 +65,6 @@ Stand: 2026-03-04
 | 71 | `S71-gebogene-waende-2d-kern.md` | done | Gebogene Waende als eigener 2D-Geometrietyp mit Oeffnungen und Snap-Logik |
 | 72 | `S72-bogen-bemassung-layout.md` | done | Radius-, Bogenlaengen- und Sehnenmasse in Sheets und Detailansichten |
 | 73 | `S73-bogen-3d-interop.md` | done | Gebogene Waende in 3D, GLTF, IFC und DXF/DWG-Interop |
+| 74 | `S74-split-view-virtual-visitor.md` | planned | Split-View im Editor und synchroner Virtual Visitor zwischen 2D und 3D |
+| 75 | `S75-modell-import-asset-browser-light.md` | planned | OBJ/DAE-Import, Bounding-Box/Auto-Scale und einfacher Asset-Browser |
+| 76 | `S76-render-ux-praesentationsmodus.md` | planned | Render-Presets, Praesentationsmodus und vereinfachte Bild-/Videoexporte |
