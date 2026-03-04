@@ -1329,7 +1329,7 @@ Offline-Nutzung und leichtere Sharing-/Exportpfade erweitern.
 |--------|--------|-------|--------------|
 | 77 | `done` | Plugin `daylight`: Nordkompass, Sonnenstand & Tageslicht | Umweltmodell, Kompassoverlay, Sonnenpreview, Nordpfeil in Sheets |
 | 78 | `done` | Plugin `materials`: Textur- & Materialbibliothek | Materialkatalog, Resolver, Texturzuweisung, Vorschau |
-| 79 | `planned` | Core + Plugin `survey-import`: Offline-PWA & Aufmass-Import | Manifest, Service Worker, Sync-Queue, Measurement-Import |
+| 79 | `done` | Core + Plugin `survey-import`: Offline-PWA & Aufmass-Import | Manifest, Service Worker, Sync-Queue, Measurement-Import |
 | 80 | `planned` | Plugin `viewer-export`: HTML-Viewer & Vektor-Exporte | HTML/WebGL-Viewer, SVG-Planexport, SVG-Sheetexport |
 
 ### Sprint-Metadaten

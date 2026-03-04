@@ -32,6 +32,28 @@ export interface RoomPayload {
   updated_at: string
 }
 
+export interface MeasurementImportSegmentPayload {
+  start: {
+    x_mm: number
+    y_mm: number
+  }
+  end: {
+    x_mm: number
+    y_mm: number
+  }
+  label?: string
+}
+
+export interface MeasurementImportPayload {
+  segments: MeasurementImportSegmentPayload[]
+  reference_image?: ReferenceImagePayload
+}
+
+export interface MeasurementImportResponse {
+  room: RoomPayload
+  imported_segments: number
+}
+
 export const roomsApi = {
   list: (projectId: string) =>
     api.get<RoomPayload[]>(`/projects/${projectId}/rooms`),
@@ -73,6 +95,9 @@ export const roomsApi = {
 
   removeReferenceImage: (id: string) =>
     api.delete(`/rooms/${id}/reference-image`),
+
+  measurementImport: (id: string, payload: MeasurementImportPayload) =>
+    api.post<MeasurementImportResponse>(`/rooms/${id}/measurement-import`, payload),
 }
 
 // Wall operations

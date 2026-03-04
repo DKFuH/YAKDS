@@ -1,0 +1,19 @@
+{
+  "name": "YAKDS Küchenplaner",
+  "short_name": "YAKDS",
+  "description": "YAKDS – Küchenplanung und Aufmaß, auch offline nutzbar.",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#218d8d",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

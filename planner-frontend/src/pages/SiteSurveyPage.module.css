@@ -225,6 +225,11 @@
   margin-bottom: 0.75rem;
 }
 
+.success {
+  color: var(--status-success);
+  margin: 0;
+}
+
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;

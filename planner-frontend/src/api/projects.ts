@@ -1,5 +1,6 @@
 import { api } from './client.js'
 import { createProject as createDemoProject, deleteProject as deleteDemoProject, getProject as getDemoProject, listProjects as listDemoProjects, updateProject as updateDemoProject } from './demoBackend.js'
+import { offlineSyncApi } from './offlineSync.js'
 import { shouldUseDemoFallback } from './client.js'
 
 export interface Project {
@@ -43,6 +44,96 @@ export interface Room {
 
 const USER_ID_PLACEHOLDER = 'dev-user-id' // wird durch Auth ersetzt
 const TENANT_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001'
+const RECENT_PROJECT_DETAILS_CACHE_KEY = 'yakds.recent-project-details.v1'
+const MAX_RECENT_PROJECT_DETAILS = 3
+
+type RecentProjectDetailsCache = ProjectDetail[]
+
+const isBrowserAvailable = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+
+const isRoom = (value: unknown): value is Room => {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  const record = value as Record<string, unknown>
+  return typeof record.id === 'string' && typeof record.project_id === 'string' && typeof record.name === 'string'
+}
+
+const readRecentProjectDetailsCache = (): RecentProjectDetailsCache => {
+  if (!isBrowserAvailable()) {
+    return []
+  }
+
+  try {
+    const rawCache = window.localStorage.getItem(RECENT_PROJECT_DETAILS_CACHE_KEY)
+    if (!rawCache) {
+      return []
+    }
+    const parsed = JSON.parse(rawCache) as unknown
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+    return parsed.filter((item): item is ProjectDetail => typeof item === 'object' && item !== null && typeof (item as ProjectDetail).id === 'string').slice(0, MAX_RECENT_PROJECT_DETAILS)
+  } catch {
+    return []
+  }
+}
+
+const writeRecentProjectDetailsCache = (cache: RecentProjectDetailsCache) => {
+  if (!isBrowserAvailable()) {
+    return
+  }
+
+  try {
+    window.localStorage.setItem(RECENT_PROJECT_DETAILS_CACHE_KEY, JSON.stringify(cache.slice(0, MAX_RECENT_PROJECT_DETAILS)))
+  } catch {
+    return
+  }
+}
+
+const upsertRecentProjectDetailsCacheEntry = (cache: RecentProjectDetailsCache, detail: ProjectDetail): RecentProjectDetailsCache => {
+  const nextCache = [detail, ...cache.filter((entry) => entry.id !== detail.id)]
+  return nextCache.slice(0, MAX_RECENT_PROJECT_DETAILS)
+}
+
+const cachedDetailsToProjectListFallback = (cache: RecentProjectDetailsCache): Project[] => cache.map(({ rooms, quotes, ...project }) => ({
+  ...project,
+  _count: project._count ?? { rooms: rooms.length, quotes: quotes.length },
+}))
+
+const mergeProjectRooms = (detail: ProjectDetail, bundleRooms: unknown[]): ProjectDetail => {
+  const roomMap = new Map<string, Room>()
+
+  for (const room of detail.rooms) {
+    roomMap.set(room.id, room)
+  }
+
+  for (const room of bundleRooms) {
+    if (isRoom(room)) {
+      roomMap.set(room.id, room)
+    }
+  }
+
+  const mergedRooms = Array.from(roomMap.values())
+  return {
+    ...detail,
+    rooms: mergedRooms,
+    _count: detail._count ? { ...detail._count, rooms: mergedRooms.length } : detail._count,
+  }
+}
+
+const buildCachedProjectDetail = async (detail: ProjectDetail): Promise<ProjectDetail> => {
+  try {
+    const offlineBundle = await offlineSyncApi.getProjectOfflineBundle(detail.id)
+    if (!Array.isArray(offlineBundle.rooms) || offlineBundle.rooms.length === 0) {
+      return detail
+    }
+
+    return mergeProjectRooms(detail, offlineBundle.rooms)
+  } catch {
+    return detail
+  }
+}
 
 export interface ProjectBoardFilters {
   user_id?: string
@@ -64,6 +155,10 @@ export const projectsApi = {
     try {
       return await api.get<Project[]>(`/projects?user_id=${userId}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
     } catch (error) {
+      const cachedProjects = cachedDetailsToProjectListFallback(readRecentProjectDetailsCache())
+      if (cachedProjects.length > 0) {
+        return cachedProjects
+      }
       if (shouldUseDemoFallback(error)) return listDemoProjects()
       throw error
     }
@@ -113,8 +208,16 @@ export const projectsApi = {
   },
   get: async (id: string) => {
     try {
-      return await api.get<ProjectDetail>(`/projects/${id}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      const projectDetail = await api.get<ProjectDetail>(`/projects/${id}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      const enrichedCacheDetail = await buildCachedProjectDetail(projectDetail)
+      const updatedCache = upsertRecentProjectDetailsCacheEntry(readRecentProjectDetailsCache(), enrichedCacheDetail)
+      writeRecentProjectDetailsCache(updatedCache)
+      return projectDetail
     } catch (error) {
+      const cachedDetail = readRecentProjectDetailsCache().find((project) => project.id === id)
+      if (cachedDetail) {
+        return cachedDetail
+      }
       if (shouldUseDemoFallback(error)) return getDemoProject(id)
       throw error
     }

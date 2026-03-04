@@ -22,6 +22,14 @@ vi.mock('../db.js', () => ({
   prisma: prismaMock,
 }))
 
+const { isTenantPluginEnabledMock } = vi.hoisted(() => ({
+  isTenantPluginEnabledMock: vi.fn(),
+}))
+
+vi.mock('../plugins/tenantPluginAccess.js', () => ({
+  isTenantPluginEnabled: isTenantPluginEnabledMock,
+}))
+
 import { roomRoutes } from './rooms.js'
 
 describe('roomRoutes reference image', () => {
@@ -102,6 +110,105 @@ describe('roomRoutes reference image', () => {
       where: { id: roomId },
       data: { reference_image: null },
     })
+
+    await app.close()
+  })
+})
+
+describe('roomRoutes measurement import', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    isTenantPluginEnabledMock.mockResolvedValue(true)
+
+    prismaMock.room.findUnique.mockResolvedValue({
+      id: roomId,
+      measure_lines: [],
+      reference_image: null,
+    })
+    prismaMock.room.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
+      id: roomId,
+      ...data,
+    }))
+  })
+
+  it('imports measurement segments via POST /rooms/:id/measurement-import', async () => {
+    const app = Fastify()
+    app.addHook('onRequest', async (request) => {
+      ;(request as { tenantId?: string }).tenantId = '00000000-0000-0000-0000-000000000001'
+    })
+    await app.register(roomRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${roomId}/measurement-import`,
+      payload: {
+        segments: [
+          {
+            start: { x_mm: 0, y_mm: 0 },
+            end: { x_mm: 3000, y_mm: 0 },
+            label: 'Nordwand',
+          },
+        ],
+        reference_image: {
+          url: 'https://example.com/reference.png',
+          x: 20,
+          y: 40,
+          scale: 1,
+        },
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    const body = response.json() as { imported_segments: number }
+    expect(body.imported_segments).toBe(1)
+    expect(prismaMock.room.update).toHaveBeenCalledTimes(1)
+
+    await app.close()
+  })
+
+  it('returns 400 for invalid measurement import payload', async () => {
+    const app = Fastify()
+    app.addHook('onRequest', async (request) => {
+      ;(request as { tenantId?: string }).tenantId = '00000000-0000-0000-0000-000000000001'
+    })
+    await app.register(roomRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${roomId}/measurement-import`,
+      payload: {
+        segments: [{ start: { x_mm: 0, y_mm: 0 } }],
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+
+    await app.close()
+  })
+
+  it('returns 403 when survey-import plugin is disabled', async () => {
+    isTenantPluginEnabledMock.mockResolvedValue(false)
+
+    const app = Fastify()
+    app.addHook('onRequest', async (request) => {
+      ;(request as { tenantId?: string }).tenantId = '00000000-0000-0000-0000-000000000001'
+    })
+    await app.register(roomRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rooms/${roomId}/measurement-import`,
+      payload: {
+        segments: [
+          {
+            start: { x_mm: 0, y_mm: 0 },
+            end: { x_mm: 500, y_mm: 0 },
+          },
+        ],
+      },
+    })
+
+    expect(response.statusCode).toBe(403)
 
     await app.close()
   })

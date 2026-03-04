@@ -2,39 +2,16 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { checklistsApi, siteSurveysApi, type InstallationChecklist, type SiteSurvey } from '../api/siteSurveys.js'
 import { projectsApi, type Project } from '../api/projects.js'
+import { roomsApi, type MeasurementImportSegmentPayload, type RoomPayload } from '../api/rooms.js'
+import { getTenantPlugins } from '../api/tenantSettings.js'
+import { getMeasurementSegmentsFromMeasurements, getRoomsFromMeasurements } from '../plugins/surveyImport/index.js'
 import styles from './SiteSurveyPage.module.css'
 
 type Tab = 'surveys' | 'checklists'
 
-type RoomMeasurement = {
-  name: string
-  width_mm: number
-  depth_mm: number
-  height_mm?: number
-}
-
 function formatDate(value: string | null | undefined): string {
   if (!value) return '–'
   return new Date(value).toLocaleString('de-DE')
-}
-
-function getRooms(measurements: Record<string, unknown>): RoomMeasurement[] {
-  const maybeRooms = measurements.rooms
-  if (!Array.isArray(maybeRooms)) {
-    return []
-  }
-
-  return maybeRooms
-    .filter((room): room is RoomMeasurement => {
-      if (!room || typeof room !== 'object') return false
-      const candidate = room as Record<string, unknown>
-      return (
-        typeof candidate.name === 'string'
-        && typeof candidate.width_mm === 'number'
-        && typeof candidate.depth_mm === 'number'
-        && (candidate.height_mm === undefined || typeof candidate.height_mm === 'number')
-      )
-    })
 }
 
 export function SiteSurveyPage() {
@@ -47,6 +24,12 @@ export function SiteSurveyPage() {
   const [selectedSurveyId, setSelectedSurveyId] = useState<string | null>(null)
   const [selectedChecklistId, setSelectedChecklistId] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('surveys')
+  const [surveyImportEnabled, setSurveyImportEnabled] = useState(false)
+  const [rooms, setRooms] = useState<RoomPayload[]>([])
+  const [targetRoomId, setTargetRoomId] = useState('')
+  const [includeReferencePhoto, setIncludeReferencePhoto] = useState(false)
+  const [importBusy, setImportBusy] = useState(false)
+  const [importStatus, setImportStatus] = useState<string | null>(null)
   const [createdBy, setCreatedBy] = useState('')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
@@ -54,7 +37,37 @@ export function SiteSurveyPage() {
 
   useEffect(() => {
     projectsApi.list().then(setProjects).catch(() => {})
+    getTenantPlugins()
+      .then((result) => {
+        setSurveyImportEnabled(result.enabled.includes('survey-import'))
+      })
+      .catch(() => {
+        setSurveyImportEnabled(false)
+      })
   }, [])
+
+  useEffect(() => {
+    if (!surveyImportEnabled || !selectedProjectId) {
+      setRooms([])
+      setTargetRoomId('')
+      return
+    }
+
+    roomsApi.list(selectedProjectId)
+      .then((projectRooms) => {
+        setRooms(projectRooms)
+        setTargetRoomId((previous) => {
+          if (previous && projectRooms.some((room) => room.id === previous)) {
+            return previous
+          }
+          return projectRooms[0]?.id ?? ''
+        })
+      })
+      .catch(() => {
+        setRooms([])
+        setTargetRoomId('')
+      })
+  }, [selectedProjectId, surveyImportEnabled])
 
   useEffect(() => {
     if (!selectedProjectId) {
@@ -90,6 +103,16 @@ export function SiteSurveyPage() {
   const selectedChecklist = useMemo(
     () => checklists.find((checklist) => checklist.id === selectedChecklistId) ?? null,
     [checklists, selectedChecklistId],
+  )
+
+  const measurementSegments = useMemo(
+    () => (selectedSurvey ? getMeasurementSegmentsFromMeasurements(selectedSurvey.measurements) : []),
+    [selectedSurvey],
+  )
+
+  const firstPhotoUrl = useMemo(
+    () => selectedSurvey?.photos.find((photo) => typeof photo.url === 'string' && photo.url.length > 0)?.url ?? null,
+    [selectedSurvey],
   )
 
   const checklistDoneCount = selectedChecklist?.items.filter((item) => item.checked).length ?? 0
@@ -150,7 +173,56 @@ export function SiteSurveyPage() {
     }
   }
 
-  const rooms = selectedSurvey ? getRooms(selectedSurvey.measurements) : []
+  async function handleMeasurementImport() {
+    if (!selectedSurvey || !targetRoomId) {
+      return
+    }
+
+    if (measurementSegments.length === 0) {
+      setError('Keine verwertbaren Messsegmente im Aufmaß gefunden.')
+      return
+    }
+
+    setImportBusy(true)
+    setImportStatus(null)
+    setError(null)
+
+    try {
+      const payload: {
+        segments: MeasurementImportSegmentPayload[]
+        reference_image?: {
+          url: string
+          x: number
+          y: number
+          rotation: number
+          scale: number
+          opacity: number
+        }
+      } = {
+        segments: measurementSegments,
+      }
+
+      if (includeReferencePhoto && firstPhotoUrl) {
+        payload.reference_image = {
+          url: firstPhotoUrl,
+          x: 50,
+          y: 50,
+          rotation: 0,
+          scale: 1,
+          opacity: 0.55,
+        }
+      }
+
+      const response = await roomsApi.measurementImport(targetRoomId, payload)
+      setImportStatus(`${response.imported_segments} Segmente in den Raum importiert.`)
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : 'Import fehlgeschlagen')
+    } finally {
+      setImportBusy(false)
+    }
+  }
+
+  const surveyRooms = selectedSurvey ? getRoomsFromMeasurements(selectedSurvey.measurements) : []
 
   return (
     <div className={styles.shell}>
@@ -261,7 +333,7 @@ export function SiteSurveyPage() {
                     <p className={styles.meta}>Erfasst von: {selectedSurvey.created_by} · {formatDate(selectedSurvey.created_at)}</p>
 
                     <h3>Messungen</h3>
-                    {rooms.length > 0 ? (
+                    {surveyRooms.length > 0 ? (
                       <table className={styles.table}>
                         <thead>
                           <tr>
@@ -272,7 +344,7 @@ export function SiteSurveyPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {rooms.map((room, index) => (
+                          {surveyRooms.map((room, index) => (
                             <tr key={`${room.name}-${index}`}>
                               <td>{room.name}</td>
                               <td>{room.width_mm}</td>
@@ -284,6 +356,49 @@ export function SiteSurveyPage() {
                       </table>
                     ) : (
                       <pre className={styles.jsonBlock}>{JSON.stringify(selectedSurvey.measurements, null, 2)}</pre>
+                    )}
+
+                    {surveyImportEnabled && (
+                      <>
+                        <h3>Aufmaß-Import</h3>
+                        <div className={styles.form}>
+                          <label className={styles.label}>Zielraum</label>
+                          <select
+                            className={styles.select}
+                            aria-label="Zielraum für Aufmaß-Import"
+                            value={targetRoomId}
+                            onChange={(event) => setTargetRoomId(event.target.value)}
+                          >
+                            {rooms.length === 0 && <option value="">Kein Raum verfügbar</option>}
+                            {rooms.map((room) => (
+                              <option key={room.id} value={room.id}>{room.name}</option>
+                            ))}
+                          </select>
+
+                          <label className={styles.checkLabel}>
+                            <input
+                              type="checkbox"
+                              checked={includeReferencePhoto}
+                              disabled={!firstPhotoUrl}
+                              onChange={(event) => setIncludeReferencePhoto(event.target.checked)}
+                            />
+                            <span>Erstes Foto als Referenzbild übernehmen</span>
+                          </label>
+
+                          <p className={styles.hint}>Importierbare Segmente: {measurementSegments.length}</p>
+
+                          <button
+                            type="button"
+                            className={styles.primaryBtn}
+                            disabled={importBusy || !targetRoomId || measurementSegments.length === 0}
+                            onClick={() => { void handleMeasurementImport() }}
+                          >
+                            {importBusy ? 'Importiere …' : 'In Raum importieren'}
+                          </button>
+
+                          {importStatus && <p className={styles.success}>{importStatus}</p>}
+                        </div>
+                      </>
                     )}
 
                     <h3>Fotos</h3>

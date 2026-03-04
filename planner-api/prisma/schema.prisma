@@ -2123,3 +2123,22 @@ model MaterialLibraryItem {
   @@index([tenant_id, category])
   @@map("material_library_items")
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// PHASE 16 – Sprint 79: Offline-PWA & Aufmaß-Import
+// ─────────────────────────────────────────────────────────────────────────
+
+model OfflineSyncJob {
+  id           String   @id @default(uuid())
+  tenant_id    String
+  project_id   String?
+  entity_type  String   @db.VarChar(120)
+  payload_json Json
+  status       String   @default("pending")
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@index([tenant_id, status])
+  @@index([tenant_id, project_id, status])
+  @@map("offline_sync_jobs")
+}

@@ -71,7 +71,7 @@ Stand: 2026-03-04
 | 76 | `S76-render-ux-praesentationsmodus.md` | done | Plugin `presentation`: Render-Presets und Praesentationsmodus |
 | 77 | `S77-nordkompass-sonnenstand-tageslicht.md` | done | Plugin `daylight`: Nordkompass, Sonnenstand und Tageslichtsteuerung |
 | 78 | `S78-textur-materialbibliothek.md` | done | Plugin `materials`: Textur- und Materialbibliothek fuer Flaechen und Assets |
-| 79 | `S79-offline-pwa-und-aufmass-import.md` | planned | Core-PWA plus Plugin `survey-import` fuer mobilen Aufmass-/Blueprint-Import |
+| 79 | `S79-offline-pwa-und-aufmass-import.md` | done | Core-PWA plus Plugin `survey-import` fuer mobilen Aufmass-/Blueprint-Import |
 | 80 | `S80-html-viewer-und-vektor-exporte.md` | planned | Plugin `viewer-export`: HTML-Webviewer und SVG-/Vektor-Exporte |
 | 81 | `S81-mehr-ebenen-projektmodell.md` | planned | Mehr-Ebenen-Projekte mit Levels, Sichtbarkeit und level-spezifischen Raeumen |
 | 82 | `S82-treppen-und-vertikale-verbindungen.md` | planned | Plugin `stairs`: Treppen, Treppenaugen und vertikale Verbindungen |

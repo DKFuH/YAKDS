@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendNotFound, sendBadRequest } from '../errors.js'
+import { isTenantPluginEnabled } from '../plugins/tenantPluginAccess.js'
 
 const VertexSchema = z.object({
   id: z.string().uuid(),
@@ -46,6 +47,20 @@ const ReferenceImageSchema = z.object({
   rotation: z.number().min(-360).max(360).optional(),
   scale: z.number().min(0.01).max(100).optional(),
   opacity: z.number().min(0).max(1).optional(),
+})
+
+const MeasurementImportPointSchema = z.object({
+  x_mm: z.number(),
+  y_mm: z.number(),
+})
+
+const MeasurementImportSchema = z.object({
+  segments: z.array(z.object({
+    start: MeasurementImportPointSchema,
+    end: MeasurementImportPointSchema,
+    label: z.string().max(200).optional(),
+  })).default([]),
+  reference_image: ReferenceImageSchema.optional(),
 })
 
 export async function roomRoutes(app: FastifyInstance) {
@@ -183,6 +198,51 @@ export async function roomRoutes(app: FastifyInstance) {
       data: { reference_image: null },
     })
     return reply.send(updated)
+  })
+
+  // POST /rooms/:id/measurement-import
+  app.post<{ Params: { id: string } }>('/rooms/:id/measurement-import', async (request, reply) => {
+    const tenantId = request.tenantId
+    if (!tenantId) {
+      return reply.status(403).send({ error: 'FORBIDDEN', message: 'Missing tenant scope' })
+    }
+
+    const pluginEnabled = await isTenantPluginEnabled(tenantId, 'survey-import')
+    if (!pluginEnabled) {
+      return reply.status(403).send({ error: 'PLUGIN_DISABLED', message: 'Plugin survey-import is disabled for this tenant' })
+    }
+
+    const parsed = MeasurementImportSchema.safeParse(request.body)
+    if (!parsed.success) return sendBadRequest(reply, parsed.error.errors[0]?.message ?? 'Invalid payload')
+
+    const room = await prisma.room.findUnique({ where: { id: request.params.id } })
+    if (!room) return sendNotFound(reply, 'Room not found')
+
+    const currentRoom = room as unknown as Record<string, unknown>
+    const existingMeasureLines = Array.isArray(currentRoom.measure_lines)
+      ? currentRoom.measure_lines as Array<Record<string, unknown>>
+      : []
+
+    const importedMeasureLines = parsed.data.segments.map((segment) => ({
+      id: randomUUID(),
+      room_id: request.params.id,
+      points: [segment.start, segment.end],
+      label: segment.label,
+      is_chain: false,
+    }))
+
+    const updated = await prisma.room.update({
+      where: { id: request.params.id },
+      data: {
+        measure_lines: [...existingMeasureLines, ...importedMeasureLines],
+        ...(parsed.data.reference_image !== undefined ? { reference_image: parsed.data.reference_image } : {}),
+      } as never,
+    })
+
+    return reply.status(201).send({
+      room: updated,
+      imported_segments: importedMeasureLines.length,
+    })
   })
 
   // DELETE /rooms/:id

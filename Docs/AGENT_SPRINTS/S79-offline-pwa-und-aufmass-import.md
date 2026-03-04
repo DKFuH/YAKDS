@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-79-offline-pwa-measure-import`
 **Gruppe:** A (startbar nach S47 und S74)
-**Status:** `planned`
+**Status:** `completed`
 **Abhaengigkeiten:** S47 (Mobile Aufmass), S58 (Bild-Nachzeichnen), S74 (Split-View)
 
 ---
@@ -139,3 +139,13 @@ Funktionen:
 - Nutzer sieht klar, ob online/offline gearbeitet wird
 - lokale Aenderungen koennen spaeter synchronisiert werden
 - Aufmassdaten koennen in einen Raum- oder Blueprint-Workflow uebernommen werden
+
+## 7. Umsetzung (2026-03-04)
+
+- Manifest und Service Worker wurden integriert.
+- Offline-Badge und eine deferred Sync-Queue im Frontend wurden umgesetzt.
+- Persistentes Datenmodell `OfflineSyncJob` inkl. Migration wurde eingefuehrt.
+- Endpunkte fuer Offline-Bundle, Sync und Pending-Status wurden implementiert.
+- Measurement-Import-Endpunkt mit Plugin-Gating ueber `survey-import` wurde geliefert.
+- `SiteSurveyPage` erhielt Import-UI in einen Zielraum mit optionalem Referenzbild.
+- Backend-Tests sowie Frontend-Build wurden erfolgreich validiert.

@@ -1,10 +1,10 @@
 # STATUS.md
 
-Projektstatus per 2026-03-02 – MVP bis Phase 7 (Sprints 0–51) + Sprint 56 abgeschlossen.
+Projektstatus per 2026-03-04 – MVP bis Phase 7 (Sprints 0–51) + Sprint 56 abgeschlossen.
 
 ---
 
-## Gesamtstatus (Stand 2026-03-02)
+## Gesamtstatus (Stand 2026-03-04)
 
 - **Sprints 0-19 (MVP): abgeschlossen** ✅
 - **Sprints 20-24 (Phase 2): abgeschlossen** ✅
@@ -18,6 +18,8 @@ Projektstatus per 2026-03-02 – MVP bis Phase 7 (Sprints 0–51) + Sprint 56 ab
 - **Sprint 50 (Compliance & RBAC): abgeschlossen** ✅ (GDPR, SSO, SLA, Rollen)
 - **Sprint 51 (GLTF/GLB-Export): abgeschlossen** ✅ (Three.js BoxGeometry, GLB-Magic-Bytes validiert)
 - **Sprint 56 (Canvas-UX): abgeschlossen** ✅ (Wand-Interaktoren, Live-Dims, Stage-Fix, Keyboard-Shortcuts)
+- **Sprint 79 (Offline-PWA & Aufmaß-Import): abgeschlossen** ✅ (Offline-Sync/PWA-Fähigkeit und Aufmaß-Import integriert)
+- **Sprint 80 (Viewer-Export-Plugin & Vektor-Exporte): in Arbeit** 🚧 (Export-Plugin gestartet, Vektor-Exportpfade in Umsetzung)
 - **Sprints 52-55 (IFC, DWG/SKP, OFML, Akustik): geplant** (Specs in Docs/AGENT_SPRINTS/)
 - **Sprints 57-60 (WallAttachments, Nachzeichnen, Bemaßung, Kitchen Assistant): geplant**
 
