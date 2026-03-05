@@ -2,6 +2,7 @@ import { api } from './client.js'
 import { createProject as createDemoProject, deleteProject as deleteDemoProject, getProject as getDemoProject, listProjects as listDemoProjects, updateProject as updateDemoProject } from './demoBackend.js'
 import { offlineSyncApi } from './offlineSync.js'
 import { shouldUseDemoFallback } from './client.js'
+import { getRuntimeUserId, tenantScopedHeaders } from './runtimeContext.js'
 
 export interface Project {
   id: string
@@ -60,8 +61,6 @@ export interface Room {
   updated_at: string
 }
 
-const USER_ID_PLACEHOLDER = 'dev-user-id' // wird durch Auth ersetzt
-const TENANT_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001'
 const RECENT_PROJECT_DETAILS_CACHE_KEY = 'yakds.recent-project-details.v1'
 const MAX_RECENT_PROJECT_DETAILS = 3
 
@@ -176,9 +175,9 @@ export interface ProjectArchiveFilters {
 }
 
 export const projectsApi = {
-  list: async (userId = USER_ID_PLACEHOLDER) => {
+  list: async (userId = getRuntimeUserId()) => {
     try {
-      return await api.get<Project[]>(`/projects?user_id=${userId}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.get<Project[]>(`/projects?user_id=${encodeURIComponent(userId)}`, tenantScopedHeaders())
     } catch (error) {
       const cachedProjects = cachedDetailsToProjectListFallback(readRecentProjectDetailsCache())
       if (cachedProjects.length > 0) {
@@ -189,7 +188,7 @@ export const projectsApi = {
     }
   },
   board: async (filters: ProjectBoardFilters = {}) => {
-    const query = new URLSearchParams({ user_id: filters.user_id ?? USER_ID_PLACEHOLDER })
+    const query = new URLSearchParams({ user_id: filters.user_id ?? getRuntimeUserId() })
     if (filters.branch_id) {
       query.set('branch_id', filters.branch_id)
     }
@@ -197,7 +196,7 @@ export const projectsApi = {
       query.set('status_filter', filters.status_filter)
     }
     try {
-      return await api.get<Project[]>(`/projects/board?${query.toString()}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.get<Project[]>(`/projects/board?${query.toString()}`, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) {
         const projects = listDemoProjects()
@@ -226,7 +225,7 @@ export const projectsApi = {
     const suffix = query.toString() ? `?${query.toString()}` : ''
 
     try {
-      return await api.get<Project[]>(`/projects/archive${suffix}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.get<Project[]>(`/projects/archive${suffix}`, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) {
         return listDemoProjects().filter((project) => project.status === 'archived')
@@ -234,13 +233,13 @@ export const projectsApi = {
       throw error
     }
   },
-  gantt: async (branch_id?: string, userId = USER_ID_PLACEHOLDER) => {
+  gantt: async (branch_id?: string, userId = getRuntimeUserId()) => {
     const query = new URLSearchParams({ user_id: userId })
     if (branch_id) {
       query.set('branch_id', branch_id)
     }
     try {
-      return await api.get<Array<Project & { start_at: string; end_at: string | null }>>(`/projects/gantt?${query.toString()}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.get<Array<Project & { start_at: string; end_at: string | null }>>(`/projects/gantt?${query.toString()}`, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) {
         const projects = listDemoProjects()
@@ -259,7 +258,7 @@ export const projectsApi = {
   },
   get: async (id: string) => {
     try {
-      const projectDetail = await api.get<ProjectDetail>(`/projects/${id}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      const projectDetail = await api.get<ProjectDetail>(`/projects/${id}`, tenantScopedHeaders())
       const enrichedCacheDetail = await buildCachedProjectDetail(projectDetail)
       const updatedCache = upsertRecentProjectDetailsCacheEntry(readRecentProjectDetailsCache(), enrichedCacheDetail)
       writeRecentProjectDetailsCache(updatedCache)
@@ -275,7 +274,7 @@ export const projectsApi = {
   },
   lockState: async (id: string) => {
     try {
-      return await api.get<ProjectLockState>(`/projects/${id}/lock-state`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.get<ProjectLockState>(`/projects/${id}/lock-state`, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) {
         return {
@@ -292,7 +291,7 @@ export const projectsApi = {
   },
   markAlternativeOrdersDelivered: async (alternativeId: string) => {
     try {
-      return await api.post<AlternativeBulkDeliveryResult>(`/alternatives/${alternativeId}/orders/mark-delivered`, {}, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.post<AlternativeBulkDeliveryResult>(`/alternatives/${alternativeId}/orders/mark-delivered`, {}, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) {
         return {
@@ -305,7 +304,11 @@ export const projectsApi = {
   },
   create: async (data: { name: string; description?: string }) => {
     try {
-      return await api.post<Project>('/projects', { ...data, user_id: USER_ID_PLACEHOLDER }, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.post<Project>(
+        '/projects',
+        { ...data, user_id: getRuntimeUserId() },
+        tenantScopedHeaders(),
+      )
     } catch (error) {
       if (shouldUseDemoFallback(error)) return createDemoProject(data)
       throw error
@@ -313,7 +316,7 @@ export const projectsApi = {
   },
   update: async (id: string, data: { name?: string; description?: string; status?: string }) => {
     try {
-      return await api.put<Project>(`/projects/${id}`, data, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.put<Project>(`/projects/${id}`, data, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) return updateDemoProject(id, data)
       throw error
@@ -321,7 +324,7 @@ export const projectsApi = {
   },
   updateStatus: async (id: string, data: { project_status: Project['project_status']; progress_pct?: number }) => {
     try {
-      return await api.patch<Project>(`/projects/${id}/status`, data, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.patch<Project>(`/projects/${id}/status`, data, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) return updateDemoProject(id, data)
       throw error
@@ -329,7 +332,7 @@ export const projectsApi = {
   },
   assign: async (id: string, data: ProjectAssignmentUpdate) => {
     try {
-      return await api.patch<Project>(`/projects/${id}/assign`, data, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.patch<Project>(`/projects/${id}/assign`, data, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) return updateDemoProject(id, data)
       throw error
@@ -337,7 +340,7 @@ export const projectsApi = {
   },
   delete: async (id: string) => {
     try {
-      return await api.delete(`/projects/${id}`, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.delete(`/projects/${id}`, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) return deleteDemoProject(id)
       throw error
@@ -345,7 +348,7 @@ export const projectsApi = {
   },
   threeDots: async (id: string, action: 'duplicate' | 'archive' | 'unarchive') => {
     try {
-      return await api.patch<Project>(`/projects/${id}/3dots?action=${action}`, {}, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.patch<Project>(`/projects/${id}/3dots?action=${action}`, {}, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) {
         if (action === 'duplicate') {
@@ -359,7 +362,7 @@ export const projectsApi = {
   },
   archive: async (id: string, payload?: { archive_reason?: string; retention_days?: number }) => {
     try {
-      return await api.post<Project>(`/projects/${id}/archive`, payload ?? {}, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.post<Project>(`/projects/${id}/archive`, payload ?? {}, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) return updateDemoProject(id, { status: 'archived' })
       throw error
@@ -367,7 +370,7 @@ export const projectsApi = {
   },
   restore: async (id: string) => {
     try {
-      return await api.post<Project>(`/projects/${id}/restore`, {}, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.post<Project>(`/projects/${id}/restore`, {}, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) return updateDemoProject(id, { status: 'active' })
       throw error
@@ -375,7 +378,7 @@ export const projectsApi = {
   },
   advisor: async (id: string, data: { advisor: string | null; sales_rep?: string | null }) => {
     try {
-      return await api.patch<Project>(`/projects/${id}/advisor`, data, { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER })
+      return await api.patch<Project>(`/projects/${id}/advisor`, data, tenantScopedHeaders())
     } catch (error) {
       if (shouldUseDemoFallback(error)) return updateDemoProject(id, data)
       throw error
