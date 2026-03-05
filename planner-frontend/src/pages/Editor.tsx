@@ -40,7 +40,11 @@ import { visibilityApi, type AutoDollhousePatch, type AutoDollhouseSettings } fr
 import { verticalConnectionsApi, type VerticalConnection, type VerticalConnectionKind } from '../api/verticalConnections.js'
 import { usePolygonEditor, edgeLengthMm, type EditorState } from '../editor/usePolygonEditor.js'
 import { useEditorModeStore } from '../editor/editorModeStore.js'
-import { resolveEditorActionStates, resolveViewModeShortcut } from '../editor/actionStateResolver.js'
+import {
+  resolveEditorActionStates,
+  resolveViewModeShortcut,
+  type EditorActionContext,
+} from '../editor/actionStateResolver.js'
 import { getEditorModeForWorkflowStep, useWorkflowStateStore } from '../editor/workflowStateStore.js'
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { PopoutWindow } from '../components/editor/PopoutWindow.js'
@@ -1157,45 +1161,23 @@ export function Editor() {
     })
   }, [])
 
-  useEffect(() => {
-    const shortcutActionStates = resolveEditorActionStates({
-      hasProjectId: Boolean(id),
-      compactLayout,
-      hasSelectedRoom: Boolean(selectedRoomId),
-      hasSelectedSectionLine: Boolean(selectedSectionLineId),
-      hasSelectedAlternative: Boolean(selectedAlternativeId),
-      presentationEnabled,
-      daylightEnabled,
-      hasProjectEnvironment: Boolean(projectEnvironment),
-      materialsEnabled,
-      autoCompleteLoading,
-      previewPopoutOpen: isPreviewPopoutOpen,
-      gltfExportLoading,
-      bulkDeliveredLoading,
-      screenshotBusy,
-      export360Busy,
-    })
-
-    function handleViewModeShortcuts(event: globalThis.KeyboardEvent) {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) {
-        return
-      }
-      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
-        return
-      }
-
-      const nextMode = resolveViewModeShortcut(event.key, shortcutActionStates)
-      if (!nextMode) {
-        return
-      }
-
-      event.preventDefault()
-      setViewMode(nextMode)
-    }
-
-    window.addEventListener('keydown', handleViewModeShortcuts)
-    return () => window.removeEventListener('keydown', handleViewModeShortcuts)
-  }, [
+  const actionContext = useMemo<EditorActionContext>(() => ({
+    hasProjectId: Boolean(id),
+    compactLayout,
+    hasSelectedRoom: Boolean(selectedRoomId),
+    hasSelectedSectionLine: Boolean(selectedSectionLineId),
+    hasSelectedAlternative: Boolean(selectedAlternativeId),
+    presentationEnabled,
+    daylightEnabled,
+    hasProjectEnvironment: Boolean(projectEnvironment),
+    materialsEnabled,
+    autoCompleteLoading,
+    previewPopoutOpen: isPreviewPopoutOpen,
+    gltfExportLoading,
+    bulkDeliveredLoading,
+    screenshotBusy,
+    export360Busy,
+  }), [
     autoCompleteLoading,
     bulkDeliveredLoading,
     compactLayout,
@@ -1212,6 +1194,30 @@ export function Editor() {
     selectedRoomId,
     selectedSectionLineId,
   ])
+
+  const actionStates = useMemo(() => resolveEditorActionStates(actionContext), [actionContext])
+
+  useEffect(() => {
+    function handleViewModeShortcuts(event: globalThis.KeyboardEvent) {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) {
+        return
+      }
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return
+      }
+
+      const nextMode = resolveViewModeShortcut(event.key, actionStates)
+      if (!nextMode) {
+        return
+      }
+
+      event.preventDefault()
+      setViewMode(nextMode)
+    }
+
+    window.addEventListener('keydown', handleViewModeShortcuts)
+    return () => window.removeEventListener('keydown', handleViewModeShortcuts)
+  }, [actionStates])
 
   useEffect(() => {
     setCameraState((prev) => ({
@@ -2037,39 +2043,6 @@ export function Editor() {
 
   const selectedRoom = roomsOnActiveLevel.find(r => r.id === selectedRoomId) ?? null
   selectedRoomRef.current = selectedRoom as unknown as RoomPayload | null
-  const actionStates = useMemo(() => resolveEditorActionStates({
-    hasProjectId: Boolean(id),
-    compactLayout,
-    hasSelectedRoom: Boolean(selectedRoomId),
-    hasSelectedSectionLine: Boolean(selectedSectionLineId),
-    hasSelectedAlternative: Boolean(selectedAlternativeId),
-    presentationEnabled,
-    daylightEnabled,
-    hasProjectEnvironment: Boolean(projectEnvironment),
-    materialsEnabled,
-    autoCompleteLoading,
-    previewPopoutOpen: isPreviewPopoutOpen,
-    gltfExportLoading,
-    bulkDeliveredLoading,
-    screenshotBusy,
-    export360Busy,
-  }), [
-    autoCompleteLoading,
-    bulkDeliveredLoading,
-    compactLayout,
-    daylightEnabled,
-    export360Busy,
-    gltfExportLoading,
-    id,
-    isPreviewPopoutOpen,
-    materialsEnabled,
-    presentationEnabled,
-    projectEnvironment,
-    screenshotBusy,
-    selectedAlternativeId,
-    selectedRoomId,
-    selectedSectionLineId,
-  ])
 
   const lockStateLabel = projectLockState?.locked
     ? `🔒 ${projectLockState.locked_by_user ?? 'Unbekannt'}${projectLockState.locked_by_host ? ` @ ${projectLockState.locked_by_host}` : ''}${projectLockState.locked_at ? ` · ${new Date(projectLockState.locked_at).toLocaleString()}` : ''}`
@@ -3224,7 +3197,7 @@ export function Editor() {
                   className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/quote-lines`) }}
                   disabled={!actionStates.navQuoteLines.enabled}
-                  title={actionStates.navQuoteLines.reasonIfDisabled}
+                  title={actionStates.navQuoteLines.enabled ? 'Angebotspositionen oeffnen' : actionStates.navQuoteLines.reasonIfDisabled}
                 >
                   Angebotspositionen
                 </button>
@@ -3234,7 +3207,7 @@ export function Editor() {
                   className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/panorama-tours`) }}
                   disabled={!actionStates.navPanoramaTours.enabled}
-                  title={actionStates.navPanoramaTours.reasonIfDisabled}
+                  title={actionStates.navPanoramaTours.enabled ? 'Panorama-Touren oeffnen' : actionStates.navPanoramaTours.reasonIfDisabled}
                 >
                   Panorama-Touren
                 </button>
@@ -3290,7 +3263,7 @@ export function Editor() {
                   className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/specification-packages`) }}
                   disabled={!actionStates.navSpecificationPackages.enabled}
-                  title={actionStates.navSpecificationPackages.reasonIfDisabled}
+                  title={actionStates.navSpecificationPackages.enabled ? 'Werkstattpakete oeffnen' : actionStates.navSpecificationPackages.reasonIfDisabled}
                 >
                   Werkstattpakete
                 </button>
@@ -3300,7 +3273,7 @@ export function Editor() {
                   className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/exports`) }}
                   disabled={!actionStates.navViewerExports.enabled}
-                  title={actionStates.navViewerExports.reasonIfDisabled}
+                  title={actionStates.navViewerExports.enabled ? 'Viewer-Exports oeffnen' : actionStates.navViewerExports.reasonIfDisabled}
                 >
                   Viewer-Exports
                 </button>
@@ -3310,7 +3283,7 @@ export function Editor() {
                   className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); void handleGltfExport() }}
                   disabled={!actionStates.gltfExport.enabled}
-                  title={actionStates.gltfExport.reasonIfDisabled}
+                  title={actionStates.gltfExport.enabled ? 'Aktive Alternative als GLB exportieren' : actionStates.gltfExport.reasonIfDisabled}
                 >
                   {gltfExportLoading ? 'GLB exportiere…' : 'GLB exportieren'}
                 </button>
@@ -3320,7 +3293,7 @@ export function Editor() {
                   className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); void handleMarkAllDelivered() }}
                   disabled={!actionStates.markAllDelivered.enabled}
-                  title={actionStates.markAllDelivered.reasonIfDisabled}
+                  title={actionStates.markAllDelivered.enabled ? 'Alle Positionen als geliefert markieren' : actionStates.markAllDelivered.reasonIfDisabled}
                 >
                   {bulkDeliveredLoading ? 'Markiere geliefert…' : 'Alles geliefert'}
                 </button>
@@ -3329,6 +3302,8 @@ export function Editor() {
                   type="button"
                   className={styles.moreMenuItem}
                   onClick={() => { setMoreMenuOpen(false); setShowAreasPanel((prev) => !prev) }}
+                  disabled={!actionStates.toggleAreasPanel.enabled}
+                  title={actionStates.toggleAreasPanel.enabled ? 'Bereiche-Panel ein- oder ausblenden' : actionStates.toggleAreasPanel.reasonIfDisabled}
                 >
                   {showAreasPanel ? 'Bereiche ausblenden' : 'Bereiche / Alternativen'}
                 </button>

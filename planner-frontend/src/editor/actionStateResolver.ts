@@ -36,6 +36,7 @@ export interface EditorActionStates {
   navPanoramaTours: ResolvedActionState
   navSpecificationPackages: ResolvedActionState
   navViewerExports: ResolvedActionState
+  toggleAreasPanel: ResolvedActionState
   autoComplete: ResolvedActionState
   previewPopout: ResolvedActionState
   gltfExport: ResolvedActionState
@@ -77,6 +78,7 @@ function state(enabled: boolean, reasonIfDisabled?: string): ResolvedActionState
 }
 
 export function resolveEditorActionStates(context: EditorActionContext): EditorActionStates {
+  const projectRequiredReason = 'Projekt ist noch nicht geladen'
   const viewSplit = state(!context.compactLayout, 'Split auf kleinen Displays nicht verfuegbar')
   const viewElevation = state(context.hasSelectedRoom, 'Raum fuer Elevation auswaehlen')
 
@@ -90,7 +92,7 @@ export function resolveEditorActionStates(context: EditorActionContext): EditorA
   const panelNavigation = state(true)
   const panelCamera = state(true)
   const panelCapture = state(true)
-  const panelRenderEnvironment = state(context.hasProjectId, 'Projekt ist noch nicht geladen')
+  const panelRenderEnvironment = state(context.hasProjectId, projectRequiredReason)
   const panelDaylight = state(
     context.daylightEnabled && context.hasProjectEnvironment,
     !context.daylightEnabled
@@ -105,11 +107,12 @@ export function resolveEditorActionStates(context: EditorActionContext): EditorA
   )
   const presentationMode = state(context.presentationEnabled && context.hasProjectId, !context.presentationEnabled
     ? 'Praesentationsmodus nicht aktiv'
-    : 'Projekt ist noch nicht geladen')
-  const navQuoteLines = state(context.hasProjectId, 'Projekt ist noch nicht geladen')
-  const navPanoramaTours = state(context.hasProjectId, 'Projekt ist noch nicht geladen')
-  const navSpecificationPackages = state(context.hasProjectId, 'Projekt ist noch nicht geladen')
-  const navViewerExports = state(context.hasProjectId, 'Projekt ist noch nicht geladen')
+    : projectRequiredReason)
+  const navQuoteLines = state(context.hasProjectId, projectRequiredReason)
+  const navPanoramaTours = state(context.hasProjectId, projectRequiredReason)
+  const navSpecificationPackages = state(context.hasProjectId, projectRequiredReason)
+  const navViewerExports = state(context.hasProjectId, projectRequiredReason)
+  const toggleAreasPanel = state(context.hasProjectId, projectRequiredReason)
 
   const autoComplete = state(
     context.hasSelectedRoom && !context.autoCompleteLoading,
@@ -121,15 +124,19 @@ export function resolveEditorActionStates(context: EditorActionContext): EditorA
   const previewPopout = state(context.hasSelectedRoom, '3D-Ansicht erfordert einen ausgewaehlten Raum')
 
   const gltfExport = state(
-    context.hasSelectedAlternative && !context.gltfExportLoading,
-    !context.hasSelectedAlternative
+    context.hasProjectId && context.hasSelectedAlternative && !context.gltfExportLoading,
+    !context.hasProjectId
+      ? projectRequiredReason
+      : !context.hasSelectedAlternative
       ? 'Keine Alternative ausgewaehlt'
       : 'GLB-Export laeuft bereits',
   )
 
   const markAllDelivered = state(
-    context.hasSelectedAlternative && !context.bulkDeliveredLoading,
-    !context.hasSelectedAlternative
+    context.hasProjectId && context.hasSelectedAlternative && !context.bulkDeliveredLoading,
+    !context.hasProjectId
+      ? projectRequiredReason
+      : !context.hasSelectedAlternative
       ? 'Keine Alternative ausgewaehlt'
       : 'Lieferstatus wird bereits aktualisiert',
   )
@@ -152,6 +159,7 @@ export function resolveEditorActionStates(context: EditorActionContext): EditorA
     navPanoramaTours,
     navSpecificationPackages,
     navViewerExports,
+    toggleAreasPanel,
     autoComplete,
     previewPopout,
     gltfExport,

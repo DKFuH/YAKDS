@@ -98,7 +98,12 @@ describe('actionStateResolver', () => {
     expect(states.navPanoramaTours.enabled).toBe(false)
     expect(states.navSpecificationPackages.enabled).toBe(false)
     expect(states.navViewerExports.enabled).toBe(false)
+    expect(states.toggleAreasPanel.enabled).toBe(false)
+    expect(states.gltfExport.enabled).toBe(false)
+    expect(states.markAllDelivered.enabled).toBe(false)
     expect(states.panelRenderEnvironment.reasonIfDisabled).toContain('Projekt')
+    expect(states.gltfExport.reasonIfDisabled).toContain('Projekt')
+    expect(states.markAllDelivered.reasonIfDisabled).toContain('Projekt')
   })
 
   it('returns all actions enabled in happy path', () => {
@@ -118,6 +123,7 @@ describe('actionStateResolver', () => {
     expect(states.navPanoramaTours.enabled).toBe(true)
     expect(states.navSpecificationPackages.enabled).toBe(true)
     expect(states.navViewerExports.enabled).toBe(true)
+    expect(states.toggleAreasPanel.enabled).toBe(true)
     expect(states.autoComplete.enabled).toBe(true)
     expect(states.previewPopout.enabled).toBe(true)
     expect(states.gltfExport.enabled).toBe(true)
