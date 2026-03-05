@@ -69,6 +69,18 @@ Ziel: fehlende Basic-Editorfunktionen in OKP strukturiert ergaenzen.
 - Editor-Orchestrierung (Konsolidierung):
   - Ein gemeinsamer `actionContext` in `Editor.tsx` ersetzt doppelte Context-Erzeugung fuer Resolver und Shortcuts.
   - `actionStates` werden als Single Source sowohl fuer UI-Buttons als auch Keyboard-Handler genutzt.
+- Wall-Topologie Robustheit (S108d):
+  - Neue Topologie-Utility `planner-frontend/src/editor/roomTopology.ts` fuer Rebind von wandgebundenen Objekten.
+  - Reverse-Erkennung bei umgedrehter Wandrichtung mit gespiegelten Offsets.
+  - Nearest-Wall-Rebind fuer Oeffnungen/Placements bei geaenderten Wall-IDs.
+- Room-Validation + Auto-Fix (S108e):
+  - Save-seitiges Auto-Fix fuer Duplicate-Vertices, Nullkanten und Orientierung (CCW-Normalisierung).
+  - Persistierung wird bei verbleibenden kritischen Geometriefehlern abgebrochen.
+  - Integration im Save-Flow von `CanvasArea.tsx`.
+- Dimension Assist + Multi-View-Konsistenz (S108f):
+  - Kontextuelle Messsegment-Vorschlaege aus Wandstart/-ende, Oeffnungen und Placements.
+  - Anzeige der Vorschlaege im `RightSidebar`-Kantenpanel.
+  - Harmonisierung von Oeffnungs-Kernattributen fuer Plan/3D/Elevation (`normalizeOpeningForMultiview`).
 
 ## Geaenderte OKP-Dateien (bisher)
 
@@ -82,8 +94,11 @@ Ziel: fehlende Basic-Editorfunktionen in OKP strukturiert ergaenzen.
 - `planner-frontend/src/editor/workflowStateStore.ts`
 - `planner-frontend/src/editor/actionStateResolver.ts`
 - `planner-frontend/src/editor/actionStateResolver.js`
+- `planner-frontend/src/editor/roomTopology.ts`
 - `planner-frontend/src/editor/PolygonEditor.module.css`
 - `planner-frontend/src/components/editor/CanvasArea.tsx`
+- `planner-frontend/src/components/editor/RightSidebar.tsx`
+- `planner-frontend/src/components/editor/RightSidebar.module.css`
 - `planner-frontend/src/pages/Editor.tsx`
 - `planner-frontend/src/pages/Editor.module.css`
 - Tests:
@@ -94,12 +109,15 @@ Ziel: fehlende Basic-Editorfunktionen in OKP strukturiert ergaenzen.
   - `planner-frontend/src/editor/workflowStateStore.test.ts`
   - `planner-frontend/src/editor/actionStateResolver.test.ts`
   - `planner-frontend/src/editor/actionStateResolver.test.js`
+  - `planner-frontend/src/editor/roomTopology.test.ts`
 
 ## Verifikation (zuletzt)
 
 - `npm run -w planner-frontend test -- src/editor`
 - `npm run -w planner-frontend test -- src/editor/actionStateResolver.test.ts`
 - `npm run -w planner-frontend build`
+- `npx tsc -p planner-frontend/tsconfig.json`
+- `npx vitest run src/editor/roomTopology.test.ts src/editor/usePolygonEditor.test.js src/editor/snapUtils.test.ts src/editor/actionStateResolver.test.ts src/editor/editorPreferences.test.ts`
 
 ## Zerlegung in Zwischensprints (S108a-S108f)
 
@@ -117,6 +135,8 @@ Datei: `Docs/AGENT_SPRINTS/S108d-sh3d-wall-topologie-robustheit.md`
 Datei: `Docs/AGENT_SPRINTS/S108e-sh3d-room-validation-autofix.md`
 6. `S108f` - Dimension Assist und Multi-View-Objekte
 Datei: `Docs/AGENT_SPRINTS/S108f-sh3d-dimension-assist-und-multiview.md`
+
+Aktueller Stand: `S108a` bis `S108f` sind auf `done` umgesetzt.
 
 ## Priorisierte Reihenfolge
 
