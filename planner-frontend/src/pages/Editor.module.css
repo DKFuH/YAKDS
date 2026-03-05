@@ -318,6 +318,61 @@
   position: relative;
 }
 
+.screenshotWrapper {
+  position: relative;
+}
+
+.screenshotPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 280px;
+  max-width: calc(100vw - 24px);
+  background: var(--editor-surface);
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card-hover);
+  z-index: 110;
+  padding: 0.55rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.screenshotField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.73rem;
+  color: var(--editor-text-muted);
+}
+
+.screenshotFieldFull {
+  grid-column: 1 / -1;
+}
+
+.screenshotField input,
+.screenshotField select {
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-sm);
+  background: var(--editor-surface-alt);
+  color: var(--editor-text);
+  padding: 0.28rem 0.42rem;
+  font-size: 0.75rem;
+}
+
+.screenshotActions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.45rem;
+}
+
+.screenshotMeta {
+  grid-column: 1 / -1;
+  font-size: 0.72rem;
+  color: var(--editor-text-muted);
+}
+
 .moreMenu {
   position: absolute;
   top: calc(100% + 6px);

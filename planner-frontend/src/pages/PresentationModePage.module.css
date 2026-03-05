@@ -119,6 +119,13 @@
   padding: 8px 10px;
 }
 
+.field input[type='number'] {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-default);
+  padding: 8px 10px;
+}
+
 .checkboxRow {
   display: inline-flex;
   gap: 8px;
@@ -134,9 +141,29 @@
   align-items: center;
 }
 
+.capturePanel {
+  margin-top: 12px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.captureGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
 .status {
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.statusNote {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .btnPrimary {

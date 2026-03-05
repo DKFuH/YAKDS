@@ -7,7 +7,7 @@ Stand: 2026-03-05
 ## Status
 
 - Sprints `S47` bis `S107`: `done`
-- Sprint `S108`: `planned`
+- Sprint `S108`: `done`
 - Projektname in den Spezifikationen: `OKP`
 
 ---
@@ -77,5 +77,5 @@ Stand: 2026-03-05
 | 105 | `S105-automatische-wandtransparenz-dollhouse.md` | done |
 | 106 | `S106-kamera-fov-und-presets.md` | done |
 | 107 | `S107-skybox-hdri-renderumgebung.md` | done |
-| 108 | `S108-one-click-screenshot-und-360-export.md` | planned |
+| 108 | `S108-one-click-screenshot-und-360-export.md` | done |
 

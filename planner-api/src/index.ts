@@ -77,6 +77,7 @@ import { levelsRoutes } from './routes/levels.js'
 import { visibilityRoutes } from './routes/visibility.js'
 import { cameraPresetRoutes } from './routes/cameraPresets.js'
 import { renderEnvironmentRoutes } from './routes/renderEnvironments.js'
+import { mediaCaptureRoutes } from './routes/mediaCapture.js'
 import { drawingGroupsRoutes } from './routes/drawingGroups.js'
 import { workflowRoutes } from './routes/workflows.js'
 import { masterdataRoutes } from './routes/masterdata.js'
@@ -165,6 +166,7 @@ await app.register(levelsRoutes, { prefix: '/api/v1' })
 await app.register(visibilityRoutes, { prefix: '/api/v1' })
 await app.register(cameraPresetRoutes, { prefix: '/api/v1' })
 await app.register(renderEnvironmentRoutes, { prefix: '/api/v1' })
+await app.register(mediaCaptureRoutes, { prefix: '/api/v1' })
 await app.register(drawingGroupsRoutes, { prefix: '/api/v1' })
 await app.register(workflowRoutes, { prefix: '/api/v1' })
 await app.register(masterdataRoutes, { prefix: '/api/v1' })

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { projectsApi, type ProjectDetail } from '../api/projects.js'
 import { presentationApi, type PresentationSession } from '../api/presentation.js'
+import { mediaCaptureApi, type ScreenshotFormat } from '../api/mediaCapture.js'
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
 import { renderEnvironmentApi } from '../api/renderEnvironment.js'
 import { cameraPresetsApi, type CameraPreset } from '../api/cameraPresets.js'
@@ -25,12 +26,31 @@ import {
   type RenderEnvironmentPreset,
   type RenderEnvironmentSettings,
 } from '../components/editor/renderEnvironmentState.js'
+import {
+  DEFAULT_SCREENSHOT_OPTIONS,
+  captureScreenshotFromRoot,
+  normalizeScreenshotOptions,
+  type ScreenshotOptions,
+} from '../components/editor/screenshotCapture.js'
 import styles from './PresentationModePage.module.css'
 
 function delay(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
+}
+
+function parseOptionalInt(value: string): number | null {
+  if (!value.trim()) {
+    return null
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return null
+  }
+
+  return Math.round(parsed)
 }
 
 function sourceLabel(source: PresentationSource, session: PresentationSession | null): string {
@@ -82,10 +102,17 @@ export function PresentationModePage() {
     DEFAULT_RENDER_ENVIRONMENT_SETTINGS,
   )
   const [renderEnvironmentSaving, setRenderEnvironmentSaving] = useState(false)
+  const [screenshotOptions, setScreenshotOptions] = useState<ScreenshotOptions>(DEFAULT_SCREENSHOT_OPTIONS)
+  const [screenshotBusy, setScreenshotBusy] = useState(false)
+  const [screenshotMessage, setScreenshotMessage] = useState<string | null>(null)
+  const [screenshotError, setScreenshotError] = useState(false)
+  const [export360Busy, setExport360Busy] = useState(false)
+  const [export360Status, setExport360Status] = useState<string | null>(null)
 
   const [exporting, setExporting] = useState(false)
   const [renderStatus, setRenderStatus] = useState<string | null>(null)
   const [renderImageUrl, setRenderImageUrl] = useState<string | null>(null)
+  const captureRootRef = useRef<HTMLDivElement | null>(null)
 
   const activeRoom = useMemo(() => project?.rooms[0] ?? null, [project])
 
@@ -370,6 +397,97 @@ export function PresentationModePage() {
     }
   }
 
+  async function handleCaptureScreenshot() {
+    if (!id) {
+      return
+    }
+
+    const captureRoot = captureRootRef.current
+    if (!captureRoot) {
+      setScreenshotError(true)
+      setScreenshotMessage('Screenshot fehlgeschlagen: keine aktive Vorschau gefunden')
+      return
+    }
+
+    setScreenshotBusy(true)
+    setScreenshotError(false)
+    setScreenshotMessage(null)
+
+    try {
+      const normalizedOptions = normalizeScreenshotOptions(screenshotOptions)
+      const capture = captureScreenshotFromRoot(captureRoot, 'presentation', normalizedOptions)
+      const extension = normalizedOptions.format === 'jpeg' ? 'jpg' : 'png'
+
+      const result = await mediaCaptureApi.uploadScreenshot(id, {
+        ...capture,
+        filename: `presentation-screenshot-${Date.now()}.${extension}`,
+        view_mode: 'presentation',
+        transparent_background: normalizedOptions.transparent_background,
+        uploaded_by: 'presentation-mode',
+      })
+
+      setScreenshotMessage(`Screenshot gespeichert: ${result.filename}`)
+      if (result.preview_url) {
+        window.open(result.preview_url, '_blank', 'noopener,noreferrer')
+      }
+    } catch (captureError) {
+      setScreenshotError(true)
+      setScreenshotMessage(`Screenshot fehlgeschlagen: ${String(captureError)}`)
+    } finally {
+      setScreenshotBusy(false)
+    }
+  }
+
+  async function handleStartExport360() {
+    if (!id) {
+      return
+    }
+
+    setExport360Busy(true)
+    setScreenshotError(false)
+    setExport360Status('360-Export wird gestartet...')
+
+    try {
+      const normalizedOptions = normalizeScreenshotOptions(screenshotOptions)
+      const request = await mediaCaptureApi.createExport360(id, {
+        preset,
+        format: normalizedOptions.format,
+        quality: normalizedOptions.quality,
+        width_px: normalizedOptions.width_px ?? 4096,
+        height_px: normalizedOptions.height_px ?? 2048,
+        environment: renderEnvironmentSettings,
+      })
+
+      for (let attempt = 0; attempt < 45; attempt += 1) {
+        const status = await mediaCaptureApi.getExport360Status(id, request.job_id)
+        setExport360Status(`360-Status: ${status.status}`)
+
+        if (status.status === 'done') {
+          if (status.download_url) {
+            window.open(status.download_url, '_blank', 'noopener,noreferrer')
+            setScreenshotMessage('360-Export abgeschlossen und geoeffnet')
+          } else {
+            setScreenshotMessage('360-Export abgeschlossen (kein Download-Link)')
+          }
+          return
+        }
+
+        if (status.status === 'failed') {
+          throw new Error(status.error_message ?? '360-Export fehlgeschlagen')
+        }
+
+        await delay(1000)
+      }
+
+      throw new Error('360-Export laeuft noch. Bitte spaeter erneut pruefen.')
+    } catch (exportError) {
+      setScreenshotError(true)
+      setScreenshotMessage(`360-Export fehlgeschlagen: ${String(exportError)}`)
+    } finally {
+      setExport360Busy(false)
+    }
+  }
+
   function handleOpenPanorama() {
     if (!session || source.kind !== 'panorama-tour') return
     const tour = session.panorama_tours.find((entry) => entry.id === source.panorama_tour_id)
@@ -531,6 +649,115 @@ export function PresentationModePage() {
           )}
           <span className={styles.status}>{renderStatus ?? `Aktiver Einstieg: ${sourceLabel(source, session)}`}</span>
         </div>
+
+        <div className={styles.capturePanel}>
+          <div className={styles.captureGrid}>
+            <label className={styles.field}>
+              <span>Screenshot-Format</span>
+              <select
+                value={screenshotOptions.format}
+                onChange={(event) => {
+                  const format = event.target.value === 'jpeg' ? 'jpeg' : 'png'
+                  setScreenshotOptions((current) => ({ ...current, format: format as ScreenshotFormat }))
+                }}
+              >
+                <option value="png">PNG</option>
+                <option value="jpeg">JPEG</option>
+              </select>
+            </label>
+
+            <label className={styles.field}>
+              <span>Breite (px)</span>
+              <input
+                type="number"
+                min={256}
+                max={8192}
+                step={1}
+                value={screenshotOptions.width_px ?? ''}
+                onChange={(event) => {
+                  const width = parseOptionalInt(event.target.value)
+                  setScreenshotOptions((current) => ({ ...current, width_px: width }))
+                }}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span>Hoehe (px)</span>
+              <input
+                type="number"
+                min={256}
+                max={8192}
+                step={1}
+                value={screenshotOptions.height_px ?? ''}
+                onChange={(event) => {
+                  const height = parseOptionalInt(event.target.value)
+                  setScreenshotOptions((current) => ({ ...current, height_px: height }))
+                }}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span>Qualitaet ({Math.round(screenshotOptions.quality * 100)}%)</span>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                step={1}
+                value={Math.round(screenshotOptions.quality * 100)}
+                onChange={(event) => {
+                  const quality = Number(event.target.value)
+                  setScreenshotOptions((current) => ({
+                    ...current,
+                    quality: Number.isFinite(quality) ? quality / 100 : current.quality,
+                  }))
+                }}
+              />
+            </label>
+
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={screenshotOptions.transparent_background}
+                onChange={(event) => {
+                  const transparentBackground = event.target.checked
+                  setScreenshotOptions((current) => ({
+                    ...current,
+                    transparent_background: transparentBackground,
+                  }))
+                }}
+              />
+              <span>Transparenter Hintergrund</span>
+            </label>
+          </div>
+
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={() => {
+                void handleCaptureScreenshot()
+              }}
+              disabled={screenshotBusy}
+            >
+              {screenshotBusy ? 'Screenshot...' : 'Screenshot speichern'}
+            </button>
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={() => {
+                void handleStartExport360()
+              }}
+              disabled={export360Busy}
+            >
+              {export360Busy ? '360...' : '360 Export'}
+            </button>
+            {export360Status && <span className={styles.status}>{export360Status}</span>}
+          </div>
+        </div>
+
+        {screenshotMessage && (
+          <div className={screenshotError ? styles.error : styles.statusNote}>{screenshotMessage}</div>
+        )}
       </section>
 
       {daylightEnabled && projectEnvironment && (
@@ -580,7 +807,7 @@ export function PresentationModePage() {
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>3D-Ansicht</h2>
-        <div className={styles.previewWrap}>
+        <div ref={captureRootRef} className={styles.previewWrap}>
           <Preview3D
             room={activeRoom as unknown as RoomPayload | null}
             cameraState={cameraState}

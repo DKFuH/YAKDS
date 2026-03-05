@@ -33,6 +33,7 @@ import { acousticsApi, type AcousticGridMeta, type GeoJsonGrid } from '../api/ac
 import { getTenantPlugins, getTenantSettings, updateTenantSettings } from '../api/tenantSettings.js'
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
 import { renderEnvironmentApi } from '../api/renderEnvironment.js'
+import { mediaCaptureApi } from '../api/mediaCapture.js'
 import { levelsApi, type BuildingLevel } from '../api/levels.js'
 import { cameraPresetsApi, type CameraPreset } from '../api/cameraPresets.js'
 import { visibilityApi, type AutoDollhousePatch, type AutoDollhouseSettings } from '../api/visibility.js'
@@ -80,6 +81,13 @@ import {
   type RenderEnvironmentPreset,
   type RenderEnvironmentSettings,
 } from '../components/editor/renderEnvironmentState.js'
+import {
+  DEFAULT_SCREENSHOT_OPTIONS,
+  captureScreenshotFromRoot,
+  normalizeScreenshotOptions,
+  type ScreenshotOptions,
+  type ScreenshotViewMode,
+} from '../components/editor/screenshotCapture.js'
 
 function resolveArticleVariantId(article: CatalogArticle, chosenOptions: Record<string, string>): string | undefined {
   if (!article.variants || article.variants.length === 0) {
@@ -294,6 +302,25 @@ function buildDefaultSectionLine(room: RoomPayload) {
   }
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
+function parseOptionalInt(value: string): number | null {
+  if (!value.trim()) {
+    return null
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return null
+  }
+
+  return Math.round(parsed)
+}
+
 export function Editor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -373,6 +400,13 @@ export function Editor() {
     RENDER_ENVIRONMENT_PRESETS,
   )
   const [renderEnvironmentSaving, setRenderEnvironmentSaving] = useState(false)
+  const [screenshotPanelOpen, setScreenshotPanelOpen] = useState(false)
+  const [screenshotOptions, setScreenshotOptions] = useState<ScreenshotOptions>(DEFAULT_SCREENSHOT_OPTIONS)
+  const [screenshotBusy, setScreenshotBusy] = useState(false)
+  const [screenshotMessage, setScreenshotMessage] = useState<string | null>(null)
+  const [screenshotError, setScreenshotError] = useState(false)
+  const [export360Busy, setExport360Busy] = useState(false)
+  const [export360Status, setExport360Status] = useState<string | null>(null)
   const [materialsEnabled, setMaterialsEnabled] = useState(false)
   const [materialPanelOpen, setMaterialPanelOpen] = useState(false)
   const [stairsEnabled, setStairsEnabled] = useState(false)
@@ -396,6 +430,8 @@ export function Editor() {
   const moreMenuRef = useRef<HTMLDivElement | null>(null)
   const navigationPanelRef = useRef<HTMLDivElement | null>(null)
   const cameraPresetPanelRef = useRef<HTMLDivElement | null>(null)
+  const screenshotPanelRef = useRef<HTMLDivElement | null>(null)
+  const captureRootRef = useRef<HTMLDivElement | null>(null)
   const cameraPresetAutoAppliedRef = useRef(false)
   const splitContainerRef = useRef<HTMLDivElement | null>(null)
   const centeredVisitorRoomIdRef = useRef<string | null>(null)
@@ -698,6 +734,108 @@ export function Editor() {
       })
   }, [id, renderEnvironmentSettings])
 
+  const resolveScreenshotViewMode = useCallback((): ScreenshotViewMode => {
+    const effective = compactLayout && viewMode === 'split' ? '2d' : viewMode
+    if (effective === '3d') {
+      return '3d'
+    }
+    if (effective === 'split') {
+      return 'split'
+    }
+    return '2d'
+  }, [compactLayout, viewMode])
+
+  const handleCaptureScreenshot = useCallback(async () => {
+    if (!id) {
+      return
+    }
+
+    const captureRoot = captureRootRef.current
+    if (!captureRoot) {
+      setScreenshotError(true)
+      setScreenshotMessage('Screenshot fehlgeschlagen: kein aktiver Viewport gefunden')
+      return
+    }
+
+    setScreenshotBusy(true)
+    setScreenshotError(false)
+    setScreenshotMessage(null)
+
+    try {
+      const mode = resolveScreenshotViewMode()
+      const normalizedOptions = normalizeScreenshotOptions(screenshotOptions)
+      const capture = captureScreenshotFromRoot(captureRoot, mode, normalizedOptions)
+      const extension = normalizedOptions.format === 'jpeg' ? 'jpg' : 'png'
+
+      const result = await mediaCaptureApi.uploadScreenshot(id, {
+        ...capture,
+        filename: `screenshot-${Date.now()}.${extension}`,
+        view_mode: mode,
+        transparent_background: normalizedOptions.transparent_background,
+        uploaded_by: 'planner-frontend',
+      })
+
+      setScreenshotMessage(`Screenshot gespeichert: ${result.filename}`)
+      if (result.preview_url) {
+        window.open(result.preview_url, '_blank', 'noopener,noreferrer')
+      }
+    } catch (captureError) {
+      setScreenshotError(true)
+      setScreenshotMessage(`Screenshot fehlgeschlagen: ${String(captureError)}`)
+    } finally {
+      setScreenshotBusy(false)
+    }
+  }, [id, resolveScreenshotViewMode, screenshotOptions])
+
+  const handleStartExport360 = useCallback(async () => {
+    if (!id) {
+      return
+    }
+
+    setExport360Busy(true)
+    setScreenshotError(false)
+    setExport360Status('360-Export wird gestartet...')
+
+    try {
+      const normalizedOptions = normalizeScreenshotOptions(screenshotOptions)
+      const request = await mediaCaptureApi.createExport360(id, {
+        format: normalizedOptions.format,
+        quality: normalizedOptions.quality,
+        width_px: normalizedOptions.width_px ?? 4096,
+        height_px: normalizedOptions.height_px ?? 2048,
+        environment: renderEnvironmentSettings,
+      })
+
+      for (let attempt = 0; attempt < 45; attempt += 1) {
+        const status = await mediaCaptureApi.getExport360Status(id, request.job_id)
+        setExport360Status(`360-Status: ${status.status}`)
+
+        if (status.status === 'done') {
+          if (status.download_url) {
+            window.open(status.download_url, '_blank', 'noopener,noreferrer')
+            setScreenshotMessage('360-Export abgeschlossen und geoeffnet')
+          } else {
+            setScreenshotMessage('360-Export abgeschlossen (kein Download-Link)')
+          }
+          return
+        }
+
+        if (status.status === 'failed') {
+          throw new Error(status.error_message ?? '360-Export fehlgeschlagen')
+        }
+
+        await delay(1000)
+      }
+
+      throw new Error('360-Export laeuft noch. Bitte spaeter erneut pruefen.')
+    } catch (exportError) {
+      setScreenshotError(true)
+      setScreenshotMessage(`360-Export fehlgeschlagen: ${String(exportError)}`)
+    } finally {
+      setExport360Busy(false)
+    }
+  }, [id, renderEnvironmentSettings, screenshotOptions])
+
   const handleMaterialRoomPatch = useCallback((roomId: string, patch: { coloring: unknown; placements: Placement[] }) => {
     setProject((prev) => {
       if (!prev) return prev
@@ -888,6 +1026,17 @@ export function Editor() {
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [cameraPresetPanelOpen])
+
+  useEffect(() => {
+    if (!screenshotPanelOpen) return
+    function handleOutsideClick(event: MouseEvent) {
+      if (screenshotPanelRef.current && !screenshotPanelRef.current.contains(event.target as Node)) {
+        setScreenshotPanelOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [screenshotPanelOpen])
 
   useEffect(() => {
     const onResize = () => {
@@ -2766,6 +2915,115 @@ export function Editor() {
               />
             )}
           </div>
+          <div className={styles.screenshotWrapper} ref={screenshotPanelRef}>
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={() => setScreenshotPanelOpen((prev) => !prev)}
+            >
+              Capture
+            </button>
+            {screenshotPanelOpen && (
+              <div className={styles.screenshotPanel}>
+                <label className={styles.screenshotField}>
+                  Format
+                  <select
+                    value={screenshotOptions.format}
+                    onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
+                      ...screenshotOptions,
+                      format: event.target.value === 'jpeg' ? 'jpeg' : 'png',
+                    }))}
+                  >
+                    <option value="png">PNG</option>
+                    <option value="jpeg">JPEG</option>
+                  </select>
+                </label>
+
+                <label className={styles.screenshotField}>
+                  Breite (px)
+                  <input
+                    type="number"
+                    min={256}
+                    max={8192}
+                    value={screenshotOptions.width_px ?? ''}
+                    onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
+                      ...screenshotOptions,
+                      width_px: parseOptionalInt(event.target.value),
+                    }))}
+                    placeholder="auto"
+                  />
+                </label>
+
+                <label className={styles.screenshotField}>
+                  Hoehe (px)
+                  <input
+                    type="number"
+                    min={256}
+                    max={8192}
+                    value={screenshotOptions.height_px ?? ''}
+                    onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
+                      ...screenshotOptions,
+                      height_px: parseOptionalInt(event.target.value),
+                    }))}
+                    placeholder="auto"
+                  />
+                </label>
+
+                <label className={`${styles.screenshotField} ${styles.screenshotFieldFull}`}>
+                  Qualitaet: {Math.round(screenshotOptions.quality * 100)}%
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={1}
+                    step={0.01}
+                    value={screenshotOptions.quality}
+                    onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
+                      ...screenshotOptions,
+                      quality: Number(event.target.value),
+                    }))}
+                  />
+                </label>
+
+                <label className={`${styles.screenshotField} ${styles.screenshotFieldFull}`}>
+                  <span>
+                    <input
+                      type="checkbox"
+                      checked={screenshotOptions.transparent_background}
+                      onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
+                        ...screenshotOptions,
+                        transparent_background: event.target.checked,
+                      }))}
+                    />
+                    {' '}Transparenter Hintergrund
+                  </span>
+                </label>
+
+                <div className={styles.screenshotActions}>
+                  <button
+                    type="button"
+                    className={styles.btnPrimary}
+                    onClick={() => {
+                      void handleCaptureScreenshot()
+                    }}
+                    disabled={screenshotBusy}
+                  >
+                    {screenshotBusy ? 'Screenshot...' : 'Screenshot'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.btnSecondary}
+                    onClick={() => {
+                      void handleStartExport360()
+                    }}
+                    disabled={export360Busy}
+                  >
+                    {export360Busy ? '360...' : '360 Export'}
+                  </button>
+                </div>
+                {export360Status && <div className={styles.screenshotMeta}>{export360Status}</div>}
+              </div>
+            )}
+          </div>
           <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
             <button
               type="button"
@@ -2905,6 +3163,12 @@ export function Editor() {
         </div>
       )}
 
+      {screenshotMessage && (
+        <div className={screenshotError ? styles.bulkDeliveredError : styles.bulkDeliveredSuccess}>
+          {screenshotMessage}
+        </div>
+      )}
+
       {/* Workflow step tabs */}
       <nav className={styles.stepBar} aria-label="Arbeitsschritte">
         {(['walls', 'openings', 'furniture'] as const).map((step, idx) => {
@@ -3028,7 +3292,7 @@ export function Editor() {
           workflowStep={workflowStep}
         />
 
-        <div className={styles.editorViewport}>
+        <div className={styles.editorViewport} ref={captureRootRef}>
           {effectiveViewMode === '2d' && canvasPanel}
 
           {effectiveViewMode === '3d' && previewPanel}
