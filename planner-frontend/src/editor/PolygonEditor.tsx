@@ -192,6 +192,7 @@ interface Props {
   } | null
   onRepositionVisitor?: (point: { x_mm: number; y_mm: number }) => void
   safeEditMode?: boolean
+  onShortcutBlocked?: (reason: string) => void
 }
 
 export function PolygonEditor({
@@ -219,6 +220,7 @@ export function PolygonEditor({
   virtualVisitor = null,
   onRepositionVisitor,
   safeEditMode = false,
+  onShortcutBlocked,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
@@ -455,19 +457,37 @@ export function PolygonEditor({
 
     function handleKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if ((e.key === 'd' || e.key === 'D') && shortcutStates.toolDraw.enabled) onSetTool('draw')
-      if ((e.key === 's' || e.key === 'S') && shortcutStates.toolSelect.enabled) onSetTool('select')
-      if ((e.key === 'Backspace' || e.key === 'Delete') && shortcutStates.deleteVertex.enabled && state.selectedIndex !== null) {
-        onDeleteVertex(state.selectedIndex)
+      if (e.key === 'd' || e.key === 'D') {
+        if (shortcutStates.toolDraw.enabled) {
+          onSetTool('draw')
+        } else {
+          onShortcutBlocked?.(shortcutStates.toolDraw.reasonIfDisabled ?? 'Zeichnen ist nicht verfuegbar')
+        }
+      }
+      if (e.key === 's' || e.key === 'S') {
+        if (shortcutStates.toolSelect.enabled) {
+          onSetTool('select')
+        } else {
+          onShortcutBlocked?.(shortcutStates.toolSelect.reasonIfDisabled ?? 'Auswahl ist nicht verfuegbar')
+        }
+      }
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (shortcutStates.deleteVertex.enabled && state.selectedIndex !== null) {
+          onDeleteVertex(state.selectedIndex)
+        } else {
+          onShortcutBlocked?.(shortcutStates.deleteVertex.reasonIfDisabled ?? 'Punkt kann nicht geloescht werden')
+        }
       }
       if (e.key === 'Escape' && shortcutStates.clearSelection.enabled) {
         onSelectVertex(null)
         onSelectEdge(null)
+      } else if (e.key === 'Escape') {
+        onShortcutBlocked?.(shortcutStates.clearSelection.reasonIfDisabled ?? 'Keine Auswahl aktiv')
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [safeEditMode, wallSegments, state.selectedIndex, state.selectedEdgeIndex, state.vertices.length, onSetTool, onDeleteVertex, onSelectVertex, onSelectEdge])
+  }, [safeEditMode, wallSegments, state.selectedIndex, state.selectedEdgeIndex, state.vertices.length, onSetTool, onDeleteVertex, onSelectVertex, onSelectEdge, onShortcutBlocked])
 
   useEffect(() => {
     const onMouseMove = (event: MouseEvent) => {

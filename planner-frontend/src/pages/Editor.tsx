@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import type { SectionLine, Vertex } from '@shared/types'
 import { projectsApi, type ProjectDetail, type ProjectLockState } from '../api/projects.js'
@@ -41,6 +41,7 @@ import { verticalConnectionsApi, type VerticalConnection, type VerticalConnectio
 import { usePolygonEditor, edgeLengthMm, type EditorState } from '../editor/usePolygonEditor.js'
 import { useEditorModeStore } from '../editor/editorModeStore.js'
 import {
+  resolvePolygonShortcutStates,
   resolveEditorActionStates,
   resolveViewModeShortcut,
   type EditorActionContext,
@@ -59,6 +60,7 @@ import { DaylightPanel } from '../components/editor/DaylightPanel.js'
 import { RenderEnvironmentPanel } from '../components/editor/RenderEnvironmentPanel.js'
 import { MaterialPanel } from '../components/editor/MaterialPanel.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
+import { CadToolbox } from '../components/editor/CadToolbox.js'
 import { LevelsPanel } from '../components/editor/LevelsPanel.js'
 import { StairsPanel } from '../components/editor/StairsPanel.js'
 import { SectionPanel } from '../components/editor/SectionPanel.js'
@@ -66,6 +68,7 @@ import { RightSidebar, type CeilingConstraint, type ConfiguredDimensions } from 
 import { StatusBar } from '../components/editor/StatusBar.js'
 import { AreasPanel } from '../components/editor/AreasPanel.js'
 import { LayoutSheetTabs } from '../components/editor/LayoutSheetTabs.js'
+import { useAppShellEditorBridge } from '../components/layout/AppShellEditorBridge.js'
 import type { ProjectEnvironment, SunPreview } from '../plugins/daylight/index.js'
 import styles from './Editor.module.css'
 import {
@@ -335,6 +338,7 @@ function parseOptionalInt(value: string): number | null {
 export function Editor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const appShellBridge = useAppShellEditorBridge()
   const [project, setProject] = useState<ProjectDetail | null>(null)
   const [projectLockState, setProjectLockState] = useState<ProjectLockState | null>(null)
   const [loading, setLoading] = useState(true)
@@ -404,6 +408,7 @@ export function Editor() {
   const [acousticMax, setAcousticMax] = useState<number | null>(null)
   const [activeLayoutSheetId, setActiveLayoutSheetId] = useState<string | null>(null)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const [shortcutFeedback, setShortcutFeedback] = useState<string | null>(null)
   const [presentationEnabled, setPresentationEnabled] = useState(false)
   const [daylightEnabled, setDaylightEnabled] = useState(false)
   const [daylightPanelOpen, setDaylightPanelOpen] = useState(false)
@@ -1202,6 +1207,20 @@ export function Editor() {
   const actionStates = useMemo(() => resolveEditorActionStates(actionContext), [actionContext])
 
   useEffect(() => {
+    if (!shortcutFeedback) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      setShortcutFeedback(null)
+    }, 2200)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [shortcutFeedback])
+
+  useEffect(() => {
     function handleViewModeShortcuts(event: globalThis.KeyboardEvent) {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) {
         return
@@ -1210,18 +1229,60 @@ export function Editor() {
         return
       }
 
+      const reasonByShortcut: Partial<Record<'2' | '4' | '5', string | undefined>> = {
+        '2': actionStates.viewSplit.reasonIfDisabled,
+        '4': actionStates.viewElevation.reasonIfDisabled,
+        '5': actionStates.viewSection.reasonIfDisabled,
+      }
+
+      if ((event.key === '2' || event.key === '4' || event.key === '5') && reasonByShortcut[event.key as '2' | '4' | '5']) {
+        setShortcutFeedback(reasonByShortcut[event.key as '2' | '4' | '5'] ?? null)
+      }
+
       const nextMode = resolveViewModeShortcut(event.key, actionStates)
       if (!nextMode) {
         return
       }
 
       event.preventDefault()
+      setShortcutFeedback(null)
       setViewMode(nextMode)
     }
 
     window.addEventListener('keydown', handleViewModeShortcuts)
     return () => window.removeEventListener('keydown', handleViewModeShortcuts)
   }, [actionStates])
+
+  useEffect(() => {
+    if (!appShellBridge) {
+      return
+    }
+
+    appShellBridge.setEditorBridgeState({
+      workflowStep: workflow.step,
+      modeLabel: editorMode.modeLabel,
+      canGoNext: workflow.canGoNext,
+      canGoPrevious: workflow.canGoPrevious,
+      goToNextStep: workflow.goToNextStep,
+      goToPreviousStep: workflow.goToPreviousStep,
+      actionStates,
+    })
+  }, [
+    actionStates,
+    appShellBridge,
+    editorMode.modeLabel,
+    workflow.canGoNext,
+    workflow.canGoPrevious,
+    workflow.goToNextStep,
+    workflow.goToPreviousStep,
+    workflow.step,
+  ])
+
+  useEffect(() => {
+    return () => {
+      appShellBridge?.setEditorBridgeState(null)
+    }
+  }, [appShellBridge])
 
   useEffect(() => {
     setCameraState((prev) => ({
@@ -2438,6 +2499,74 @@ export function Editor() {
   const selectedWallVisible = selectedWallSegment ? resolveWallVisible(selectedWallSegment) : null
   const selectedWallLocked = selectedWallSegment ? Boolean(selectedWallSegment.locked) : null
 
+  const selectedVertexLocked = useMemo(() => {
+    if (state.selectedIndex === null || state.vertices.length < 2) {
+      return false
+    }
+
+    const previousEdgeIndex = (state.selectedIndex - 1 + state.vertices.length) % state.vertices.length
+    const currentWallLocked = Boolean(selectedRoomWallSegments[state.selectedIndex]?.locked)
+    const previousWallLocked = Boolean(selectedRoomWallSegments[previousEdgeIndex]?.locked)
+    return currentWallLocked || previousWallLocked
+  }, [selectedRoomWallSegments, state.selectedIndex, state.vertices.length])
+
+  const polygonShortcutStates = useMemo(() => resolvePolygonShortcutStates({
+    safeEditMode,
+    selectedVertexIndex: state.selectedIndex,
+    selectedEdgeIndex: state.selectedEdgeIndex,
+    selectedVertexLocked,
+  }), [safeEditMode, selectedVertexLocked, state.selectedEdgeIndex, state.selectedIndex])
+
+  const handleDeleteSelectedVertex = useCallback(() => {
+    if (state.selectedIndex === null || !polygonShortcutStates.deleteVertex.enabled) {
+      if (!polygonShortcutStates.deleteVertex.enabled) {
+        setShortcutFeedback(polygonShortcutStates.deleteVertex.reasonIfDisabled ?? 'Punkt kann nicht geloescht werden')
+      }
+      return
+    }
+
+    editor.deleteVertex(state.selectedIndex)
+  }, [editor, polygonShortcutStates.deleteVertex.enabled, polygonShortcutStates.deleteVertex.reasonIfDisabled, state.selectedIndex])
+
+  const handleAddOpeningForSelectedEdge = useCallback(() => {
+    const selectedEdgeIndex = state.selectedEdgeIndex
+    if (selectedEdgeIndex === null) {
+      setShortcutFeedback('Wandkante auswaehlen, um eine Oeffnung hinzuzufuegen')
+      return
+    }
+
+    const wallId = state.wallIds[selectedEdgeIndex]
+    const start = state.vertices[selectedEdgeIndex]
+    const end = state.vertices[(selectedEdgeIndex + 1) % state.vertices.length]
+    if (!wallId || !start || !end) {
+      return
+    }
+
+    handleAddOpening(wallId, Math.hypot(end.x_mm - start.x_mm, end.y_mm - start.y_mm))
+  }, [handleAddOpening, state.selectedEdgeIndex, state.vertices, state.wallIds])
+
+  const handleAddPlacementForSelectedEdge = useCallback(() => {
+    const selectedEdgeIndex = state.selectedEdgeIndex
+    if (selectedEdgeIndex === null) {
+      setShortcutFeedback('Wandkante auswaehlen, um ein Objekt zu platzieren')
+      return
+    }
+
+    if (!selectedCatalogItem) {
+      setShortcutFeedback('Katalogobjekt auswaehlen, bevor platziert werden kann')
+      return
+    }
+
+    const wallId = state.wallIds[selectedEdgeIndex]
+    const start = state.vertices[selectedEdgeIndex]
+    const end = state.vertices[(selectedEdgeIndex + 1) % state.vertices.length]
+    if (!wallId || !start || !end) {
+      return
+    }
+
+    handleAddPlacement(wallId, Math.hypot(end.x_mm - start.x_mm, end.y_mm - start.y_mm))
+  }, [handleAddPlacement, selectedCatalogItem, state.selectedEdgeIndex, state.vertices, state.wallIds])
+
   const reloadDrawingGroups = useCallback(async () => {
     if (!id) {
       setDrawingGroups([])
@@ -2724,6 +2853,7 @@ export function Editor() {
       }}
       onRepositionVisitor={showVirtualVisitor ? handleRepositionVisitor : undefined}
       onBoundaryTopologyRebind={handleBoundaryTopologyRebind}
+      onShortcutBlocked={setShortcutFeedback}
     />
   )
 
@@ -3354,6 +3484,31 @@ export function Editor() {
         </div>
       </header>
 
+      <CadToolbox
+        mode={editorMode.mode}
+        onSetMode={editorMode.setMode}
+        workflowStep={workflow.step}
+        onSetWorkflowStep={workflow.setStep}
+        deleteVertexAction={polygonShortcutStates.deleteVertex}
+        selectedVertexIndex={state.selectedIndex}
+        selectedEdgeIndex={state.selectedEdgeIndex}
+        canAddPlacement={selectedCatalogItem !== null}
+        onAddOpeningForSelectedEdge={handleAddOpeningForSelectedEdge}
+        onAddPlacementForSelectedEdge={handleAddPlacementForSelectedEdge}
+        onDeleteSelectedVertex={handleDeleteSelectedVertex}
+        safeEditMode={safeEditMode}
+        onSetSafeEditMode={setSafeEditMode}
+        editorSettings={{
+          magnetismEnabled: state.settings.magnetismEnabled,
+          axisMagnetismEnabled: state.settings.axisMagnetismEnabled,
+          angleSnap: state.settings.angleSnap,
+        }}
+        onUpdateEditorSettings={editor.updateSettings}
+        showAreasPanel={showAreasPanel}
+        onSetShowAreasPanel={setShowAreasPanel}
+        actionStates={actionStates}
+      />
+
       {bulkDeliveredMessage && (
         <div className={bulkDeliveredError ? styles.bulkDeliveredError : styles.bulkDeliveredSuccess}>
           {bulkDeliveredMessage}
@@ -3366,40 +3521,9 @@ export function Editor() {
         </div>
       )}
 
-      {/* Workflow step tabs */}
-      <nav className={styles.stepBar} aria-label="Arbeitsschritte">
-        {(['walls', 'openings', 'furniture'] as const).map((step) => {
-          const labelByStep = {
-            walls: '1 · Wände',
-            openings: '2 · Öffnungen',
-            furniture: '3 · Möbelierung',
-          } as const
-          const isActive = workflow.step === step
-          return (
-            <button
-              key={step}
-              type="button"
-              aria-current={isActive ? 'step' : undefined}
-              className={`${styles.stepTab} ${isActive ? styles.stepTabActive : ''}`}
-              onClick={() => {
-                workflow.setStep(step)
-              }}
-              onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
-                if (e.key === 'ArrowRight') {
-                  e.preventDefault()
-                  workflow.goToNextStep()
-                }
-                if (e.key === 'ArrowLeft') {
-                  e.preventDefault()
-                  workflow.goToPreviousStep()
-                }
-              }}
-            >
-              {labelByStep[step]}
-            </button>
-          )
-        })}
-      </nav>
+      {shortcutFeedback && (
+        <div className={styles.shortcutFeedback}>{shortcutFeedback}</div>
+      )}
 
       {id && (
         <LayoutSheetTabs

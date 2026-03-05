@@ -94,6 +94,16 @@
   color: var(--status-danger);
 }
 
+.shortcutFeedback {
+  margin: 0.35rem 1rem 0;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  background: var(--status-warning-bg);
+  border: 1px solid var(--status-warning-border);
+  color: var(--status-warning-text);
+}
+
 .btnSecondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btnPrimary {

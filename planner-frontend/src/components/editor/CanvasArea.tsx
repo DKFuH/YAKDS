@@ -54,6 +54,7 @@ interface Props {
     changedOpenings: number
     changedPlacements: number
   }) => void
+  onShortcutBlocked?: (reason: string) => void
 }
 
 function createWallId(): string {
@@ -63,7 +64,7 @@ function createWallId(): string {
   return `wall-${Math.random().toString(36).slice(2, 12)}`
 }
 
-export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, highlightedOpeningIds = [], highlightedPlacementIds = [], canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, edgeLengthPreviewMm = null, onReferenceImageUpdate, navigationSettings, safeEditMode, showCompass = false, northAngleDeg = 0, virtualVisitor = null, onRepositionVisitor, onBoundaryTopologyRebind }: Props) {
+export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, highlightedOpeningIds = [], highlightedPlacementIds = [], canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, edgeLengthPreviewMm = null, onReferenceImageUpdate, navigationSettings, safeEditMode, showCompass = false, northAngleDeg = 0, virtualVisitor = null, onRepositionVisitor, onBoundaryTopologyRebind, onShortcutBlocked }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 })
   const [saving, setSaving] = useState(false)
@@ -177,6 +178,7 @@ export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, o
             safeEditMode={safeEditMode}
             virtualVisitor={virtualVisitor}
             onRepositionVisitor={onRepositionVisitor}
+            onShortcutBlocked={onShortcutBlocked}
           />
           {showCompass && <CompassOverlay northAngleDeg={northAngleDeg} />}
         </div>
