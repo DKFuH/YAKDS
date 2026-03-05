@@ -3,10 +3,14 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { projectsApi, type ProjectDetail } from '../api/projects.js'
 import { presentationApi, type PresentationSession } from '../api/presentation.js'
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
+import { renderEnvironmentApi } from '../api/renderEnvironment.js'
+import { cameraPresetsApi, type CameraPreset } from '../api/cameraPresets.js'
 import { getTenantPlugins } from '../api/tenantSettings.js'
 import { Preview3D } from '../components/editor/Preview3D.js'
+import { clampPresetFov, presetToCameraState, type SyncedCameraState } from '../components/editor/cameraPresetState.js'
 import { defaultsForNavigationProfile } from '../components/editor/navigationSettings.js'
 import { DaylightPanel } from '../components/editor/DaylightPanel.js'
+import { RenderEnvironmentPanel } from '../components/editor/RenderEnvironmentPanel.js'
 import type { RoomPayload } from '../api/rooms.js'
 import {
   RENDER_PRESET_OPTIONS,
@@ -14,6 +18,13 @@ import {
   type RenderPreset,
 } from '../plugins/presentation/index.js'
 import type { ProjectEnvironment, SunPreview } from '../plugins/daylight/index.js'
+import {
+  DEFAULT_RENDER_ENVIRONMENT_SETTINGS,
+  RENDER_ENVIRONMENT_PRESETS,
+  normalizeRenderEnvironmentSettings,
+  type RenderEnvironmentPreset,
+  type RenderEnvironmentSettings,
+} from '../components/editor/renderEnvironmentState.js'
 import styles from './PresentationModePage.module.css'
 
 function delay(ms: number) {
@@ -54,12 +65,35 @@ export function PresentationModePage() {
   const [sunPreview, setSunPreview] = useState<SunPreview | null>(null)
   const [daylightSaving, setDaylightSaving] = useState(false)
   const [sunPreviewLoading, setSunPreviewLoading] = useState(false)
+  const [cameraPresets, setCameraPresets] = useState<CameraPreset[]>([])
+  const [activeCameraPresetId, setActiveCameraPresetId] = useState<string | null>(null)
+  const [cameraState, setCameraState] = useState<SyncedCameraState>({
+    x_mm: 0,
+    y_mm: 0,
+    yaw_rad: 0,
+    pitch_rad: -0.12,
+    camera_height_mm: 1650,
+  })
+  const [cameraFovDeg, setCameraFovDeg] = useState(55)
+  const [renderEnvironmentPresets, setRenderEnvironmentPresets] = useState<RenderEnvironmentPreset[]>(
+    RENDER_ENVIRONMENT_PRESETS,
+  )
+  const [renderEnvironmentSettings, setRenderEnvironmentSettings] = useState<RenderEnvironmentSettings>(
+    DEFAULT_RENDER_ENVIRONMENT_SETTINGS,
+  )
+  const [renderEnvironmentSaving, setRenderEnvironmentSaving] = useState(false)
 
   const [exporting, setExporting] = useState(false)
   const [renderStatus, setRenderStatus] = useState<string | null>(null)
   const [renderImageUrl, setRenderImageUrl] = useState<string | null>(null)
 
   const activeRoom = useMemo(() => project?.rooms[0] ?? null, [project])
+
+  function applyPresetLocally(preset: CameraPreset) {
+    const nextState = presetToCameraState(preset)
+    setCameraState(nextState)
+    setCameraFovDeg(clampPresetFov(preset.fov))
+  }
 
   async function refreshSunPreview(projectId: string, environment: ProjectEnvironment | null) {
     if (!environment) return
@@ -165,6 +199,65 @@ export function PresentationModePage() {
     }
   }, [id])
 
+  useEffect(() => {
+    if (!id) {
+      setRenderEnvironmentPresets(RENDER_ENVIRONMENT_PRESETS)
+      setRenderEnvironmentSettings(DEFAULT_RENDER_ENVIRONMENT_SETTINGS)
+      return
+    }
+
+    let active = true
+    renderEnvironmentApi.get(id)
+      .then((result) => {
+        if (!active) return
+        setRenderEnvironmentPresets(result.presets.length > 0 ? result.presets : RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(result.active))
+      })
+      .catch(() => {
+        if (!active) return
+        setRenderEnvironmentPresets(RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(DEFAULT_RENDER_ENVIRONMENT_SETTINGS)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [id])
+
+  useEffect(() => {
+    if (!id) {
+      setCameraPresets([])
+      setActiveCameraPresetId(null)
+      return
+    }
+
+    let active = true
+    cameraPresetsApi.list(id)
+      .then((result) => {
+        if (!active) return
+        setCameraPresets(result.presets)
+        setActiveCameraPresetId(result.active_preset_id)
+
+        const preferred = result.active_preset_id
+          ? result.presets.find((entry) => entry.id === result.active_preset_id)
+          : result.presets.find((entry) => entry.is_default)
+
+        if (preferred) {
+          applyPresetLocally(preferred)
+          setActiveCameraPresetId(preferred.id)
+        }
+      })
+      .catch(() => {
+        if (!active) return
+        setCameraPresets([])
+        setActiveCameraPresetId(null)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [id])
+
   function handleDaylightPatch(patch: Partial<ProjectEnvironment>) {
     setProjectEnvironment((prev) => {
       if (!prev) return prev
@@ -173,6 +266,25 @@ export function PresentationModePage() {
         ...patch,
       }
     })
+  }
+
+  function handleRenderEnvironmentChange(next: RenderEnvironmentSettings) {
+    setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(next))
+  }
+
+  async function handleSaveRenderEnvironment() {
+    if (!id) return
+
+    setRenderEnvironmentSaving(true)
+    try {
+      const updated = await renderEnvironmentApi.update(id, renderEnvironmentSettings)
+      setRenderEnvironmentPresets(updated.presets.length > 0 ? updated.presets : RENDER_ENVIRONMENT_PRESETS)
+      setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(updated.active))
+    } catch (saveError) {
+      setError(`Render-Umgebung konnte nicht gespeichert werden: ${String(saveError)}`)
+    } finally {
+      setRenderEnvironmentSaving(false)
+    }
   }
 
   async function handleSaveDaylightEnvironment() {
@@ -219,6 +331,7 @@ export function PresentationModePage() {
       const created = await presentationApi.createRenderJob(id, {
         preset,
         source,
+        environment: renderEnvironmentSettings,
         scene_payload: {
           presentation_mode: true,
           source,
@@ -350,6 +463,53 @@ export function PresentationModePage() {
             </select>
           </label>
 
+          <label className={styles.field}>
+            <span>Kamera-Preset</span>
+            <select
+              value={activeCameraPresetId ?? ''}
+              onChange={(event) => {
+                const presetId = event.target.value
+                if (!presetId || !id) {
+                  setActiveCameraPresetId(null)
+                  return
+                }
+
+                const localPreset = cameraPresets.find((entry) => entry.id === presetId)
+                if (localPreset) {
+                  applyPresetLocally(localPreset)
+                }
+
+                void cameraPresetsApi.apply(id, presetId)
+                  .then((result) => {
+                    setActiveCameraPresetId(result.active_preset_id)
+                    applyPresetLocally(result.preset)
+                  })
+                  .catch(() => {
+                    // preview keeps local preset if server apply fails
+                  })
+              }}
+            >
+              <option value="">Kein Preset</option>
+              {cameraPresets.map((presetItem) => (
+                <option key={presetItem.id} value={presetItem.id}>
+                  {presetItem.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            <span>FOV ({cameraFovDeg}°)</span>
+            <input
+              type="range"
+              min={20}
+              max={110}
+              step={1}
+              value={cameraFovDeg}
+              onChange={(event) => setCameraFovDeg(clampPresetFov(Number(event.target.value)))}
+            />
+          </label>
+
           <label className={styles.checkboxRow}>
             <input
               type="checkbox"
@@ -391,6 +551,18 @@ export function PresentationModePage() {
         </section>
       )}
 
+      <section className={styles.section}>
+        <RenderEnvironmentPanel
+          presets={renderEnvironmentPresets}
+          environment={renderEnvironmentSettings}
+          saving={renderEnvironmentSaving}
+          onChange={handleRenderEnvironmentChange}
+          onSave={() => {
+            void handleSaveRenderEnvironment()
+          }}
+        />
+      </section>
+
       {showBranding && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Branding</h2>
@@ -411,8 +583,11 @@ export function PresentationModePage() {
         <div className={styles.previewWrap}>
           <Preview3D
             room={activeRoom as unknown as RoomPayload | null}
+            cameraState={cameraState}
             sunlight={daylightEnabled ? sunPreview : null}
             navigationSettings={presentationNavigation}
+            renderEnvironment={renderEnvironmentSettings}
+            fovDeg={cameraFovDeg}
           />
         </div>
       </section>

@@ -6,8 +6,8 @@ Stand: 2026-03-05
 
 ## Status
 
-- Sprints `S47` bis `S105`: `done`
-- Sprints `S106` bis `S108`: `planned`
+- Sprints `S47` bis `S107`: `done`
+- Sprint `S108`: `planned`
 - Projektname in den Spezifikationen: `OKP`
 
 ---
@@ -75,7 +75,7 @@ Stand: 2026-03-05
 | 103 | `S103-erp-integration-hooks-datev.md` | done |
 | 104 | `S104-interaktive-elevation-section-view.md` | done |
 | 105 | `S105-automatische-wandtransparenz-dollhouse.md` | done |
-| 106 | `S106-kamera-fov-und-presets.md` | planned |
-| 107 | `S107-skybox-hdri-renderumgebung.md` | planned |
+| 106 | `S106-kamera-fov-und-presets.md` | done |
+| 107 | `S107-skybox-hdri-renderumgebung.md` | done |
 | 108 | `S108-one-click-screenshot-und-360-export.md` | planned |
 

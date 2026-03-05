@@ -1,0 +1,138 @@
+.panel {
+  background: var(--editor-surface);
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card-hover);
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--editor-text);
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.presetCard {
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-sm);
+  background: var(--editor-surface-alt);
+  color: var(--editor-text);
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.presetCard strong {
+  font-size: 0.75rem;
+}
+
+.presetCard small {
+  font-size: 0.64rem;
+  color: var(--editor-text-muted);
+  line-height: 1.2;
+}
+
+.presetCardActive {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 45%, transparent);
+}
+
+.presetPreview {
+  width: 100%;
+  aspect-ratio: 2.4 / 1;
+  border-radius: calc(var(--radius-sm) - 2px);
+  border: 1px solid var(--editor-border);
+}
+
+.presetPreviewStudio {
+  background: linear-gradient(145deg, #e5edf7 0%, #adbfd8 55%, #6f8aad 100%);
+}
+
+.presetPreviewDaylight {
+  background: linear-gradient(145deg, #d8efff 0%, #78b4ff 55%, #2f6cb0 100%);
+}
+
+.presetPreviewInterior {
+  background: linear-gradient(145deg, #c5ab90 0%, #7a6658 55%, #3f3644 100%);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  font-size: 0.72rem;
+  color: var(--editor-text-muted);
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.field input {
+  background: var(--editor-surface-alt);
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-sm);
+  color: var(--editor-text);
+  padding: 0.34rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.slider {
+  accent-color: var(--primary-color);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.tintControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--editor-text-muted);
+}
+
+.tintPicker {
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.btnPrimary {
+  background: var(--primary-color);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 0.34rem 0.82rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

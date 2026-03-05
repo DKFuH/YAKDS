@@ -32,15 +32,19 @@ import { autoCompletionApi, type AutoCompleteResult } from '../api/autoCompletio
 import { acousticsApi, type AcousticGridMeta, type GeoJsonGrid } from '../api/acoustics.js'
 import { getTenantPlugins, getTenantSettings, updateTenantSettings } from '../api/tenantSettings.js'
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
+import { renderEnvironmentApi } from '../api/renderEnvironment.js'
 import { levelsApi, type BuildingLevel } from '../api/levels.js'
+import { cameraPresetsApi, type CameraPreset } from '../api/cameraPresets.js'
 import { visibilityApi, type AutoDollhousePatch, type AutoDollhouseSettings } from '../api/visibility.js'
 import { verticalConnectionsApi, type VerticalConnection, type VerticalConnectionKind } from '../api/verticalConnections.js'
 import { usePolygonEditor, edgeLengthMm, type EditorState } from '../editor/usePolygonEditor.js'
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { PopoutWindow } from '../components/editor/PopoutWindow.js'
 import { Preview3D } from '../components/editor/Preview3D.js'
+import { CameraPresetPanel } from '../components/editor/CameraPresetPanel.js'
 import { NavigationSettingsPanel } from '../components/editor/NavigationSettingsPanel.js'
 import { DaylightPanel } from '../components/editor/DaylightPanel.js'
+import { RenderEnvironmentPanel } from '../components/editor/RenderEnvironmentPanel.js'
 import { MaterialPanel } from '../components/editor/MaterialPanel.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
 import { LevelsPanel } from '../components/editor/LevelsPanel.js'
@@ -63,6 +67,19 @@ import {
   savePlannerViewSettings,
   type PlannerViewMode,
 } from './plannerViewSettings.js'
+import {
+  cameraStateToPresetPayload,
+  clampPresetFov,
+  presetToCameraState,
+  type SyncedCameraState,
+} from '../components/editor/cameraPresetState.js'
+import {
+  DEFAULT_RENDER_ENVIRONMENT_SETTINGS,
+  RENDER_ENVIRONMENT_PRESETS,
+  normalizeRenderEnvironmentSettings,
+  type RenderEnvironmentPreset,
+  type RenderEnvironmentSettings,
+} from '../components/editor/renderEnvironmentState.js'
 
 function resolveArticleVariantId(article: CatalogArticle, chosenOptions: Record<string, string>): string | undefined {
   if (!article.variants || article.variants.length === 0) {
@@ -277,14 +294,6 @@ function buildDefaultSectionLine(room: RoomPayload) {
   }
 }
 
-interface SyncedCameraState {
-  x_mm: number
-  y_mm: number
-  yaw_rad: number
-  pitch_rad: number
-  camera_height_mm: number
-}
-
 export function Editor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -303,8 +312,10 @@ export function Editor() {
   const [splitDragging, setSplitDragging] = useState(false)
   const [showVirtualVisitor, setShowVirtualVisitor] = useState(true)
   const [cameraHeightMm, setCameraHeightMm] = useState(1650)
+  const [cameraFovDeg, setCameraFovDeg] = useState(55)
   const [navigationSettings, setNavigationSettings] = useState<NavigationSettings>(defaultsForNavigationProfile('cad'))
   const [navigationPanelOpen, setNavigationPanelOpen] = useState(false)
+  const [cameraPresetPanelOpen, setCameraPresetPanelOpen] = useState(false)
   const [cameraState, setCameraState] = useState<SyncedCameraState>({
     x_mm: 0,
     y_mm: 0,
@@ -333,6 +344,10 @@ export function Editor() {
   const [selectedAlternativeId, setSelectedAlternativeId] = useState<string | null>(null)
   const [gltfExportLoading, setGltfExportLoading] = useState(false)
   const [safeEditMode, setSafeEditMode] = useState(false)
+  const [cameraPresets, setCameraPresets] = useState<CameraPreset[]>([])
+  const [activeCameraPresetId, setActiveCameraPresetId] = useState<string | null>(null)
+  const [cameraPresetLoading, setCameraPresetLoading] = useState(false)
+  const [cameraPresetSaving, setCameraPresetSaving] = useState(false)
   const [autoDollhouseSettings, setAutoDollhouseSettings] = useState<AutoDollhouseSettings | null>(null)
   const [autoDollhouseSaving, setAutoDollhouseSaving] = useState(false)
   const [acousticEnabled, setAcousticEnabled] = useState(false)
@@ -350,6 +365,14 @@ export function Editor() {
   const [presentationEnabled, setPresentationEnabled] = useState(false)
   const [daylightEnabled, setDaylightEnabled] = useState(false)
   const [daylightPanelOpen, setDaylightPanelOpen] = useState(false)
+  const [renderEnvironmentPanelOpen, setRenderEnvironmentPanelOpen] = useState(false)
+  const [renderEnvironmentSettings, setRenderEnvironmentSettings] = useState<RenderEnvironmentSettings>(
+    DEFAULT_RENDER_ENVIRONMENT_SETTINGS,
+  )
+  const [renderEnvironmentPresets, setRenderEnvironmentPresets] = useState<RenderEnvironmentPreset[]>(
+    RENDER_ENVIRONMENT_PRESETS,
+  )
+  const [renderEnvironmentSaving, setRenderEnvironmentSaving] = useState(false)
   const [materialsEnabled, setMaterialsEnabled] = useState(false)
   const [materialPanelOpen, setMaterialPanelOpen] = useState(false)
   const [stairsEnabled, setStairsEnabled] = useState(false)
@@ -372,6 +395,8 @@ export function Editor() {
   const [sunPreviewLoading, setSunPreviewLoading] = useState(false)
   const moreMenuRef = useRef<HTMLDivElement | null>(null)
   const navigationPanelRef = useRef<HTMLDivElement | null>(null)
+  const cameraPresetPanelRef = useRef<HTMLDivElement | null>(null)
+  const cameraPresetAutoAppliedRef = useRef(false)
   const splitContainerRef = useRef<HTMLDivElement | null>(null)
   const centeredVisitorRoomIdRef = useRef<string | null>(null)
 
@@ -530,6 +555,32 @@ export function Editor() {
   }, [id])
 
   useEffect(() => {
+    if (!id) {
+      setRenderEnvironmentPanelOpen(false)
+      setRenderEnvironmentSettings(DEFAULT_RENDER_ENVIRONMENT_SETTINGS)
+      setRenderEnvironmentPresets(RENDER_ENVIRONMENT_PRESETS)
+      return
+    }
+
+    let active = true
+    renderEnvironmentApi.get(id)
+      .then((result) => {
+        if (!active) return
+        setRenderEnvironmentPresets(result.presets.length > 0 ? result.presets : RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(result.active))
+      })
+      .catch(() => {
+        if (!active) return
+        setRenderEnvironmentPresets(RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(DEFAULT_RENDER_ENVIRONMENT_SETTINGS)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [id])
+
+  useEffect(() => {
     if (!selectedRoomId || !multilevelDocsEnabled) {
       setSectionLines([])
       setSelectedSectionLineId(null)
@@ -623,6 +674,29 @@ export function Editor() {
       }
     })
   }, [])
+
+  const handleRenderEnvironmentChange = useCallback((next: RenderEnvironmentSettings) => {
+    setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(next))
+  }, [])
+
+  const handleSaveRenderEnvironment = useCallback(() => {
+    if (!id) {
+      return
+    }
+
+    setRenderEnvironmentSaving(true)
+    void renderEnvironmentApi.update(id, renderEnvironmentSettings)
+      .then((result) => {
+        setRenderEnvironmentPresets(result.presets.length > 0 ? result.presets : RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(result.active))
+      })
+      .catch((saveError: Error) => {
+        console.error('S107: Render-Umgebung konnte nicht gespeichert werden:', saveError)
+      })
+      .finally(() => {
+        setRenderEnvironmentSaving(false)
+      })
+  }, [id, renderEnvironmentSettings])
 
   const handleMaterialRoomPatch = useCallback((roomId: string, patch: { coloring: unknown; placements: Placement[] }) => {
     setProject((prev) => {
@@ -803,6 +877,17 @@ export function Editor() {
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [navigationPanelOpen])
+
+  useEffect(() => {
+    if (!cameraPresetPanelOpen) return
+    function handleOutsideClick(event: MouseEvent) {
+      if (cameraPresetPanelRef.current && !cameraPresetPanelRef.current.contains(event.target as Node)) {
+        setCameraPresetPanelOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [cameraPresetPanelOpen])
 
   useEffect(() => {
     const onResize = () => {
@@ -1876,6 +1961,155 @@ export function Editor() {
     setCameraHeightMm(clampNumber(Math.round(next.camera_height_mm), 900, 2400))
   }, [])
 
+  const applyCameraPresetLocally = useCallback((preset: CameraPreset) => {
+    const nextState = presetToCameraState(preset)
+    setCameraState(nextState)
+    setCameraHeightMm(clampNumber(Math.round(nextState.camera_height_mm), 900, 2400))
+    setCameraFovDeg(clampPresetFov(preset.fov))
+    if (preset.mode === 'visitor') {
+      setShowVirtualVisitor(true)
+    }
+  }, [])
+
+  const handleSaveCurrentCameraPreset = useCallback((payload: { name: string; mode: 'orbit' | 'visitor'; isDefault: boolean }) => {
+    if (!id) {
+      return
+    }
+
+    setCameraPresetSaving(true)
+    void cameraPresetsApi.create(id, cameraStateToPresetPayload({
+      name: payload.name,
+      state: cameraState,
+      fovDeg: cameraFovDeg,
+      mode: payload.mode,
+      isDefault: payload.isDefault,
+    }))
+      .then((result) => {
+        setCameraPresets(result.presets)
+        setActiveCameraPresetId(result.active_preset_id)
+        cameraPresetAutoAppliedRef.current = true
+      })
+      .catch((presetError: Error) => {
+        console.error('S106: Kamera-Preset konnte nicht gespeichert werden:', presetError)
+      })
+      .finally(() => {
+        setCameraPresetSaving(false)
+      })
+  }, [id, cameraState, cameraFovDeg])
+
+  const handleApplyCameraPreset = useCallback((presetId: string) => {
+    if (!id) {
+      return
+    }
+
+    setCameraPresetSaving(true)
+    void cameraPresetsApi.apply(id, presetId)
+      .then((result) => {
+        setActiveCameraPresetId(result.active_preset_id)
+        applyCameraPresetLocally(result.preset)
+        cameraPresetAutoAppliedRef.current = true
+      })
+      .catch((presetError: Error) => {
+        console.error('S106: Kamera-Preset konnte nicht angewendet werden:', presetError)
+      })
+      .finally(() => {
+        setCameraPresetSaving(false)
+      })
+  }, [id, applyCameraPresetLocally])
+
+  const handleDeleteCameraPreset = useCallback((presetId: string) => {
+    if (!id) {
+      return
+    }
+
+    setCameraPresetSaving(true)
+    void cameraPresetsApi.remove(id, presetId)
+      .then(() => {
+        setCameraPresets((previous) => previous.filter((entry) => entry.id !== presetId))
+        setActiveCameraPresetId((current) => (current === presetId ? null : current))
+      })
+      .catch((presetError: Error) => {
+        console.error('S106: Kamera-Preset konnte nicht gelöscht werden:', presetError)
+      })
+      .finally(() => {
+        setCameraPresetSaving(false)
+      })
+  }, [id])
+
+  const handleSetDefaultCameraPreset = useCallback((presetId: string) => {
+    if (!id) {
+      return
+    }
+
+    setCameraPresetSaving(true)
+    void cameraPresetsApi.update(id, presetId, { is_default: true })
+      .then((result) => {
+        setCameraPresets(result.presets)
+      })
+      .catch((presetError: Error) => {
+        console.error('S106: Default-Kamera-Preset konnte nicht gesetzt werden:', presetError)
+      })
+      .finally(() => {
+        setCameraPresetSaving(false)
+      })
+  }, [id])
+
+  useEffect(() => {
+    if (!id) {
+      setCameraPresets([])
+      setActiveCameraPresetId(null)
+      setCameraPresetPanelOpen(false)
+      cameraPresetAutoAppliedRef.current = false
+      return
+    }
+
+    cameraPresetAutoAppliedRef.current = false
+    let active = true
+    setCameraPresetLoading(true)
+
+    cameraPresetsApi.list(id)
+      .then((result) => {
+        if (!active) {
+          return
+        }
+
+        setCameraPresets(result.presets)
+        setActiveCameraPresetId(result.active_preset_id)
+
+        if (cameraPresetAutoAppliedRef.current) {
+          return
+        }
+
+        const preferred = result.active_preset_id
+          ? result.presets.find((entry) => entry.id === result.active_preset_id)
+          : result.presets.find((entry) => entry.is_default)
+
+        if (preferred) {
+          applyCameraPresetLocally(preferred)
+          setActiveCameraPresetId(preferred.id)
+          cameraPresetAutoAppliedRef.current = true
+        }
+      })
+      .catch((presetError: Error) => {
+        if (!active) {
+          return
+        }
+        console.error('S106: Kamera-Presets konnten nicht geladen werden:', presetError)
+        setCameraPresets([])
+        setActiveCameraPresetId(null)
+      })
+      .finally(() => {
+        if (!active) {
+          return
+        }
+        setCameraPresetLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [id, applyCameraPresetLocally])
+
   useEffect(() => {
     if (!selectedRoom) {
       setIsPreviewPopoutOpen(false)
@@ -2232,6 +2466,8 @@ export function Editor() {
       sunlight={daylightEnabled ? sunPreview : null}
       navigationSettings={navigationSettings}
       autoDollhouseSettings={autoDollhouseSettings}
+      renderEnvironment={renderEnvironmentSettings}
+      fovDeg={cameraFovDeg}
     />
   )
 
@@ -2406,6 +2642,14 @@ export function Editor() {
   if (error) return <div className={styles.center}>{error}</div>
   if (!project) return null
 
+  const materialDockClassName = `${styles.materialDock} ${
+    renderEnvironmentPanelOpen && daylightEnabled && daylightPanelOpen
+      ? styles.materialDockShiftedDouble
+      : renderEnvironmentPanelOpen || (daylightEnabled && daylightPanelOpen)
+        ? styles.materialDockShifted
+        : ''
+  }`
+
   return (
     <div className={styles.shell}>
       <header className={styles.topbar}>
@@ -2499,6 +2743,29 @@ export function Editor() {
               />
             )}
           </div>
+          <div className={styles.cameraPresetWrapper} ref={cameraPresetPanelRef}>
+            <button
+              type='button'
+              className={styles.btnSecondary}
+              onClick={() => setCameraPresetPanelOpen((prev) => !prev)}
+            >
+              Kamera
+            </button>
+            {cameraPresetPanelOpen && (
+              <CameraPresetPanel
+                presets={cameraPresets}
+                activePresetId={activeCameraPresetId}
+                loading={cameraPresetLoading}
+                saving={cameraPresetSaving}
+                cameraFovDeg={cameraFovDeg}
+                onSetCameraFovDeg={(next) => setCameraFovDeg(clampPresetFov(next))}
+                onSaveCurrentPreset={handleSaveCurrentCameraPreset}
+                onApplyPreset={handleApplyCameraPreset}
+                onDeletePreset={handleDeleteCameraPreset}
+                onSetDefaultPreset={handleSetDefaultCameraPreset}
+              />
+            )}
+          </div>
           <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
             <button
               type="button"
@@ -2566,6 +2833,14 @@ export function Editor() {
                     {daylightPanelOpen ? 'Tageslichtpanel schließen' : 'Tageslichtpanel'}
                   </button>
                 )}
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); setRenderEnvironmentPanelOpen((prev) => !prev) }}
+                >
+                  {renderEnvironmentPanelOpen ? 'Render-Umgebung schließen' : 'Render-Umgebung'}
+                </button>
                 {materialsEnabled && (
                   <button
                     role="menuitem"
@@ -2664,8 +2939,20 @@ export function Editor() {
         />
       )}
 
+      {renderEnvironmentPanelOpen && (
+        <div className={styles.renderEnvironmentDock}>
+          <RenderEnvironmentPanel
+            presets={renderEnvironmentPresets}
+            environment={renderEnvironmentSettings}
+            saving={renderEnvironmentSaving}
+            onChange={handleRenderEnvironmentChange}
+            onSave={handleSaveRenderEnvironment}
+          />
+        </div>
+      )}
+
       {daylightEnabled && daylightPanelOpen && projectEnvironment && (
-        <div className={styles.daylightDock}>
+        <div className={`${styles.daylightDock} ${renderEnvironmentPanelOpen ? styles.daylightDockShifted : ''}`}>
           <DaylightPanel
             environment={projectEnvironment}
             preview={sunPreview}
@@ -2683,7 +2970,7 @@ export function Editor() {
       )}
 
       {materialsEnabled && materialPanelOpen && id && (
-        <div className={`${styles.materialDock} ${daylightEnabled && daylightPanelOpen ? styles.materialDockShifted : ''}`}>
+        <div className={materialDockClassName}>
           <MaterialPanel
             projectId={id}
             room={selectedRoom as unknown as RoomPayload | null}
@@ -2856,6 +3143,8 @@ export function Editor() {
             sunlight={daylightEnabled ? sunPreview : null}
             navigationSettings={navigationSettings}
             autoDollhouseSettings={autoDollhouseSettings}
+            renderEnvironment={renderEnvironmentSettings}
+            fovDeg={cameraFovDeg}
           />
         </PopoutWindow>
       )}

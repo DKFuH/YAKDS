@@ -4,6 +4,11 @@ import { z } from 'zod'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound, sendServerError } from '../errors.js'
 import { registerProjectDocument } from '../services/documentRegistry.js'
+import {
+  extractRenderEnvironmentFromConfig,
+  normalizeRenderEnvironmentSettings,
+  type RenderEnvironmentSettings,
+} from './renderEnvironmentConfig.js'
 
 const CreateRenderJobParamsSchema = z.object({
   id: z.string().uuid(),
@@ -11,6 +16,12 @@ const CreateRenderJobParamsSchema = z.object({
 
 const CreateRenderJobBodySchema = z.object({
   scene_payload: z.unknown().optional(),
+  environment: z.object({
+    preset_id: z.enum(['studio', 'daylight', 'interior']),
+    intensity: z.number().min(0.2).max(2),
+    rotation_deg: z.number().min(-7200).max(7200),
+    ground_tint: z.string().regex(/^#?[0-9a-fA-F]{6}$/),
+  }).optional(),
   preset: z.enum(['draft', 'balanced', 'best']).optional(),
   source: z
     .object({
@@ -58,6 +69,7 @@ function buildScenePayload(
   scenePayload: unknown,
   preset: RenderPreset,
   source: { kind: 'split-view' | 'panorama-tour' | 'manual-camera'; panorama_tour_id?: string } | undefined,
+  environment: RenderEnvironmentSettings,
 ): Prisma.InputJsonValue {
   const profile = PRESET_PROFILE[preset]
   const normalizedSource = source
@@ -73,6 +85,7 @@ function buildScenePayload(
       render_preset: preset,
       render_profile: profile,
       presentation_source: normalizedSource,
+      render_environment: environment,
     } as Prisma.InputJsonValue
   }
 
@@ -81,6 +94,7 @@ function buildScenePayload(
     render_preset: preset,
     render_profile: profile,
     presentation_source: normalizedSource,
+    render_environment: environment,
   } as Prisma.InputJsonValue
 }
 
@@ -164,7 +178,24 @@ export async function renderJobRoutes(app: FastifyInstance) {
     }
 
     const preset = parsedBody.data.preset ?? 'balanced'
-    const scenePayload = buildScenePayload(parsedBody.data.scene_payload, preset, parsedBody.data.source)
+    let renderEnvironment = parsedBody.data.environment
+      ? normalizeRenderEnvironmentSettings(parsedBody.data.environment)
+      : null
+
+    if (!renderEnvironment) {
+      const projectEnvironment = await prisma.projectEnvironment.findUnique({
+        where: { project_id: project.id },
+        select: { config_json: true },
+      })
+      renderEnvironment = extractRenderEnvironmentFromConfig(projectEnvironment?.config_json)
+    }
+
+    const scenePayload = buildScenePayload(
+      parsedBody.data.scene_payload,
+      preset,
+      parsedBody.data.source,
+      renderEnvironment,
+    )
 
     const job = await prisma.renderJob.create({
       data: {

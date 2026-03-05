@@ -6,6 +6,11 @@ import type { VerticalConnection } from '../../api/verticalConnections.js'
 import type { AutoDollhouseSettings } from '../../api/visibility.js'
 import { resolveAutoDollhouseOpacities } from './autoDollhouse.js'
 import { profileZoomFactor, type NavigationSettings } from './navigationSettings.js'
+import {
+  normalizeRenderEnvironmentSettings,
+  resolveRenderEnvironmentVisual,
+  type RenderEnvironmentSettings,
+} from './renderEnvironmentState.js'
 import styles from './Preview3D.module.css'
 
 type VertexLike = { id: string; x_mm: number; y_mm: number }
@@ -92,6 +97,8 @@ interface Props {
   sunlight?: SunlightPreview | null
   navigationSettings: NavigationSettings
   autoDollhouseSettings?: AutoDollhouseSettings | null
+  renderEnvironment?: RenderEnvironmentSettings | null
+  fovDeg?: number
 }
 
 const MM_TO_M = 0.001
@@ -379,6 +386,31 @@ function applySunlight(
   )
 }
 
+function applyRenderEnvironment(
+  scene: THREE.Scene,
+  hemisphere: THREE.HemisphereLight,
+  directional: THREE.DirectionalLight,
+  groundMaterial: THREE.MeshStandardMaterial,
+  renderEnvironment: RenderEnvironmentSettings | null | undefined,
+) {
+  const normalized = normalizeRenderEnvironmentSettings(renderEnvironment)
+  const visual = resolveRenderEnvironmentVisual(normalized)
+
+  scene.background = new THREE.Color(visual.sky_hex)
+  hemisphere.color.set(visual.sky_hex)
+  hemisphere.groundColor.set(visual.horizon_hex)
+  hemisphere.intensity = visual.ambient_intensity
+
+  directional.intensity = visual.directional_intensity
+  directional.position.set(
+    Math.cos(visual.rotation_rad) * 7,
+    4.2,
+    Math.sin(visual.rotation_rad) * 7,
+  )
+
+  groundMaterial.color.set(visual.ground_hex)
+}
+
 function applyNavigationControls(controls: OrbitControls, settings: NavigationSettings) {
   controls.screenSpacePanning = true
   controls.enablePan = true
@@ -402,16 +434,22 @@ function applyNavigationControls(controls: OrbitControls, settings: NavigationSe
   }
 }
 
-export function Preview3D({ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunlight = null, navigationSettings, autoDollhouseSettings = null }: Props) {
+export function Preview3D({ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunlight = null, navigationSettings, autoDollhouseSettings = null, renderEnvironment = null, fovDeg = 55 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const sceneRef = useRef<THREE.Scene | null>(null)
   const groupRef = useRef<THREE.Group | null>(null)
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null)
   const directionalLightRef = useRef<THREE.DirectionalLight | null>(null)
+  const environmentHemisphereRef = useRef<THREE.HemisphereLight | null>(null)
+  const environmentDirectionalRef = useRef<THREE.DirectionalLight | null>(null)
+  const environmentGroundMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null)
   const cameraStateRef = useRef<Props['cameraState']>(cameraState)
   const onCameraStateChangeRef = useRef<Props['onCameraStateChange']>(onCameraStateChange)
   const autoDollhouseSettingsRef = useRef<Props['autoDollhouseSettings']>(autoDollhouseSettings)
+  const renderEnvironmentRef = useRef<Props['renderEnvironment']>(renderEnvironment)
+  const fovRef = useRef<number>(fovDeg)
   const lastEmittedRef = useRef<{
     x_mm: number
     y_mm: number
@@ -424,6 +462,8 @@ export function Preview3D({ room, verticalConnections = [], cameraState = null, 
   cameraStateRef.current = cameraState
   onCameraStateChangeRef.current = onCameraStateChange
   autoDollhouseSettingsRef.current = autoDollhouseSettings
+  renderEnvironmentRef.current = renderEnvironment
+  fovRef.current = fovDeg
 
   const geometryInput = useMemo(() => {
     if (!room) {
@@ -461,9 +501,9 @@ export function Preview3D({ room, verticalConnections = [], cameraState = null, 
     }
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x0f172a)
+    sceneRef.current = scene
 
-    const camera = new THREE.PerspectiveCamera(55, mount.clientWidth / Math.max(1, mount.clientHeight), 0.1, 200)
+    const camera = new THREE.PerspectiveCamera(fovRef.current, mount.clientWidth / Math.max(1, mount.clientHeight), 0.1, 200)
     camera.position.set(3.5, 2.8, 3.5)
 
     const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -487,13 +527,45 @@ export function Preview3D({ room, verticalConnections = [], cameraState = null, 
     scene.add(directional)
     applySunlight(ambient, directional, sunlight)
 
+    const environmentHemisphere = new THREE.HemisphereLight(0x9fb4cf, 0x94a3b8, 0.35)
+    environmentHemisphereRef.current = environmentHemisphere
+    scene.add(environmentHemisphere)
+
+    const environmentDirectional = new THREE.DirectionalLight(0xffffff, 0.25)
+    environmentDirectionalRef.current = environmentDirectional
+    environmentDirectional.position.set(6, 4.2, 0)
+    scene.add(environmentDirectional)
+
+    const environmentGroundMaterial = new THREE.MeshStandardMaterial({
+      color: 0x9ab77c,
+      roughness: 0.95,
+      metalness: 0,
+    })
+    environmentGroundMaterialRef.current = environmentGroundMaterial
+
     const group = new THREE.Group()
     groupRef.current = group
     scene.add(group)
 
+    const environmentGround = new THREE.Mesh(
+      new THREE.CircleGeometry(24, 72),
+      environmentGroundMaterial,
+    )
+    environmentGround.rotation.x = -Math.PI / 2
+    environmentGround.position.y = -0.004
+    group.add(environmentGround)
+
     const grid = new THREE.GridHelper(20, 40, 0x334155, 0x1e293b)
     grid.position.y = -0.001
     group.add(grid)
+
+    applyRenderEnvironment(
+      scene,
+      environmentHemisphere,
+      environmentDirectional,
+      environmentGroundMaterial,
+      renderEnvironmentRef.current,
+    )
 
     const floorShape = new THREE.Shape(
       geometryInput.vertices.map((vertex) => new THREE.Vector2(vertex.x_mm * MM_TO_M, vertex.y_mm * MM_TO_M)),
@@ -797,9 +869,13 @@ export function Preview3D({ room, verticalConnections = [], cameraState = null, 
       controls.dispose()
       if (controlsRef.current === controls) controlsRef.current = null
       if (cameraRef.current === camera) cameraRef.current = null
+      if (sceneRef.current === scene) sceneRef.current = null
       if (groupRef.current === group) groupRef.current = null
       if (ambientLightRef.current === ambient) ambientLightRef.current = null
       if (directionalLightRef.current === directional) directionalLightRef.current = null
+      if (environmentHemisphereRef.current === environmentHemisphere) environmentHemisphereRef.current = null
+      if (environmentDirectionalRef.current === environmentDirectional) environmentDirectionalRef.current = null
+      if (environmentGroundMaterialRef.current === environmentGroundMaterial) environmentGroundMaterialRef.current = null
       renderer.dispose()
       mount.removeChild(renderer.domElement)
     }
@@ -827,11 +903,34 @@ export function Preview3D({ room, verticalConnections = [], cameraState = null, 
   }, [cameraState])
 
   useEffect(() => {
+    const camera = cameraRef.current
+    if (!camera) {
+      return
+    }
+
+    camera.fov = Math.max(20, Math.min(110, fovDeg))
+    camera.updateProjectionMatrix()
+  }, [fovDeg])
+
+  useEffect(() => {
     const ambient = ambientLightRef.current
     const directional = directionalLightRef.current
     if (!ambient || !directional) return
     applySunlight(ambient, directional, sunlight)
   }, [sunlight])
+
+  useEffect(() => {
+    const scene = sceneRef.current
+    const hemisphere = environmentHemisphereRef.current
+    const directional = environmentDirectionalRef.current
+    const groundMaterial = environmentGroundMaterialRef.current
+
+    if (!scene || !hemisphere || !directional || !groundMaterial) {
+      return
+    }
+
+    applyRenderEnvironment(scene, hemisphere, directional, groundMaterial, renderEnvironment)
+  }, [renderEnvironment])
 
   useEffect(() => {
     const controls = controlsRef.current

@@ -75,6 +75,8 @@ import { mcpRoutes } from './routes/mcp.js'
 import { offlineSyncRoutes } from './routes/offlineSync.js'
 import { levelsRoutes } from './routes/levels.js'
 import { visibilityRoutes } from './routes/visibility.js'
+import { cameraPresetRoutes } from './routes/cameraPresets.js'
+import { renderEnvironmentRoutes } from './routes/renderEnvironments.js'
 import { drawingGroupsRoutes } from './routes/drawingGroups.js'
 import { workflowRoutes } from './routes/workflows.js'
 import { masterdataRoutes } from './routes/masterdata.js'
@@ -161,6 +163,8 @@ await app.register(localesRoutes, { prefix: '/api/v1' })
 await app.register(offlineSyncRoutes, { prefix: '/api/v1' })
 await app.register(levelsRoutes, { prefix: '/api/v1' })
 await app.register(visibilityRoutes, { prefix: '/api/v1' })
+await app.register(cameraPresetRoutes, { prefix: '/api/v1' })
+await app.register(renderEnvironmentRoutes, { prefix: '/api/v1' })
 await app.register(drawingGroupsRoutes, { prefix: '/api/v1' })
 await app.register(workflowRoutes, { prefix: '/api/v1' })
 await app.register(masterdataRoutes, { prefix: '/api/v1' })
