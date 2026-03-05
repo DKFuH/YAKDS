@@ -47,8 +47,8 @@ The fastest way to get the API and Database running in an isolated environment.
 
 1.  **Clone & Enter:**
     ```bash
-    git clone https://github.com/<owner>/open-kitchen-planner.git
-    cd open-kitchen-planner
+    git clone https://github.com/DKFuH/OKP.git
+    cd OKP
     ```
 2.  **Spin up Services:**
     ```bash
@@ -72,9 +72,9 @@ The fastest way to get the API and Database running in an isolated environment.
     npm install
     ```
 2.  **Environment Configuration:**
-    Create a `.env` file in `packages/planner-api/`:
+    Create a `.env` file in `planner-api/`:
     ```dotenv
-    DATABASE_URL="postgresql://user:password@localhost:5432/okp_db?schema=public"
+    DATABASE_URL="postgresql://okp:okp_dev@localhost:5432/okp?schema=public"
     PORT=3000
     HOST=0.0.0.0
     FRONTEND_URL=http://localhost:5173
@@ -127,8 +127,8 @@ Der schnellste Weg für API und Datenbank in einer isolierten Umgebung.
 
 1.  **Repository klonen:**
     ```bash
-    git clone https://github.com/<owner>/open-kitchen-planner.git
-    cd open-kitchen-planner
+    git clone https://github.com/DKFuH/OKP.git
+    cd OKP
     ```
 2.  **Container starten:**
     ```bash
@@ -150,9 +150,9 @@ Der schnellste Weg für API und Datenbank in einer isolierten Umgebung.
     npm install
     ```
 2.  **Datenbank-Konfiguration:**
-    Erstellen Sie eine `.env` Datei in `packages/planner-api/`:
+    Erstellen Sie eine `.env` Datei in `planner-api/`:
     ```dotenv
-    DATABASE_URL="postgresql://nutzer:passwort@localhost:5432/okp_db?schema=public"
+    DATABASE_URL="postgresql://okp:okp_dev@localhost:5432/okp?schema=public"
     PORT=3000
     HOST=0.0.0.0
     FRONTEND_URL=http://localhost:5173
@@ -176,12 +176,11 @@ Der schnellste Weg für API und Datenbank in einer isolierten Umgebung.
 ## 📂 Monorepo Structure
 
 ```text
-open-kitchen-planner/
+OKP/
 ├── planner-frontend/      # React app (Konva/Three.js)
 ├── planner-api/           # Fastify REST API & MCP Server
 ├── shared-schemas/        # Shared domain types (Zod)
 ├── interop-cad/           # DXF/DWG import & export
-├── interop-ifc/           # BIM/IFC integration
 ├── interop-sketchup/      # SKP import
 └── Docs/                  # Architecture, Roadmap, Sprint Docs
 ```
