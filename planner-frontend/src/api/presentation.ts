@@ -1,5 +1,6 @@
 import { api } from './client.js'
 import type { PresentationSource, RenderPreset } from '../plugins/presentation/index.js'
+import type { RenderEnvironmentSettings } from '../components/editor/renderEnvironmentState.js'
 
 export interface PresentationSession {
   project_id: string
@@ -54,6 +55,7 @@ export const presentationApi = {
     payload: {
       preset: RenderPreset
       source: PresentationSource
+      environment?: RenderEnvironmentSettings
       scene_payload?: unknown
     },
   ) => api.post<RenderJobResponse>(`/projects/${projectId}/render-jobs`, payload),

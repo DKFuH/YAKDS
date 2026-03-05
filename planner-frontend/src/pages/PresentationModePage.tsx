@@ -3,12 +3,14 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { projectsApi, type ProjectDetail } from '../api/projects.js'
 import { presentationApi, type PresentationSession } from '../api/presentation.js'
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
+import { renderEnvironmentApi } from '../api/renderEnvironment.js'
 import { cameraPresetsApi, type CameraPreset } from '../api/cameraPresets.js'
 import { getTenantPlugins } from '../api/tenantSettings.js'
 import { Preview3D } from '../components/editor/Preview3D.js'
 import { clampPresetFov, presetToCameraState, type SyncedCameraState } from '../components/editor/cameraPresetState.js'
 import { defaultsForNavigationProfile } from '../components/editor/navigationSettings.js'
 import { DaylightPanel } from '../components/editor/DaylightPanel.js'
+import { RenderEnvironmentPanel } from '../components/editor/RenderEnvironmentPanel.js'
 import type { RoomPayload } from '../api/rooms.js'
 import {
   RENDER_PRESET_OPTIONS,
@@ -16,6 +18,13 @@ import {
   type RenderPreset,
 } from '../plugins/presentation/index.js'
 import type { ProjectEnvironment, SunPreview } from '../plugins/daylight/index.js'
+import {
+  DEFAULT_RENDER_ENVIRONMENT_SETTINGS,
+  RENDER_ENVIRONMENT_PRESETS,
+  normalizeRenderEnvironmentSettings,
+  type RenderEnvironmentPreset,
+  type RenderEnvironmentSettings,
+} from '../components/editor/renderEnvironmentState.js'
 import styles from './PresentationModePage.module.css'
 
 function delay(ms: number) {
@@ -66,6 +75,13 @@ export function PresentationModePage() {
     camera_height_mm: 1650,
   })
   const [cameraFovDeg, setCameraFovDeg] = useState(55)
+  const [renderEnvironmentPresets, setRenderEnvironmentPresets] = useState<RenderEnvironmentPreset[]>(
+    RENDER_ENVIRONMENT_PRESETS,
+  )
+  const [renderEnvironmentSettings, setRenderEnvironmentSettings] = useState<RenderEnvironmentSettings>(
+    DEFAULT_RENDER_ENVIRONMENT_SETTINGS,
+  )
+  const [renderEnvironmentSaving, setRenderEnvironmentSaving] = useState(false)
 
   const [exporting, setExporting] = useState(false)
   const [renderStatus, setRenderStatus] = useState<string | null>(null)
@@ -185,6 +201,31 @@ export function PresentationModePage() {
 
   useEffect(() => {
     if (!id) {
+      setRenderEnvironmentPresets(RENDER_ENVIRONMENT_PRESETS)
+      setRenderEnvironmentSettings(DEFAULT_RENDER_ENVIRONMENT_SETTINGS)
+      return
+    }
+
+    let active = true
+    renderEnvironmentApi.get(id)
+      .then((result) => {
+        if (!active) return
+        setRenderEnvironmentPresets(result.presets.length > 0 ? result.presets : RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(result.active))
+      })
+      .catch(() => {
+        if (!active) return
+        setRenderEnvironmentPresets(RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(DEFAULT_RENDER_ENVIRONMENT_SETTINGS)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [id])
+
+  useEffect(() => {
+    if (!id) {
       setCameraPresets([])
       setActiveCameraPresetId(null)
       return
@@ -225,6 +266,25 @@ export function PresentationModePage() {
         ...patch,
       }
     })
+  }
+
+  function handleRenderEnvironmentChange(next: RenderEnvironmentSettings) {
+    setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(next))
+  }
+
+  async function handleSaveRenderEnvironment() {
+    if (!id) return
+
+    setRenderEnvironmentSaving(true)
+    try {
+      const updated = await renderEnvironmentApi.update(id, renderEnvironmentSettings)
+      setRenderEnvironmentPresets(updated.presets.length > 0 ? updated.presets : RENDER_ENVIRONMENT_PRESETS)
+      setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(updated.active))
+    } catch (saveError) {
+      setError(`Render-Umgebung konnte nicht gespeichert werden: ${String(saveError)}`)
+    } finally {
+      setRenderEnvironmentSaving(false)
+    }
   }
 
   async function handleSaveDaylightEnvironment() {
@@ -271,6 +331,7 @@ export function PresentationModePage() {
       const created = await presentationApi.createRenderJob(id, {
         preset,
         source,
+        environment: renderEnvironmentSettings,
         scene_payload: {
           presentation_mode: true,
           source,
@@ -490,6 +551,18 @@ export function PresentationModePage() {
         </section>
       )}
 
+      <section className={styles.section}>
+        <RenderEnvironmentPanel
+          presets={renderEnvironmentPresets}
+          environment={renderEnvironmentSettings}
+          saving={renderEnvironmentSaving}
+          onChange={handleRenderEnvironmentChange}
+          onSave={() => {
+            void handleSaveRenderEnvironment()
+          }}
+        />
+      </section>
+
       {showBranding && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Branding</h2>
@@ -513,6 +586,7 @@ export function PresentationModePage() {
             cameraState={cameraState}
             sunlight={daylightEnabled ? sunPreview : null}
             navigationSettings={presentationNavigation}
+            renderEnvironment={renderEnvironmentSettings}
             fovDeg={cameraFovDeg}
           />
         </div>

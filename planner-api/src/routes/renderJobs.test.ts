@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     project: { findUnique: vi.fn() },
+    projectEnvironment: { findUnique: vi.fn() },
     renderNode: {
       create: vi.fn(),
       findUnique: vi.fn(),
@@ -39,6 +40,7 @@ import { renderJobRoutes } from './renderJobs.js'
 describe('renderJobRoutes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    prismaMock.projectEnvironment.findUnique.mockResolvedValue(null)
     registerProjectDocumentMock.mockResolvedValue({ id: 'doc-render-1' })
     prismaMock.renderNode.create.mockResolvedValue({
       id: '44444444-4444-4444-4444-444444444444',
@@ -157,6 +159,12 @@ describe('renderJobRoutes', () => {
               kind: 'panorama-tour',
               panorama_tour_id: '99999999-9999-9999-9999-999999999999',
             },
+            render_environment: {
+              preset_id: 'daylight',
+              intensity: 1,
+              rotation_deg: 0,
+              ground_tint: '#9AB77C',
+            },
           }),
         }),
       }),
@@ -184,6 +192,124 @@ describe('renderJobRoutes', () => {
 
     expect(response.statusCode).toBe(400)
     expect(response.json().message).toContain('panorama_tour_id')
+
+    await app.close()
+  })
+
+  it('stores explicit render environment in scene payload', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ id: '11111111-1111-1111-1111-111111111111' })
+    prismaMock.renderJob.create.mockResolvedValue({
+      id: '12121212-1212-1212-1212-121212121212',
+      project_id: '11111111-1111-1111-1111-111111111111',
+      status: 'queued',
+    })
+
+    const app = Fastify()
+    await app.register(renderJobRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/projects/11111111-1111-1111-1111-111111111111/render-jobs',
+      payload: {
+        preset: 'draft',
+        environment: {
+          preset_id: 'studio',
+          intensity: 1.35,
+          rotation_deg: 42,
+          ground_tint: '#ccddee',
+        },
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(prismaMock.renderJob.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          scene_payload: expect.objectContaining({
+            render_environment: {
+              preset_id: 'studio',
+              intensity: 1.35,
+              rotation_deg: 42,
+              ground_tint: '#CCDDEE',
+            },
+          }),
+        }),
+      }),
+    )
+
+    await app.close()
+  })
+
+  it('falls back to project render environment when request has none', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ id: '11111111-1111-1111-1111-111111111111' })
+    prismaMock.projectEnvironment.findUnique.mockResolvedValue({
+      config_json: {
+        render_environment: {
+          preset_id: 'interior',
+          intensity: 0.85,
+          rotation_deg: 318,
+          ground_tint: '#8e7967',
+        },
+      },
+    })
+    prismaMock.renderJob.create.mockResolvedValue({
+      id: '23232323-2323-2323-2323-232323232323',
+      project_id: '11111111-1111-1111-1111-111111111111',
+      status: 'queued',
+    })
+
+    const app = Fastify()
+    await app.register(renderJobRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/projects/11111111-1111-1111-1111-111111111111/render-jobs',
+      payload: {
+        scene_payload: { shot: 'kitchen-main' },
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(prismaMock.renderJob.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          scene_payload: expect.objectContaining({
+            shot: 'kitchen-main',
+            render_environment: {
+              preset_id: 'interior',
+              intensity: 0.85,
+              rotation_deg: 318,
+              ground_tint: '#8E7967',
+            },
+          }),
+        }),
+      }),
+    )
+
+    await app.close()
+  })
+
+  it('rejects invalid render environment payload', async () => {
+    prismaMock.project.findUnique.mockResolvedValue({ id: '11111111-1111-1111-1111-111111111111' })
+
+    const app = Fastify()
+    await app.register(renderJobRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/projects/11111111-1111-1111-1111-111111111111/render-jobs',
+      payload: {
+        environment: {
+          preset_id: 'studio',
+          intensity: 0.8,
+          rotation_deg: 20,
+          ground_tint: 'not-a-color',
+        },
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json().message).toContain('Invalid')
 
     await app.close()
   })

@@ -32,6 +32,7 @@ import { autoCompletionApi, type AutoCompleteResult } from '../api/autoCompletio
 import { acousticsApi, type AcousticGridMeta, type GeoJsonGrid } from '../api/acoustics.js'
 import { getTenantPlugins, getTenantSettings, updateTenantSettings } from '../api/tenantSettings.js'
 import { projectEnvironmentApi } from '../api/projectEnvironment.js'
+import { renderEnvironmentApi } from '../api/renderEnvironment.js'
 import { levelsApi, type BuildingLevel } from '../api/levels.js'
 import { cameraPresetsApi, type CameraPreset } from '../api/cameraPresets.js'
 import { visibilityApi, type AutoDollhousePatch, type AutoDollhouseSettings } from '../api/visibility.js'
@@ -43,6 +44,7 @@ import { Preview3D } from '../components/editor/Preview3D.js'
 import { CameraPresetPanel } from '../components/editor/CameraPresetPanel.js'
 import { NavigationSettingsPanel } from '../components/editor/NavigationSettingsPanel.js'
 import { DaylightPanel } from '../components/editor/DaylightPanel.js'
+import { RenderEnvironmentPanel } from '../components/editor/RenderEnvironmentPanel.js'
 import { MaterialPanel } from '../components/editor/MaterialPanel.js'
 import { LeftSidebar } from '../components/editor/LeftSidebar.js'
 import { LevelsPanel } from '../components/editor/LevelsPanel.js'
@@ -71,6 +73,13 @@ import {
   presetToCameraState,
   type SyncedCameraState,
 } from '../components/editor/cameraPresetState.js'
+import {
+  DEFAULT_RENDER_ENVIRONMENT_SETTINGS,
+  RENDER_ENVIRONMENT_PRESETS,
+  normalizeRenderEnvironmentSettings,
+  type RenderEnvironmentPreset,
+  type RenderEnvironmentSettings,
+} from '../components/editor/renderEnvironmentState.js'
 
 function resolveArticleVariantId(article: CatalogArticle, chosenOptions: Record<string, string>): string | undefined {
   if (!article.variants || article.variants.length === 0) {
@@ -356,6 +365,14 @@ export function Editor() {
   const [presentationEnabled, setPresentationEnabled] = useState(false)
   const [daylightEnabled, setDaylightEnabled] = useState(false)
   const [daylightPanelOpen, setDaylightPanelOpen] = useState(false)
+  const [renderEnvironmentPanelOpen, setRenderEnvironmentPanelOpen] = useState(false)
+  const [renderEnvironmentSettings, setRenderEnvironmentSettings] = useState<RenderEnvironmentSettings>(
+    DEFAULT_RENDER_ENVIRONMENT_SETTINGS,
+  )
+  const [renderEnvironmentPresets, setRenderEnvironmentPresets] = useState<RenderEnvironmentPreset[]>(
+    RENDER_ENVIRONMENT_PRESETS,
+  )
+  const [renderEnvironmentSaving, setRenderEnvironmentSaving] = useState(false)
   const [materialsEnabled, setMaterialsEnabled] = useState(false)
   const [materialPanelOpen, setMaterialPanelOpen] = useState(false)
   const [stairsEnabled, setStairsEnabled] = useState(false)
@@ -538,6 +555,32 @@ export function Editor() {
   }, [id])
 
   useEffect(() => {
+    if (!id) {
+      setRenderEnvironmentPanelOpen(false)
+      setRenderEnvironmentSettings(DEFAULT_RENDER_ENVIRONMENT_SETTINGS)
+      setRenderEnvironmentPresets(RENDER_ENVIRONMENT_PRESETS)
+      return
+    }
+
+    let active = true
+    renderEnvironmentApi.get(id)
+      .then((result) => {
+        if (!active) return
+        setRenderEnvironmentPresets(result.presets.length > 0 ? result.presets : RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(result.active))
+      })
+      .catch(() => {
+        if (!active) return
+        setRenderEnvironmentPresets(RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(DEFAULT_RENDER_ENVIRONMENT_SETTINGS)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [id])
+
+  useEffect(() => {
     if (!selectedRoomId || !multilevelDocsEnabled) {
       setSectionLines([])
       setSelectedSectionLineId(null)
@@ -631,6 +674,29 @@ export function Editor() {
       }
     })
   }, [])
+
+  const handleRenderEnvironmentChange = useCallback((next: RenderEnvironmentSettings) => {
+    setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(next))
+  }, [])
+
+  const handleSaveRenderEnvironment = useCallback(() => {
+    if (!id) {
+      return
+    }
+
+    setRenderEnvironmentSaving(true)
+    void renderEnvironmentApi.update(id, renderEnvironmentSettings)
+      .then((result) => {
+        setRenderEnvironmentPresets(result.presets.length > 0 ? result.presets : RENDER_ENVIRONMENT_PRESETS)
+        setRenderEnvironmentSettings(normalizeRenderEnvironmentSettings(result.active))
+      })
+      .catch((saveError: Error) => {
+        console.error('S107: Render-Umgebung konnte nicht gespeichert werden:', saveError)
+      })
+      .finally(() => {
+        setRenderEnvironmentSaving(false)
+      })
+  }, [id, renderEnvironmentSettings])
 
   const handleMaterialRoomPatch = useCallback((roomId: string, patch: { coloring: unknown; placements: Placement[] }) => {
     setProject((prev) => {
@@ -2400,6 +2466,7 @@ export function Editor() {
       sunlight={daylightEnabled ? sunPreview : null}
       navigationSettings={navigationSettings}
       autoDollhouseSettings={autoDollhouseSettings}
+      renderEnvironment={renderEnvironmentSettings}
       fovDeg={cameraFovDeg}
     />
   )
@@ -2574,6 +2641,14 @@ export function Editor() {
   if (loading) return <div className={styles.center}>Lade Projekt…</div>
   if (error) return <div className={styles.center}>{error}</div>
   if (!project) return null
+
+  const materialDockClassName = `${styles.materialDock} ${
+    renderEnvironmentPanelOpen && daylightEnabled && daylightPanelOpen
+      ? styles.materialDockShiftedDouble
+      : renderEnvironmentPanelOpen || (daylightEnabled && daylightPanelOpen)
+        ? styles.materialDockShifted
+        : ''
+  }`
 
   return (
     <div className={styles.shell}>
@@ -2758,6 +2833,14 @@ export function Editor() {
                     {daylightPanelOpen ? 'Tageslichtpanel schließen' : 'Tageslichtpanel'}
                   </button>
                 )}
+                <button
+                  role="menuitem"
+                  type="button"
+                  className={styles.moreMenuItem}
+                  onClick={() => { setMoreMenuOpen(false); setRenderEnvironmentPanelOpen((prev) => !prev) }}
+                >
+                  {renderEnvironmentPanelOpen ? 'Render-Umgebung schließen' : 'Render-Umgebung'}
+                </button>
                 {materialsEnabled && (
                   <button
                     role="menuitem"
@@ -2856,8 +2939,20 @@ export function Editor() {
         />
       )}
 
+      {renderEnvironmentPanelOpen && (
+        <div className={styles.renderEnvironmentDock}>
+          <RenderEnvironmentPanel
+            presets={renderEnvironmentPresets}
+            environment={renderEnvironmentSettings}
+            saving={renderEnvironmentSaving}
+            onChange={handleRenderEnvironmentChange}
+            onSave={handleSaveRenderEnvironment}
+          />
+        </div>
+      )}
+
       {daylightEnabled && daylightPanelOpen && projectEnvironment && (
-        <div className={styles.daylightDock}>
+        <div className={`${styles.daylightDock} ${renderEnvironmentPanelOpen ? styles.daylightDockShifted : ''}`}>
           <DaylightPanel
             environment={projectEnvironment}
             preview={sunPreview}
@@ -2875,7 +2970,7 @@ export function Editor() {
       )}
 
       {materialsEnabled && materialPanelOpen && id && (
-        <div className={`${styles.materialDock} ${daylightEnabled && daylightPanelOpen ? styles.materialDockShifted : ''}`}>
+        <div className={materialDockClassName}>
           <MaterialPanel
             projectId={id}
             room={selectedRoom as unknown as RoomPayload | null}
@@ -3048,6 +3143,7 @@ export function Editor() {
             sunlight={daylightEnabled ? sunPreview : null}
             navigationSettings={navigationSettings}
             autoDollhouseSettings={autoDollhouseSettings}
+            renderEnvironment={renderEnvironmentSettings}
             fovDeg={cameraFovDeg}
           />
         </PopoutWindow>
