@@ -1,7 +1,6 @@
 import { api } from './client.js'
+import { tenantScopedHeaders } from './runtimeContext.js'
 import type { RenderEnvironmentSettings } from '../components/editor/renderEnvironmentState.js'
-
-const TENANT_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001'
 
 export type ScreenshotFormat = 'png' | 'jpeg'
 
@@ -72,7 +71,7 @@ export const mediaCaptureApi = {
     const result = await api.post<ScreenshotUploadResponse>(
       `/projects/${projectId}/screenshot`,
       payload,
-      { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER },
+      tenantScopedHeaders(),
     )
 
     return {
@@ -85,13 +84,13 @@ export const mediaCaptureApi = {
   createExport360: (projectId: string, payload: Export360CreatePayload) => api.post<Export360CreateResponse>(
     `/projects/${projectId}/export-360`,
     payload,
-    { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER },
+    tenantScopedHeaders(),
   ),
 
   getExport360Status: async (projectId: string, jobId: string) => {
     const result = await api.get<Export360StatusResponse>(
       `/projects/${projectId}/export-360/${jobId}`,
-      { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER },
+      tenantScopedHeaders(),
     )
 
     return {
