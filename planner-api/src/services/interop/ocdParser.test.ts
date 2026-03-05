@@ -107,4 +107,18 @@ describe('parseOCD', () => {
 
     expect(result.articles[0]!.prices[0]!.price_value).toBe(0)
   })
+
+  it('defaults price_value to 0 when PriceValue is non-numeric', () => {
+    const xml = `<OCD><ARTICLE ArticleID="X"><PRICE_TABLE PriceValue="not-a-number" /></ARTICLE></OCD>`
+    const result = parseOCD(xml)
+
+    expect(result.articles[0]!.prices[0]!.price_value).toBe(0)
+  })
+
+  it('ignores ARTICLE nodes without ArticleID', () => {
+    const xml = `<OCD><ARTICLE Description="No ID"><PRICE_TABLE PriceValue="12.3" /></ARTICLE></OCD>`
+    const result = parseOCD(xml)
+
+    expect(result.articles).toHaveLength(0)
+  })
 })

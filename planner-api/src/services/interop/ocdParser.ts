@@ -27,12 +27,20 @@ export function parseOCD(xml: string): OcdImportResult {
   const rawArticles = (root['ARTICLE'] ?? []) as RawOcdArticle[]
   const topLevelPrices = (root['PRICE_TABLE'] ?? []) as RawOcdPriceTable[]
 
-  const articles: OcdArticle[] = rawArticles.map((art) => {
+  const articles: OcdArticle[] = rawArticles.flatMap((art) => {
+    const articleId = String(art['@_ArticleID'] ?? '').trim()
+    if (!articleId) {
+      // Ignore malformed ARTICLE nodes without mandatory ArticleID.
+      return []
+    }
+
     const articlePrices = (art['PRICE_TABLE'] ?? []) as RawOcdPriceTable[]
-    const prices = articlePrices.map((pt) => parsePriceTable(art['@_ArticleID'] ?? '', pt))
+    const prices = articlePrices
+      .map((pt) => parsePriceTable(articleId, pt))
+      .filter((price): price is OcdPrice => price !== null)
 
     return {
-      article_id: String(art['@_ArticleID'] ?? ''),
+      article_id: articleId,
       composite_id: art['@_CompositeID'] ? String(art['@_CompositeID']) : undefined,
       description: art['@_Description'] ? String(art['@_Description']) : undefined,
       manufacturer_code: art['@_Manufacturer'] ? String(art['@_Manufacturer']) : undefined,
@@ -41,7 +49,9 @@ export function parseOCD(xml: string): OcdImportResult {
     }
   })
 
-  const prices: OcdPrice[] = topLevelPrices.map((pt) => parsePriceTable('', pt))
+  const prices: OcdPrice[] = topLevelPrices
+    .map((pt) => parsePriceTable('', pt))
+    .filter((price): price is OcdPrice => price !== null)
 
   return {
     articles,
@@ -70,10 +80,15 @@ interface RawOcdPriceTable {
   '@_ValidUntil'?: string
 }
 
-function parsePriceTable(fallbackArticleId: string, pt: RawOcdPriceTable): OcdPrice {
-  const articleId = String(pt['@_ArticleID'] ?? fallbackArticleId ?? '')
+function parsePriceTable(fallbackArticleId: string, pt: RawOcdPriceTable): OcdPrice | null {
+  const articleId = String(pt['@_ArticleID'] ?? fallbackArticleId ?? '').trim()
+  if (!articleId) {
+    return null
+  }
+
   const rawPrice = pt['@_PriceValue']
-  const priceValue = rawPrice !== undefined ? Number(rawPrice) : 0
+  const parsedPrice = rawPrice !== undefined ? Number(rawPrice) : 0
+  const priceValue = Number.isFinite(parsedPrice) ? parsedPrice : 0
   const currency = String(pt['@_Currency'] ?? 'EUR')
   const rawTaxType = String(pt['@_TaxType'] ?? 'standard').toLowerCase()
   const taxType = (['standard', 'reduced', 'zero', 'exempt'] as const).includes(
