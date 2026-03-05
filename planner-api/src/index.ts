@@ -76,6 +76,8 @@ import { offlineSyncRoutes } from './routes/offlineSync.js'
 import { levelsRoutes } from './routes/levels.js'
 import { visibilityRoutes } from './routes/visibility.js'
 import { drawingGroupsRoutes } from './routes/drawingGroups.js'
+// OFML OCD/OEX
+import { ofmlImportRoutes } from './routes/orders.js'
 
 const app = Fastify({ logger: true })
 
@@ -155,6 +157,7 @@ await app.register(offlineSyncRoutes, { prefix: '/api/v1' })
 await app.register(levelsRoutes, { prefix: '/api/v1' })
 await app.register(visibilityRoutes, { prefix: '/api/v1' })
 await app.register(drawingGroupsRoutes, { prefix: '/api/v1' })
+await app.register(ofmlImportRoutes, { prefix: '/api/v1' })
 
 // Branche-Plugins bootstrappen und einhängen
 bootstrapPlugins()
