@@ -2,7 +2,7 @@
 
 **Branch:** `feature/s108f-sh3d-dimension-assist-und-multiview`
 **Gruppe:** C
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S108a-S108e
 
 ## Ziel
@@ -31,3 +31,15 @@ Nicht in Scope:
 - Bemaessungsvorschlaege sind reproduzierbar und kontextstabil
 - Fenster/Tueren zeigen konsistente Kernattribute in den relevanten Views
 - Tests und Build sind gruen
+
+## Umsetzung (2026-03-05)
+
+- Dimension-Assist in `planner-frontend/src/editor/roomTopology.ts`:
+	- `buildDimensionAssistSegments` erzeugt kontextsensitive Mess-Segmente aus Wandstart/-ende, Oeffnungen und Placements.
+	- Deduplizierung naher Markerpunkte fuer stabile Vorschlagsketten.
+- UI-Integration in `planner-frontend/src/components/editor/RightSidebar.tsx`:
+	- EdgePanel zeigt `Dimension Assist`-Liste mit Segment-Herkunft und Laenge.
+	- Neue Styles in `planner-frontend/src/components/editor/RightSidebar.module.css`.
+- Multi-View-Konsistenz fuer Oeffnungen:
+	- `normalizeOpeningForMultiview` harmonisiert Kernattribute (`offset_mm`, `width_mm`, `height_mm`, `sill_height_mm`) nach Typ.
+	- Wird bei Add/Update im Editor-Flow genutzt (`planner-frontend/src/pages/Editor.tsx`).

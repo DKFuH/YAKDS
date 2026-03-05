@@ -77,6 +77,34 @@
   margin: 0.1rem 0 0;
 }
 
+.assistBlock {
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.assistList {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.assistItem {
+  font-size: 0.72rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.assistItem strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 .deleteBtn {
   margin-top: 0.5rem;
   padding: 0.3rem 0.75rem;

@@ -45,6 +45,10 @@ import {
   resolveViewModeShortcut,
   type EditorActionContext,
 } from '../editor/actionStateResolver.js'
+import {
+  buildDimensionAssistSegments,
+  normalizeOpeningForMultiview,
+} from '../editor/roomTopology.js'
 import { getEditorModeForWorkflowStep, useWorkflowStateStore } from '../editor/workflowStateStore.js'
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { PopoutWindow } from '../components/editor/PopoutWindow.js'
@@ -1322,9 +1326,11 @@ export function Editor() {
       return
     }
     const room = project.rooms.find(r => r.id === selectedRoomId)
-    const verts = ((room?.boundary as RoomBoundaryPayload | undefined)?.vertices ?? []) as Vertex[]
+    const boundary = (room?.boundary as RoomBoundaryPayload | undefined)
+    const verts = (boundary?.vertices ?? []) as Vertex[]
+    const wallIds = (boundary?.wall_segments ?? []).map((segment) => segment.id)
     if (verts.length >= 3) {
-      editor.loadVertices(verts)
+      editor.loadBoundary(verts, wallIds.length === verts.length ? wallIds : undefined)
     } else {
       editor.reset()
     }
@@ -1717,7 +1723,7 @@ export function Editor() {
   const handleAddOpening = useCallback((wallId: string, wallLengthMm: number) => {
     const defaultWidth = Math.min(900, wallLengthMm)
     const offset = Math.max(0, Math.round((wallLengthMm - defaultWidth) / 2))
-    const newOpening: Opening = {
+    const newOpening = normalizeOpeningForMultiview({
       id: crypto.randomUUID(),
       wall_id: wallId,
       type: 'door',
@@ -1726,7 +1732,7 @@ export function Editor() {
       height_mm: 2100,
       sill_height_mm: 0,
       source: 'manual',
-    }
+    })
     const updated = [...openingsRef.current, newOpening]
     setOpenings(updated)
     setSelectedOpeningId(newOpening.id)
@@ -1736,7 +1742,8 @@ export function Editor() {
 
   // Öffnung aktualisieren
   const handleUpdateOpening = useCallback((updated: Opening) => {
-    const newOpenings = openingsRef.current.map(o => o.id === updated.id ? updated : o)
+    const normalized = normalizeOpeningForMultiview(updated)
+    const newOpenings = openingsRef.current.map(o => o.id === normalized.id ? normalized : o)
     setOpenings(newOpenings)
     handleSaveOpenings(newOpenings)
   }, [handleSaveOpenings])
@@ -1758,6 +1765,33 @@ export function Editor() {
       console.error('Platzierungen speichern fehlgeschlagen:', e)
     }
   }, [])
+
+  const handleBoundaryTopologyRebind = useCallback((payload: {
+    openings: Opening[]
+    placements: Placement[]
+    changedOpenings: number
+    changedPlacements: number
+  }) => {
+    if (payload.changedOpenings > 0) {
+      setOpenings(payload.openings)
+      setSelectedOpeningId((previous) => (
+        previous && !payload.openings.some((opening) => opening.id === previous)
+          ? null
+          : previous
+      ))
+      void handleSaveOpenings(payload.openings)
+    }
+
+    if (payload.changedPlacements > 0) {
+      setPlacements(payload.placements)
+      setSelectedPlacementId((previous) => (
+        previous && !payload.placements.some((placement) => placement.id === previous)
+          ? null
+          : previous
+      ))
+      void handleSavePlacements(payload.placements)
+    }
+  }, [handleSaveOpenings, handleSavePlacements])
 
   // Reset configuredDimensions whenever the selected catalog item changes
   useEffect(() => {
@@ -2395,6 +2429,12 @@ export function Editor() {
   const selectedWallId = state.selectedEdgeIndex !== null
     ? (selectedWallSegment?.id ?? state.wallIds[state.selectedEdgeIndex] ?? null)
     : null
+  const dimensionAssistSegments = useMemo(() => {
+    if (!selectedWallId || selEdgeLen == null) {
+      return []
+    }
+    return buildDimensionAssistSegments(selectedWallId, selEdgeLen, openings, placements)
+  }, [openings, placements, selEdgeLen, selectedWallId])
   const selectedWallVisible = selectedWallSegment ? resolveWallVisible(selectedWallSegment) : null
   const selectedWallLocked = selectedWallSegment ? Boolean(selectedWallSegment.locked) : null
 
@@ -2683,6 +2723,7 @@ export function Editor() {
         visible: showVirtualVisitor,
       }}
       onRepositionVisitor={showVirtualVisitor ? handleRepositionVisitor : undefined}
+      onBoundaryTopologyRebind={handleBoundaryTopologyRebind}
     />
   )
 
@@ -3497,6 +3538,7 @@ export function Editor() {
           selectedEdgeIndex={state.selectedEdgeIndex}
           dimensions={dimensions}
           edgeLengthMm={selEdgeLen}
+          dimensionAssistSegments={dimensionAssistSegments}
           selectedOpening={selectedOpening}
           selectedPlacement={selectedPlacement}
           selectedCatalogItem={selectedCatalogItem}

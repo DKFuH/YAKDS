@@ -63,6 +63,7 @@ type Action =
   | { type: 'DELETE_VERTEX'; index: number }
   | { type: 'SET_EDGE_LENGTH'; edgeIndex: number; lengthMm: number; useFineStep?: boolean }
   | { type: 'LOAD_VERTICES'; vertices: Vertex[] }
+  | { type: 'LOAD_BOUNDARY'; vertices: Vertex[]; wallIds?: string[] }
   | { type: 'RESET' }
   | { type: 'UPDATE_SETTINGS'; settings: Partial<EditorSettings> }
   | { type: 'SET_REFERENCE_IMAGE'; referenceImage: ReferenceImageState | null }
@@ -160,6 +161,16 @@ function initialState(settingsOverride: Partial<EditorSettings> = {}): EditorSta
     validationErrors: [],
     isDirty: false,
   }
+}
+
+function sanitizeWallIds(vertices: Vertex[], wallIds?: string[]): string[] {
+  return vertices.map((_, index) => {
+    const candidate = wallIds?.[index]
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate
+    }
+    return newId()
+  })
 }
 
 function reducer(state: EditorState, action: Action): EditorState {
@@ -284,6 +295,19 @@ function reducer(state: EditorState, action: Action): EditorState {
       }
     }
 
+    case 'LOAD_BOUNDARY': {
+      const vertices = reindex(action.vertices)
+      const wallIds = sanitizeWallIds(vertices, action.wallIds)
+      return {
+        ...initialState(),
+        vertices,
+        wallIds,
+        closed: vertices.length >= 3,
+        tool: 'select',
+        validationErrors: runValidation(vertices, DEFAULT_SETTINGS.minEdgeLengthMm, true),
+      }
+    }
+
     case 'RESET':
       return initialState()
 
@@ -373,6 +397,9 @@ export function usePolygonEditor(initialVertices?: Vertex[]) {
   const loadVertices = useCallback((vertices: Vertex[]) =>
     dispatch({ type: 'LOAD_VERTICES', vertices }), [])
 
+  const loadBoundary = useCallback((vertices: Vertex[], wallIds?: string[]) =>
+    dispatch({ type: 'LOAD_BOUNDARY', vertices, wallIds }), [])
+
   const reset = useCallback(() =>
     dispatch({ type: 'RESET' }), [])
 
@@ -397,6 +424,7 @@ export function usePolygonEditor(initialVertices?: Vertex[]) {
     setEdgeLength,
     setTool,
     loadVertices,
+    loadBoundary,
     reset,
     updateSettings,
     setReferenceImage,

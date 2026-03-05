@@ -9,6 +9,7 @@ import type { VerticalConnection } from '../../api/verticalConnections.js'
 import { roomsApi } from '../../api/rooms.js'
 import { PolygonEditor } from '../../editor/PolygonEditor.js'
 import type { EditorAPI } from '../../editor/usePolygonEditor.js'
+import { autofixBoundaryVertices, buildBoundaryFromVertices, rebindOpeningsAndPlacements } from '../../editor/roomTopology.js'
 import type { NavigationSettings } from './navigationSettings.js'
 import { CompassOverlay } from './CompassOverlay.js'
 import styles from './CanvasArea.module.css'
@@ -47,9 +48,22 @@ interface Props {
     visible?: boolean
   } | null
   onRepositionVisitor?: (point: { x_mm: number; y_mm: number }) => void
+  onBoundaryTopologyRebind?: (payload: {
+    openings: Opening[]
+    placements: Placement[]
+    changedOpenings: number
+    changedPlacements: number
+  }) => void
 }
 
-export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, highlightedOpeningIds = [], highlightedPlacementIds = [], canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, edgeLengthPreviewMm = null, onReferenceImageUpdate, navigationSettings, safeEditMode, showCompass = false, northAngleDeg = 0, virtualVisitor = null, onRepositionVisitor }: Props) {
+function createWallId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `wall-${Math.random().toString(36).slice(2, 12)}`
+}
+
+export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, openings, selectedOpeningId, onSelectOpening, onAddOpening, placements, dimensions, centerlines, selectedPlacementId, onSelectPlacement, highlightedOpeningIds = [], highlightedPlacementIds = [], canAddPlacement, onAddPlacement, acousticGrid, acousticVisible, acousticOpacity, edgeLengthPreviewMm = null, onReferenceImageUpdate, navigationSettings, safeEditMode, showCompass = false, northAngleDeg = 0, virtualVisitor = null, onRepositionVisitor, onBoundaryTopologyRebind }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 })
   const [saving, setSaving] = useState(false)
@@ -81,26 +95,38 @@ export function CanvasArea({ room, onRoomUpdated, editor, verticalConnections, o
     setSaving(true)
     setSaveError(null)
     try {
-      const wallSegments = vertices.map((v, i) => ({
-        id: wallIds[i] ?? crypto.randomUUID(),
-        index: i,
-        start_vertex_id: v.id,
-        end_vertex_id: vertices[(i + 1) % vertices.length].id,
-        length_mm: Math.hypot(
-          vertices[(i + 1) % vertices.length].x_mm - v.x_mm,
-          vertices[(i + 1) % vertices.length].y_mm - v.y_mm,
-        ),
-      }))
+      const autofix = autofixBoundaryVertices(vertices)
+      if (autofix.vertices.length < 3 || autofix.validationErrors.length > 0) {
+        setSaveError(autofix.validationErrors[0] ?? 'Raumgeometrie ist nicht gueltig')
+        return
+      }
+
+      const regenerateWallIds = autofix.changed || wallIds.length !== autofix.vertices.length
+      const candidateWallIds = regenerateWallIds
+        ? autofix.vertices.map(() => createWallId())
+        : wallIds
+
+      const built = buildBoundaryFromVertices(autofix.vertices, candidateWallIds)
       const updated = await roomsApi.update(room.id, {
-        boundary: { vertices, wall_segments: wallSegments },
+        boundary: built.boundary,
       })
+
+      if (autofix.changed || regenerateWallIds) {
+        editorRef.current.loadBoundary(built.boundary.vertices, built.wallIds)
+      }
+
+      const rebound = rebindOpeningsAndPlacements(room.boundary, built.boundary, openings, placements)
+      if (rebound.changedOpenings > 0 || rebound.changedPlacements > 0) {
+        onBoundaryTopologyRebind?.(rebound)
+      }
+
       onRoomUpdated(updated)
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : 'Speichern fehlgeschlagen')
     } finally {
       setSaving(false)
     }
-  }, [room, onRoomUpdated])
+  }, [room, onBoundaryTopologyRebind, onRoomUpdated, openings, placements])
 
   return (
     <main className={styles.canvas}>

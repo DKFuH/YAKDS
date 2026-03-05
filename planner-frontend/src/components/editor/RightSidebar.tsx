@@ -21,6 +21,7 @@ import { ConstraintsPanel } from '../../pages/ConstraintsPanel.js'
 import { VisibilityPanel } from './VisibilityPanel.js'
 import { LockPanel } from './LockPanel.js'
 import { GroupsPanel } from './GroupsPanel.js'
+import type { DimensionAssistSegment } from '../../editor/roomTopology.js'
 import styles from './RightSidebar.module.css'
 
 export interface CeilingConstraint {
@@ -49,6 +50,7 @@ interface Props {
   selectedEdgeIndex: number | null
   dimensions: Dimension[]
   edgeLengthMm: number | null
+  dimensionAssistSegments: DimensionAssistSegment[]
   selectedOpening: Opening | null
   selectedPlacement: Placement | null
   selectedCatalogItem: UnifiedCatalogItem | null
@@ -125,6 +127,7 @@ export function RightSidebar({
   selectedVertexIndex, selectedVertex,
   selectedEdgeIndex, edgeLengthMm,
   dimensions,
+  dimensionAssistSegments,
   selectedOpening,
   selectedPlacement,
   selectedCatalogItem,
@@ -323,6 +326,7 @@ export function RightSidebar({
           key={selectedEdgeIndex}
           edgeIndex={selectedEdgeIndex}
           lengthMm={edgeLengthMm}
+          dimensionAssistSegments={dimensionAssistSegments}
           onSetLength={onSetEdgeLength}
           onDraftChange={onEdgeLengthDraftChange}
         />
@@ -638,9 +642,10 @@ function VertexPanel({ index, vertex, onMove }: {
 
 // ─── Kanten-Panel ─────────────────────────────────────────────────────────────
 
-function EdgePanel({ edgeIndex, lengthMm, onSetLength, onDraftChange }: {
+function EdgePanel({ edgeIndex, lengthMm, dimensionAssistSegments, onSetLength, onDraftChange }: {
   edgeIndex: number
   lengthMm: number
+  dimensionAssistSegments: DimensionAssistSegment[]
   onSetLength: (i: number, mm: number, options?: { fineStep?: boolean }) => void
   onDraftChange: (mm: number | null) => void
 }) {
@@ -711,6 +716,19 @@ function EdgePanel({ edgeIndex, lengthMm, onSetLength, onDraftChange }: {
         />
       </div>
       <p className={styles.hint}>{(lengthMm / 1000).toFixed(3)} m · Ctrl = Feinschritt (halbes Raster)</p>
+      {dimensionAssistSegments.length > 0 && (
+        <div className={styles.assistBlock}>
+          <p className={styles.hint}>Dimension Assist</p>
+          <ul className={styles.assistList}>
+            {dimensionAssistSegments.slice(0, 8).map((segment) => (
+              <li key={segment.id} className={styles.assistItem}>
+                <span>{segment.from_label} {'->'} {segment.to_label}</span>
+                <strong>{Math.round(segment.length_mm)} mm</strong>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
