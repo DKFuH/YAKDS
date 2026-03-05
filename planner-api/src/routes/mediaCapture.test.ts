@@ -97,6 +97,20 @@ describe('mediaCaptureRoutes', () => {
     await app.close()
   })
 
+  it('POST /projects/:id/screenshot rejects malformed base64 payload', async () => {
+    const app = await createApp()
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/projects/${projectId}/screenshot`,
+      payload: { image_base64: '!!!!Zm8=' },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(registerProjectDocumentMock).not.toHaveBeenCalled()
+    await app.close()
+  })
+
   it('POST /projects/:id/screenshot returns 404 when project is out of scope', async () => {
     prismaMock.project.findFirst.mockResolvedValue(null)
     const app = await createApp()

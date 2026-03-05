@@ -11,6 +11,10 @@ import {
 
 type RenderPreset = 'draft' | 'balanced' | 'best'
 
+const MAX_SCREENSHOT_BYTES = 20 * 1024 * 1024
+const MAX_SCREENSHOT_BASE64_CHARS = Math.ceil((MAX_SCREENSHOT_BYTES * 4) / 3) + 4
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/
+
 type RenderPresetProfile = {
   samples: number
   shadow_quality: 'low' | 'medium' | 'high'
@@ -45,7 +49,7 @@ const Export360ParamsSchema = z.object({
 })
 
 const ScreenshotBodySchema = z.object({
-  image_base64: z.string().min(1),
+  image_base64: z.string().min(1).max(MAX_SCREENSHOT_BASE64_CHARS),
   filename: z.string().min(1).max(255).optional(),
   mime_type: z.enum(['image/png', 'image/jpeg']).optional(),
   width_px: z.number().int().positive().max(16384).optional(),
@@ -86,11 +90,24 @@ function resolveTenantId(request: {
 }
 
 function decodeBase64(value: string): Buffer | null {
-  try {
-    return Buffer.from(value, 'base64')
-  } catch {
+  const normalized = value.trim().replace(/\s+/g, '')
+
+  if (normalized.length === 0 || normalized.length % 4 !== 0 || !BASE64_PATTERN.test(normalized)) {
     return null
   }
+
+  const buffer = Buffer.from(normalized, 'base64')
+  if (buffer.length === 0 || buffer.length > MAX_SCREENSHOT_BYTES) {
+    return null
+  }
+
+  const canonicalInput = normalized.replace(/=+$/, '')
+  const canonicalDecoded = buffer.toString('base64').replace(/=+$/, '')
+  if (canonicalInput !== canonicalDecoded) {
+    return null
+  }
+
+  return buffer
 }
 
 function sanitizeFilename(raw: string | undefined, fallback: string): string {
