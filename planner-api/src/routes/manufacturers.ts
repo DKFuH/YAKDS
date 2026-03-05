@@ -10,6 +10,7 @@ import multipart from '@fastify/multipart'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendNotFound } from '../errors.js'
 import { parseIdmArticles, parseIdmZip } from '../services/idmParser.js'
+import { parseBmecatCatalog } from '../services/bmecatParser.js'
 
 // ─── Zod Schemas ───────────────────────────────────────────────
 
@@ -273,6 +274,92 @@ export async function manufacturerRoutes(app: FastifyInstance) {
         } catch (error) {
             console.error('IDM Import Error:', error)
             return sendBadRequest(reply, `Failed to parse IDM: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+    })
+
+    /**
+     * POST /import/bmecat
+     * Accepts a BMEcat XML file (.xml) and imports catalog articles.
+     * Supports BMEcat versions 1.2 and 2005.
+     */
+    app.post('/import/bmecat', async (request, reply) => {
+        const upload = await request.file()
+        if (!upload) return sendBadRequest(reply, 'No file uploaded')
+
+        try {
+            const buffer = await upload.toBuffer()
+            const { header, articles: raw } = parseBmecatCatalog(buffer)
+
+            if (raw.length === 0) {
+                return reply.send({ message: 'No articles found in BMEcat file', created: 0 })
+            }
+
+            const manufacturerCode = header.supplierId || header.supplierName
+            const manufacturerName = header.supplierName
+
+            const mfr = await prisma.manufacturer.upsert({
+                where: { code: manufacturerCode },
+                update: { name: manufacturerName },
+                create: {
+                    name: manufacturerName,
+                    code: manufacturerCode,
+                    tenant_id: (request as any).tenantId || null,
+                },
+            })
+
+            await prisma.priceList.upsert({
+                where: { id: 'BMECAT_IMPORT' },
+                update: { name: 'BMEcat Import Catalog' },
+                create: { id: 'BMECAT_IMPORT', name: 'BMEcat Import Catalog', valid_from: new Date() },
+            }).catch(() => null)
+
+            let created = 0
+            for (const article of raw) {
+                const articleData = {
+                    name: article.name,
+                    article_type: (article.articleType as any) || 'base_cabinet',
+                    base_dims_json: {
+                        width_mm: article.widthMm,
+                        height_mm: article.heightMm,
+                        depth_mm: article.depthMm,
+                    } as Prisma.InputJsonValue,
+                    meta_json: (article.meta_json as any) || {},
+                }
+
+                await prisma.catalogArticle.upsert({
+                    where: { manufacturer_id_sku: { manufacturer_id: mfr.id, sku: article.sku } },
+                    update: articleData,
+                    create: {
+                        ...articleData,
+                        sku: article.sku,
+                        manufacturer_id: mfr.id,
+                        ...(article.listPrice && article.listPrice > 0
+                            ? {
+                                  prices: {
+                                      create: {
+                                          valid_from: new Date(),
+                                          list_net: article.listPrice,
+                                          dealer_net: article.dealerPrice || 0,
+                                          price_list_id: 'BMECAT_IMPORT',
+                                      },
+                                  },
+                              }
+                            : {}),
+                    },
+                })
+                created++
+            }
+
+            return reply.status(201).send({
+                manufacturer_id: mfr.id,
+                catalog_id: header.catalogId,
+                catalog_version: header.catalogVersion,
+                articles_created: created,
+                source_filename: upload.filename,
+            })
+        } catch (error) {
+            console.error('BMEcat Import Error:', error)
+            return sendBadRequest(reply, `Failed to parse BMEcat: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
     })
 

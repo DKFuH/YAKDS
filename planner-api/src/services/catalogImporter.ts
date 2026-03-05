@@ -267,10 +267,16 @@ function normalizeRawArticle(record: Record<string, unknown>): RawArticle {
 }
 
 import { parseIdmArticles } from './idmParser.js';
+import { parseBmecatCatalog } from './bmecatParser.js';
 
-export async function parseCatalogFile(fileBuffer: Buffer, format: 'csv' | 'json' | 'xml' | 'idm'): Promise<RawArticle[]> {
+export async function parseCatalogFile(fileBuffer: Buffer, format: 'csv' | 'json' | 'xml' | 'idm' | 'bmecat'): Promise<RawArticle[]> {
   if (format === 'xml' || format === 'idm') {
     return parseIdmArticles(fileBuffer);
+  }
+
+  if (format === 'bmecat') {
+    const result = parseBmecatCatalog(fileBuffer);
+    return result.articles;
   }
 
   const rows = format === 'csv' ? parseCsv(fileBuffer) : parseJson(fileBuffer);

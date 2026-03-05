@@ -74,6 +74,53 @@ describe('catalogImporter', () => {
     });
   });
 
+  it('parses BMEcat XML catalog articles', async () => {
+    const xml = Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
+<BMECAT version="1.2">
+  <HEADER>
+    <SUPPLIER>
+      <SUPPLIER_NAME>TestMfr GmbH</SUPPLIER_NAME>
+      <SUPPLIER_ID>testmfr</SUPPLIER_ID>
+    </SUPPLIER>
+    <CATALOG>
+      <CATALOG_ID>TEST-2024</CATALOG_ID>
+    </CATALOG>
+  </HEADER>
+  <T_NEW_CATALOG>
+    <PRODUCT>
+      <SUPPLIER_PID>BME-001</SUPPLIER_PID>
+      <PRODUCT_DETAILS>
+        <DESCRIPTION_SHORT>BME Cabinet</DESCRIPTION_SHORT>
+      </PRODUCT_DETAILS>
+      <PRODUCT_FEATURES>
+        <FEATURE>
+          <FNAME>Breite</FNAME>
+          <FVALUE>800</FVALUE>
+          <FUNIT>mm</FUNIT>
+        </FEATURE>
+      </PRODUCT_FEATURES>
+      <PRODUCT_PRICE_DETAILS>
+        <PRODUCT_PRICE type="net_list">
+          <PRICE_AMOUNT>299.00</PRICE_AMOUNT>
+          <PRICE_CURRENCY>EUR</PRICE_CURRENCY>
+        </PRODUCT_PRICE>
+      </PRODUCT_PRICE_DETAILS>
+    </PRODUCT>
+  </T_NEW_CATALOG>
+</BMECAT>`);
+
+    const parsed = await parseCatalogFile(xml, 'bmecat');
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toMatchObject({
+      sku: 'BME-001',
+      name: 'BME Cabinet',
+      manufacturerName: 'TestMfr GmbH',
+      widthMm: 800,
+      listPrice: 299
+    });
+  });
+
   it('maps raw articles to internal schema with manufacturers, options, variants and prices', () => {
     const mapped = mapToInternalSchema([
       {
