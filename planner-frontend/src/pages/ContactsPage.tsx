@@ -141,7 +141,6 @@ export function ContactsPage() {
           <p className={styles.subtitle}>Kontakte, Lead-Herkunft, Projektanzahl, Umsatz und Conversion in einer Übersicht.</p>
         </div>
         <div className={styles.headerActions}>
-          <button className={styles.btnSecondary} onClick={() => navigate('/')}>Projektboard</button>
           <button className={styles.btnSecondary} onClick={() => void platformApi.exportContactsCsv()}>CSV Export</button>
           <button className={styles.btnPrimary} onClick={() => setShowCreate((prev) => !prev)}>
             {showCreate ? 'Formular schließen' : '+ Kontakt'}

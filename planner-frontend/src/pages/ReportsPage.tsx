@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   reportsApi,
   type LeadFunnelResponse,
@@ -42,7 +41,6 @@ function formatDateTime(iso: string): string {
 }
 
 export function ReportsPage() {
-  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabId>('builtin')
 
   const [revenueState, setRevenueState] = useState<Loadable<RevenueByPeriodResponse>>({
@@ -193,9 +191,6 @@ export function ReportsPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>
-          ← Projekte
-        </button>
         <h1 className={styles.title}>Reports</h1>
       </div>
 

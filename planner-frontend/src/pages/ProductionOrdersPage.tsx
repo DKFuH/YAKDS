@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { productionOrdersApi, type ProductionOrder, type ProductionOrderStatus } from '../api/productionOrders.js'
 import { projectsApi, type Project } from '../api/projects.js'
 import styles from './ProductionOrdersPage.module.css'
@@ -36,7 +36,6 @@ function formatDate(iso: string | null): string {
 }
 
 export function ProductionOrdersPage() {
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [projects, setProjects] = useState<Project[]>([])
@@ -101,7 +100,6 @@ export function ProductionOrdersPage() {
     <div className={styles.shell}>
       {/* ── Header ── */}
       <div className={styles.header}>
-        <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>← Projekte</button>
         <h1 className={styles.title}>Produktionsaufträge</h1>
       </div>
 

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { checklistsApi, siteSurveysApi, type InstallationChecklist, type SiteSurvey } from '../api/siteSurveys.js'
 import { projectsApi, type Project } from '../api/projects.js'
 import { roomsApi, type MeasurementImportSegmentPayload, type RoomPayload } from '../api/rooms.js'
@@ -17,8 +16,6 @@ function formatDate(value: string | null | undefined): string {
 }
 
 export function SiteSurveyPage() {
-  const navigate = useNavigate()
-
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState('')
   const [surveys, setSurveys] = useState<SiteSurvey[]>([])
@@ -389,7 +386,6 @@ export function SiteSurveyPage() {
   return (
     <div className={styles.shell}>
       <div className={styles.header}>
-        <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>← Projekte</button>
         <h1 className={styles.title}>Mobile Aufmaße & Baustellenprotokoll</h1>
       </div>
 

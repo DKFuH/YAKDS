@@ -1,5 +1,4 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { catalogApi } from '../api/catalog.js'
 import { catalogIndicesApi, type CatalogIndexRecord } from '../api/catalogIndices.js'
 import { projectsApi, type Project } from '../api/projects.js'
@@ -49,7 +48,6 @@ function createSuggestedRows(options: CatalogOption[]): BatchRow[] {
 }
 
 export function CatalogPage() {
-  const navigate = useNavigate()
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState('')
   const [catalogOptions, setCatalogOptions] = useState<CatalogOption[]>([])
@@ -197,9 +195,6 @@ export function CatalogPage() {
           <h1 className={styles.title}>Katalog & Massen-Indexierung</h1>
           <p className={styles.description}>Katalogbrowser plus projektbezogene EK-/VK-Indizes fuer mehrere Katalogartikel in einem Durchlauf.</p>
         </div>
-        <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>
-          Zur Projekte-Uebersicht
-        </button>
       </header>
 
       {error && <div className={styles.error}>{error}</div>}

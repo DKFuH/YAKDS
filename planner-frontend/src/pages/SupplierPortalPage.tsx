@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   supplierPortalApi,
   type SupplierErpConnector,
@@ -26,8 +25,6 @@ function formatDate(value: string): string {
 }
 
 export function SupplierPortalPage() {
-  const navigate = useNavigate()
-
   const [orders, setOrders] = useState<SupplierPortalOrder[]>([])
   const [connectors, setConnectors] = useState<SupplierErpConnector[]>([])
   const [selectedConnectorByOrder, setSelectedConnectorByOrder] = useState<Record<string, string>>({})
@@ -88,7 +85,6 @@ export function SupplierPortalPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button type="button" onClick={() => navigate('/')}>← Projekte</button>
         <h1>Lieferantenportal</h1>
       </div>
 

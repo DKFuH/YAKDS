@@ -361,7 +361,6 @@ export function DocumentsPage() {
           <p className={styles.subtitle}>Projektweite Dokumente mit Versionierung, Archivständen und Sync-Prüfung in einer gemeinsamen Ansicht.</p>
         </div>
         <div className={styles.headerActions}>
-          <button className={styles.btnSecondary} onClick={() => navigate('/')}>Projektboard</button>
           <button className={styles.btnSecondary} onClick={() => navigate('/contacts')}>Kontakte</button>
         </div>
       </header>

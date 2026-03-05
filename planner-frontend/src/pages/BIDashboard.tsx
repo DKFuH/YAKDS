@@ -381,9 +381,6 @@ export function BIDashboard() {
           <p className={styles.subtitle}>Widget-Layout, Nutzerkonfiguration und KPI-Ansichten mit gespeichertem DashboardConfig-Stand.</p>
         </div>
         <div className={styles.headerActions}>
-          <button type="button" className={styles.btnSecondary} onClick={() => navigate('/')}>
-            Projektboard
-          </button>
           <button type="button" className={styles.btnSecondary} onClick={handleReset}>
             Layout zurücksetzen
           </button>

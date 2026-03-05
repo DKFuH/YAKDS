@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   complianceApi,
   type GdprDeletionRequest,
@@ -33,7 +32,6 @@ function formatDateTime(value: string | null): string {
 }
 
 export function CompliancePage() {
-  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabId>('gdpr')
 
   const [gdprRequests, setGdprRequests] = useState<GdprDeletionRequest[]>([])
@@ -170,9 +168,6 @@ export function CompliancePage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>
-          ← Projekte
-        </button>
         <h1 className={styles.title}>Compliance</h1>
       </div>
 

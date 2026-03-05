@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import styles from './McpInfoPage.module.css'
 
 interface McpCapabilities {
@@ -19,7 +18,6 @@ interface McpInfo {
 const MCP_ENDPOINT = '/api/v1/mcp'
 
 export function McpInfoPage() {
-  const navigate = useNavigate()
   const [info, setInfo] = useState<McpInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,9 +55,6 @@ export function McpInfoPage() {
             Verbinde Claude oder andere KI-Systeme als vollwertigen Planungsassistenten.
           </p>
         </div>
-        <button className={styles.backBtn} onClick={() => navigate('/')}>
-          Zurück
-        </button>
       </header>
 
       <section className={styles.section}>

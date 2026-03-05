@@ -107,9 +107,6 @@ export function WebplannerPage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.title}>Küchen-Webplaner</h1>
-        <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>
-          ← Zurück
-        </button>
       </header>
 
       <div className={styles.tenantRow}>

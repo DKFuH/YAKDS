@@ -15,11 +15,6 @@ export function SettingsPage() {
           <h1>{t('settings.title')}</h1>
           <p className={styles.subtitle}>{t('settings.subtitle')}</p>
         </div>
-        <div className={styles.headerActions}>
-          <button type="button" className={styles.btnSecondary} onClick={() => navigate('/')}>
-            {t('common.back')}
-          </button>
-        </div>
       </header>
 
       <section className={styles.section}>
@@ -51,4 +46,3 @@ export function SettingsPage() {
     </div>
   )
 }
-

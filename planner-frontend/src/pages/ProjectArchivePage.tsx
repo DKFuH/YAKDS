@@ -60,9 +60,6 @@ export function ProjectArchivePage() {
           <h1>Projektarchiv</h1>
           <p className={styles.subtitle}>Archivierte Projekte suchen, filtern und inklusive Kontaktverknüpfungen wiederherstellen.</p>
         </div>
-        <div className={styles.headerActions}>
-          <button className={styles.btnSecondary} onClick={() => navigate('/')}>Projektboard</button>
-        </div>
       </header>
 
       {error && <div className={styles.error}>{error}</div>}
