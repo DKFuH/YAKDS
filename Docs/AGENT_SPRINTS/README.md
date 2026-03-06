@@ -12,7 +12,7 @@ Stand: 2026-03-06
 - Sprint `S109`: `done`
 - S109 Foundation: `S109-fluent2-ui-foundation.md` `done`
 - RC-Tag fuer S109: `rc-s109-ui-shell-hardening`
-- Sprint `S110`: `planned`
+- Sprint `S110`: `planned` (Full Fluent2 Migration + Ribbon-Menueband)
 - Projektname in den Spezifikationen: `OKP`
 
 ---
@@ -90,4 +90,4 @@ Stand: 2026-03-06
 | 108e | `S108e-sh3d-room-validation-autofix.md` | planned |
 | 108f | `S108f-sh3d-dimension-assist-und-multiview.md` | planned |
 | 109 | `S109-ui-workflow-und-cad-toolbox.md` | done |
-| 110 | `S110-post-s109-hardening-und-ci-gates.md` | planned |
+| 110 | `S110-post-s109-hardening-und-ci-gates.md` | planned (Fluent2 + Ribbon) |
