@@ -90,6 +90,11 @@ export function RibbonShell({ shellState, editorBridgeState = null }: RibbonShel
     return tenantPlugins.enabled
   }, [tenantPlugins])
 
+  const availablePlugins = useMemo(() => {
+    if (!tenantPlugins) return []
+    return tenantPlugins.available
+  }, [tenantPlugins])
+
   const ribbonState = useMemo(
     () =>
       resolveRibbonState({
@@ -98,6 +103,7 @@ export function RibbonShell({ shellState, editorBridgeState = null }: RibbonShel
         workflowStep: shellState.workflowStep,
         editorMode: shellState.mode,
         backendEntries,
+        availablePlugins,
         mcpActions,
         enabledPluginIds,
         activeTabId,
@@ -108,6 +114,7 @@ export function RibbonShell({ shellState, editorBridgeState = null }: RibbonShel
       shellState.workflowStep,
       shellState.mode,
       backendEntries,
+      availablePlugins,
       mcpActions,
       enabledPluginIds,
       activeTabId,
@@ -139,6 +146,16 @@ export function RibbonShell({ shellState, editorBridgeState = null }: RibbonShel
       }
       if (command.targetMode) {
         shellState.setMode(command.targetMode)
+        return
+      }
+      if (command.mcpActionKind === 'copy-prompt') {
+        if (!command.clipboardText) {
+          return
+        }
+
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+          void navigator.clipboard.writeText(command.clipboardText).catch(() => undefined)
+        }
         return
       }
       if (command.targetPath) {

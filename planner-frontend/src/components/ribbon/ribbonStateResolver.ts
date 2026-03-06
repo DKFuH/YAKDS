@@ -3,6 +3,8 @@ import type { EditorMode } from '../../editor/editorModeStore.js'
 import type { WorkflowStep } from '../../editor/workflowStateStore.js'
 import type { BackendFeatureEntry } from '../../integration/backendCapabilityMap.js'
 import type { McpQuickAction } from '../../mcp/mcpActionBridge.js'
+import type { TenantPluginInfo } from '../../api/tenantSettings.js'
+import { resolvePluginSlotEntries } from '../../plugins/pluginSlotRegistry.js'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,6 +41,9 @@ export interface RibbonCommand {
   targetMode?: EditorMode
   /** For workflow step navigation */
   workflowAction?: 'next' | 'previous'
+  /** For MCP copy actions */
+  mcpActionKind?: McpQuickAction['kind']
+  clipboardText?: string
 }
 
 export interface RibbonGroup {
@@ -78,6 +83,7 @@ export interface RibbonStateInput {
   workflowStep: WorkflowStep
   editorMode: EditorMode
   backendEntries: BackendFeatureEntry[]
+  availablePlugins: TenantPluginInfo[]
   mcpActions: McpQuickAction[]
   enabledPluginIds: string[]
   /** The currently active primary tab (controlled externally) */
@@ -359,15 +365,28 @@ function buildDatenTab(
 }
 
 function buildPluginsTab(
+  projectId: string | null,
+  availablePlugins: TenantPluginInfo[],
   enabledPluginIds: string[],
   mcpActions: McpQuickAction[],
 ): RibbonTab {
-  const tenantPluginCommands: RibbonCommand[] = enabledPluginIds.map((id) => ({
-    id: `plugin-${id}`,
-    labelKey: `plugin.${id}.label`,
-    enabled: true,
-    visible: true,
-  }))
+  const pluginSlotEntries = resolvePluginSlotEntries({
+    slot: 'header',
+    projectId,
+    availablePlugins,
+    enabledPluginIds,
+  })
+
+  const tenantPluginCommands: RibbonCommand[] = pluginSlotEntries
+    .filter((entry) => Boolean(entry.pluginId))
+    .map((entry) => ({
+      id: `plugin-${entry.pluginId}`,
+      labelKey: `plugin.${entry.pluginId}.label`,
+      enabled: entry.enabled,
+      visible: true,
+      reasonKey: entry.reasonIfDisabled,
+      targetPath: entry.path,
+    }))
 
   const pluginsGroup = group('plugins-tenant', 'ribbon.groups.tenantPlugins', [
     enabledCmd('cmd-plugin-settings', 'ribbon.commands.pluginSettings', { targetPath: '/settings/plugins' }),
@@ -381,6 +400,8 @@ function buildPluginsTab(
     visible: true,
     reasonKey: action.reasonIfDisabled,
     targetPath: action.targetPath,
+    mcpActionKind: action.kind,
+    clipboardText: action.prompt,
   }))
 
   const mcpGroup = group('plugins-mcp', 'ribbon.groups.mcpActions', [
@@ -511,6 +532,7 @@ export function resolveRibbonState(input: RibbonStateInput): RibbonState {
     workflowStep,
     editorMode,
     backendEntries,
+    availablePlugins,
     mcpActions,
     enabledPluginIds,
     activeTabId,
@@ -524,7 +546,7 @@ export function resolveRibbonState(input: RibbonStateInput): RibbonState {
     buildAnsichtTab(actionStates),
     buildRenderTab(actionStates, projectId),
     buildDatenTab(actionStates, backendEntries, projectId),
-    buildPluginsTab(enabledPluginIds, mcpActions),
+    buildPluginsTab(projectId, availablePlugins, enabledPluginIds, mcpActions),
   ]
 
   const contextTabs = buildContextTabs(workflowStep, editorMode, actionStates, projectId)

@@ -76,7 +76,7 @@ export function RibbonTabBar({
   const styles = useStyles()
   const { t } = useTranslation()
 
-  const activeContextTab = contextTabs.find((ct) => ct.id === activeContextTabId) ?? null
+  const activeContextTab = contextTabs.find((ct) => ct.active && ct.id === activeContextTabId) ?? null
   const activePrimaryTab = primaryTabs.find((tab) => tab.id === activeTabId)
 
   // Determine which content to show: prefer context tab when one is active

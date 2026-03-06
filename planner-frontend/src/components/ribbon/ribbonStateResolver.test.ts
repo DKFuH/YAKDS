@@ -34,6 +34,7 @@ function buildRibbonInput(overrides: Partial<RibbonStateInput> = {}): RibbonStat
     workflowStep: 'walls',
     editorMode: 'wallCreate',
     backendEntries: [],
+    availablePlugins: [],
     mcpActions: [],
     enabledPluginIds: [],
     activeTabId: 'start',
@@ -225,6 +226,59 @@ describe('resolveRibbonState – plugins tab', () => {
     const pluginsTab = state.primaryTabs.find((tab) => tab.id === 'plugins')
     const mcpGroup = pluginsTab?.groups.find((g) => g.id === 'plugins-mcp')
     const cmd = mcpGroup?.commands.find((c) => c.id === 'mcp-ribbon-mcp-hub-project-context')
+    expect(cmd?.enabled).toBe(false)
+    expect(cmd?.reasonKey).toBe('shell.reasons.projectContextMissing')
+  })
+
+  it('preserves MCP copy-prompt payload for execution in RibbonShell', () => {
+    const mcpActions = [
+      {
+        id: 'mcp-copy-validation-prompt',
+        labelKey: 'shell.mcp.copyValidationPrompt',
+        kind: 'copy-prompt' as const,
+        prompt: 'validate project',
+        enabled: true,
+      },
+    ]
+
+    const state = resolveRibbonState(buildRibbonInput({ mcpActions, activeTabId: 'plugins' }))
+    const pluginsTab = state.primaryTabs.find((tab) => tab.id === 'plugins')
+    const mcpGroup = pluginsTab?.groups.find((g) => g.id === 'plugins-mcp')
+    const cmd = mcpGroup?.commands.find((c) => c.id === 'mcp-ribbon-mcp-copy-validation-prompt')
+
+    expect(cmd?.mcpActionKind).toBe('copy-prompt')
+    expect(cmd?.clipboardText).toBe('validate project')
+    expect(cmd?.targetPath).toBeUndefined()
+  })
+
+  it('assigns tenant plugin target path via plugin slot resolver', () => {
+    const state = resolveRibbonState(buildRibbonInput({
+      projectId: 'p1',
+      availablePlugins: [{ id: 'presentation', name: 'Presentation' }],
+      enabledPluginIds: ['presentation'],
+      activeTabId: 'plugins',
+    }))
+
+    const pluginsTab = state.primaryTabs.find((tab) => tab.id === 'plugins')
+    const pluginsGroup = pluginsTab?.groups.find((g) => g.id === 'plugins-tenant')
+    const cmd = pluginsGroup?.commands.find((c) => c.id === 'plugin-presentation')
+
+    expect(cmd?.enabled).toBe(true)
+    expect(cmd?.targetPath).toBe('/projects/p1/presentation')
+  })
+
+  it('disables project-scoped tenant plugin command without project context', () => {
+    const state = resolveRibbonState(buildRibbonInput({
+      projectId: null,
+      availablePlugins: [{ id: 'presentation', name: 'Presentation' }],
+      enabledPluginIds: ['presentation'],
+      activeTabId: 'plugins',
+    }))
+
+    const pluginsTab = state.primaryTabs.find((tab) => tab.id === 'plugins')
+    const pluginsGroup = pluginsTab?.groups.find((g) => g.id === 'plugins-tenant')
+    const cmd = pluginsGroup?.commands.find((c) => c.id === 'plugin-presentation')
+
     expect(cmd?.enabled).toBe(false)
     expect(cmd?.reasonKey).toBe('shell.reasons.projectContextMissing')
   })
