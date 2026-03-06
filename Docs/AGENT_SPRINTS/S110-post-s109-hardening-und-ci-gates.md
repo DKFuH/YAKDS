@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-110-fluent2-ribbon-shell`
 **Gruppe:** C
-**Status:** `planned`
+**Status:** `in_progress`
 **Abhaengigkeiten:** S109
 
 ## Ziel
@@ -146,3 +146,38 @@ State und Resolver:
 - Action-Matrix steuert alle Ribbon-Aktionen zentral
 - Plugin/MCP sind sichtbar und bedienbar eingebunden
 - i18n und E2E-Gates gruen
+
+## Fortschritt (aktueller Stand)
+
+Abgeschlossen in dieser Runde:
+
+- Vollstaendige Fluent-2-Migration fuer die folgenden Seiten umgesetzt:
+  - `SupplierPortalPage`
+  - `WebplannerPage`
+  - `CutlistPage`
+  - `NestingPage`
+  - `ProductionOrdersPage`
+  - `CompliancePage`
+  - `QuoteLinesPage`
+  - `PresentationModePage`
+  - `SiteSurveyPage`
+- Durchgaengiges Migrationsmuster angewendet:
+  - `.module.css` Importe entfernt (wo migriert)
+  - `makeStyles` + `tokens` fuer Styling
+  - Native Controls durch Fluent ersetzt (`Button`, `Select/Option`, `Checkbox`)
+  - `MessageBar` fuer Fehler/Erfolg, `Spinner` fuer Ladezustaende
+  - Layout-Hierarchie via `Card`, `CardHeader`, `Title2`, `Body1Strong`
+  - Sprint/Phase-Kicker-Labels entfernt
+- `19` verwaiste `.module.css` Dateien in `planner-frontend/src/pages/` geloescht.
+
+Bewusst offen gelassen (weiter aktiv genutzt):
+
+- `Editor.tsx`
+- `CaptureDialogHarnessPage.tsx`
+- `S109ShellHarnessPage.tsx`
+- `ConstraintsPanel.tsx`
+- `KitchenAssistantPanel.tsx`
+
+Naechster Umsetzungsschritt:
+
+- Ribbon-Menueband (Tab-/Gruppenstruktur) global einziehen und die migrierten Seiten an die finale Ribbon-Navigation anbinden.
