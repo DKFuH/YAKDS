@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Badge,
   Body1,
   Button,
   Card,
@@ -193,7 +192,7 @@ export function WebplannerPage() {
       </Field>
 
       <div className={styles.stepRow}>
-        {stepLabels.map((label, i) => {
+        {stepLabels.map((_label, i) => {
           const key = stepKeys[i]
           const stepIdx = stepKeys.indexOf(step)
           const isActive = step === key

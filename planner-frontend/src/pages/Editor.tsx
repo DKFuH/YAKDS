@@ -28,7 +28,7 @@ import {
 import { areasApi } from '../api/areas.js'
 import { openingsApi, type Opening } from '../api/openings.js'
 import { validateApi, type ValidateResponse } from '../api/validate.js'
-import { autoCompletionApi, type AutoCompleteResult } from '../api/autoCompletion.js'
+import { autoCompletionApi } from '../api/autoCompletion.js'
 import { acousticsApi, type AcousticGridMeta, type GeoJsonGrid } from '../api/acoustics.js'
 import {
   getTenantPlugins,
@@ -59,8 +59,6 @@ import { getEditorModeForWorkflowStep, useWorkflowStateStore } from '../editor/w
 import { CanvasArea } from '../components/editor/CanvasArea.js'
 import { PopoutWindow } from '../components/editor/PopoutWindow.js'
 import { Preview3D } from '../components/editor/Preview3D.js'
-import { CameraPresetPanel } from '../components/editor/CameraPresetPanel.js'
-import { NavigationSettingsPanel } from '../components/editor/NavigationSettingsPanel.js'
 import { DaylightPanel } from '../components/editor/DaylightPanel.js'
 import { RenderEnvironmentPanel } from '../components/editor/RenderEnvironmentPanel.js'
 import { MaterialPanel } from '../components/editor/MaterialPanel.js'
@@ -73,6 +71,8 @@ import { RightSidebar, type CeilingConstraint, type ConfiguredDimensions } from 
 import { StatusBar } from '../components/editor/StatusBar.js'
 import { AreasPanel } from '../components/editor/AreasPanel.js'
 import { LayoutSheetTabs } from '../components/editor/LayoutSheetTabs.js'
+import { CameraPresetPanel } from '../components/editor/CameraPresetPanel.js'
+import { NavigationSettingsPanel } from '../components/editor/NavigationSettingsPanel.js'
 import { useAppShellEditorBridge } from '../components/layout/AppShellEditorBridge.js'
 import { resolvePluginSlotEntries } from '../plugins/pluginSlotRegistry.js'
 import type { ProjectEnvironment, SunPreview } from '../plugins/daylight/index.js'
@@ -328,19 +328,6 @@ function delay(ms: number) {
   })
 }
 
-function parseOptionalInt(value: string): number | null {
-  if (!value.trim()) {
-    return null
-  }
-
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return null
-  }
-
-  return Math.round(parsed)
-}
-
 export function Editor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -388,12 +375,11 @@ export function Editor() {
   const [validationResult, setValidationResult] = useState<ValidateResponse | null>(null)
   const [validationLoading, setValidationLoading] = useState(false)
   const [autoCompleteLoading, setAutoCompleteLoading] = useState(false)
-  const [autoCompleteResult, setAutoCompleteResult] = useState<AutoCompleteResult | null>(null)
   const [isPreviewPopoutOpen, setIsPreviewPopoutOpen] = useState(false)
   const [showAreasPanel, setShowAreasPanel] = useState(false)
   const [leftSidebarVisible, setLeftSidebarVisible] = useState(true)
   const [rightSidebarVisible, setRightSidebarVisible] = useState(true)
-  const [statusBarVisible, setStatusBarVisible] = useState(true)
+  const [statusBarVisible] = useState(true)
   const [selectedAlternativeId, setSelectedAlternativeId] = useState<string | null>(null)
   const [gltfExportLoading, setGltfExportLoading] = useState(false)
   const [safeEditMode, setSafeEditMode] = useState(false)
@@ -428,12 +414,11 @@ export function Editor() {
   )
   const [renderEnvironmentSaving, setRenderEnvironmentSaving] = useState(false)
   const [screenshotPanelOpen, setScreenshotPanelOpen] = useState(false)
-  const [screenshotOptions, setScreenshotOptions] = useState<ScreenshotOptions>(DEFAULT_SCREENSHOT_OPTIONS)
+  const [screenshotOptions] = useState<ScreenshotOptions>(DEFAULT_SCREENSHOT_OPTIONS)
   const [screenshotBusy, setScreenshotBusy] = useState(false)
   const [screenshotMessage, setScreenshotMessage] = useState<string | null>(null)
   const [screenshotError, setScreenshotError] = useState(false)
   const [export360Busy, setExport360Busy] = useState(false)
-  const [export360Status, setExport360Status] = useState<string | null>(null)
   const [materialsEnabled, setMaterialsEnabled] = useState(false)
   const [materialPanelOpen, setMaterialPanelOpen] = useState(false)
   const [stairsEnabled, setStairsEnabled] = useState(false)
@@ -837,7 +822,7 @@ export function Editor() {
 
     setExport360Busy(true)
     setScreenshotError(false)
-    setExport360Status('360-Export wird gestartet...')
+    setScreenshotMessage('360-Export wird gestartet...')
 
     try {
       const normalizedOptions = normalizeScreenshotOptions(screenshotOptions)
@@ -851,7 +836,7 @@ export function Editor() {
 
       for (let attempt = 0; attempt < 45; attempt += 1) {
         const status = await mediaCaptureApi.getExport360Status(id, request.job_id)
-        setExport360Status(`360-Status: ${status.status}`)
+        setScreenshotMessage(`360-Status: ${status.status}`)
 
         if (status.status === 'done') {
           if (status.download_url) {
@@ -1275,7 +1260,73 @@ export function Editor() {
     return () => window.removeEventListener('keydown', handleViewModeShortcuts)
   }, [actionStates])
 
-  useEffect(() => {
+  // Auto-Vervollständigung (Langteile, Sockel, Wangen)
+  const handleAutoComplete = useCallback(async () => {
+    if (!id || !selectedRoomRef.current) return
+    setAutoCompleteLoading(true)
+    try {
+      await autoCompletionApi.run(id, selectedRoomRef.current.id)
+    } catch (e) {
+      console.error('Auto-Vervollständigung fehlgeschlagen:', e)
+    } finally {
+      setAutoCompleteLoading(false)
+    }
+  }, [id])
+
+  const handleGltfExport = useCallback(async () => {
+    if (!selectedAlternativeId) {
+      alert('Keine Alternative ausgewählt')
+      return
+    }
+
+    setGltfExportLoading(true)
+    try {
+      const response = await fetch(`/api/v1/alternatives/${selectedAlternativeId}/export/gltf`, {
+        method: 'POST',
+        headers: { 'X-Tenant-Id': '00000000-0000-0000-0000-000000000001' },
+      })
+
+      if (!response.ok) {
+        alert('Export fehlgeschlagen')
+        return
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `planung-${selectedAlternativeId}.glb`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Export fehlgeschlagen')
+    } finally {
+      setGltfExportLoading(false)
+    }
+  }, [selectedAlternativeId])
+
+  const handleMarkAllDelivered = useCallback(async () => {
+    if (!selectedAlternativeId) {
+      alert('Keine Alternative ausgewählt')
+      return
+    }
+
+    setBulkDeliveredLoading(true)
+    setBulkDeliveredMessage(null)
+    setBulkDeliveredError(false)
+    try {
+      const result = await projectsApi.markAlternativeOrdersDelivered(selectedAlternativeId)
+      const plural = result.updated_count === 1 ? '' : 'en'
+      setBulkDeliveredMessage(`${result.updated_count} Bestellung${plural} als geliefert markiert`)
+    } catch (e) {
+      setBulkDeliveredError(true)
+      setBulkDeliveredMessage(e instanceof Error ? e.message : 'Bestellstatus konnte nicht aktualisiert werden')
+    } finally {
+      setBulkDeliveredLoading(false)
+    }
+  }, [selectedAlternativeId])
+
+    useEffect(() => {
     if (!appShellBridge) {
       return
     }
@@ -1289,17 +1340,48 @@ export function Editor() {
       goToPreviousStep: workflow.goToPreviousStep,
       actionStates,
       tenantPlugins,
+      projectName: project?.name ?? '',
+      lockStateLabel: projectLockState?.locked
+        ? `🔒 ${projectLockState.locked_by_user ?? 'Unbekannt'}${projectLockState.locked_by_host ? ` @ ${projectLockState.locked_by_host}` : ''}${projectLockState.locked_at ? ` · ${new Date(projectLockState.locked_at).toLocaleString()}` : ''}`
+        : null,
+      viewMode,
+      onSetViewMode: setViewMode,
+      onTogglePanel: (panel) => {
+        if (panel === 'navigation') setNavigationPanelOpen((prev) => !prev)
+        else if (panel === 'camera') setCameraPresetPanelOpen((prev) => !prev)
+        else if (panel === 'capture') setScreenshotPanelOpen((prev) => !prev)
+        else if (panel === 'renderEnvironment') setRenderEnvironmentPanelOpen((prev) => !prev)
+        else if (panel === 'daylight') setDaylightPanelOpen((prev) => !prev)
+        else if (panel === 'material') setMaterialPanelOpen((prev) => !prev)
+        else if (panel === 'leftSidebar') setLeftSidebarVisible((prev) => !prev)
+        else if (panel === 'rightSidebar') setRightSidebarVisible((prev) => !prev)
+      },
+      onEditorCommand: (cmd) => {
+        if (cmd === 'cmd:screenshot') void handleCaptureScreenshot()
+        else if (cmd === 'cmd:export360') void handleStartExport360()
+        else if (cmd === 'cmd:autocomplete') void handleAutoComplete()
+        else if (cmd === 'cmd:gltfExport') void handleGltfExport()
+        else if (cmd === 'cmd:markDelivered') void handleMarkAllDelivered()
+      },
     })
   }, [
     actionStates,
     appShellBridge,
     editorMode.modeLabel,
+    handleAutoComplete,
+    handleCaptureScreenshot,
+    handleGltfExport,
+    handleMarkAllDelivered,
+    handleStartExport360,
     tenantPlugins,
     workflow.canGoNext,
     workflow.canGoPrevious,
     workflow.goToNextStep,
     workflow.goToPreviousStep,
     workflow.step,
+    project,
+    projectLockState,
+    viewMode,
   ])
 
   useEffect(() => {
@@ -1980,73 +2062,6 @@ export function Editor() {
     handleSavePlacements(nextPlacements)
   }, [handleSavePlacements])
 
-  // Auto-Vervollständigung (Langteile, Sockel, Wangen)
-  const handleAutoComplete = useCallback(async () => {
-    if (!id || !selectedRoomRef.current) return
-    setAutoCompleteLoading(true)
-    try {
-      const result = await autoCompletionApi.run(id, selectedRoomRef.current.id)
-      setAutoCompleteResult(result)
-    } catch (e) {
-      console.error('Auto-Vervollständigung fehlgeschlagen:', e)
-    } finally {
-      setAutoCompleteLoading(false)
-    }
-  }, [id])
-
-  const handleGltfExport = useCallback(async () => {
-    if (!selectedAlternativeId) {
-      alert('Keine Alternative ausgewählt')
-      return
-    }
-
-    setGltfExportLoading(true)
-    try {
-      const response = await fetch(`/api/v1/alternatives/${selectedAlternativeId}/export/gltf`, {
-        method: 'POST',
-        headers: { 'X-Tenant-Id': '00000000-0000-0000-0000-000000000001' },
-      })
-
-      if (!response.ok) {
-        alert('Export fehlgeschlagen')
-        return
-      }
-
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `planung-${selectedAlternativeId}.glb`
-      link.click()
-      URL.revokeObjectURL(url)
-    } catch {
-      alert('Export fehlgeschlagen')
-    } finally {
-      setGltfExportLoading(false)
-    }
-  }, [selectedAlternativeId])
-
-  const handleMarkAllDelivered = useCallback(async () => {
-    if (!selectedAlternativeId) {
-      alert('Keine Alternative ausgewählt')
-      return
-    }
-
-    setBulkDeliveredLoading(true)
-    setBulkDeliveredMessage(null)
-    setBulkDeliveredError(false)
-    try {
-      const result = await projectsApi.markAlternativeOrdersDelivered(selectedAlternativeId)
-      const plural = result.updated_count === 1 ? '' : 'en'
-      setBulkDeliveredMessage(`${result.updated_count} Bestellung${plural} als geliefert markiert`)
-    } catch (e) {
-      setBulkDeliveredError(true)
-      setBulkDeliveredMessage(e instanceof Error ? e.message : 'Bestellstatus konnte nicht aktualisiert werden')
-    } finally {
-      setBulkDeliveredLoading(false)
-    }
-  }, [selectedAlternativeId])
-
   // Geometrieprüfung ausführen
   const handleRunValidation = useCallback(async () => {
     if (!selectedRoomRef.current || !id) return
@@ -2162,10 +2177,6 @@ export function Editor() {
 
   const selectedRoom = roomsOnActiveLevel.find(r => r.id === selectedRoomId) ?? null
   selectedRoomRef.current = selectedRoom as unknown as RoomPayload | null
-
-  const lockStateLabel = projectLockState?.locked
-    ? `🔒 ${projectLockState.locked_by_user ?? 'Unbekannt'}${projectLockState.locked_by_host ? ` @ ${projectLockState.locked_by_host}` : ''}${projectLockState.locked_at ? ` · ${new Date(projectLockState.locked_at).toLocaleString()}` : ''}`
-    : null
 
   const effectiveViewMode: PlannerViewMode = compactLayout && (viewMode === 'split' || viewMode === 'split3') ? '2d' : viewMode
   const elevationsForSelectedRoom = useMemo(
@@ -3076,446 +3087,6 @@ export function Editor() {
 
   return (
     <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <button type="button" className={styles.backBtn} onClick={() => navigate('/')}>← Projekte</button>
-        <div className={styles.headerMenuWrapper} ref={sectionMenuRef}>
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={() => setSectionMenuOpen((prev) => !prev)}
-          >
-            Bereiche
-          </button>
-          {sectionMenuOpen && (
-            <div className={`${styles.moreMenu} ${styles.headerMenu}`} aria-label="Bereiche-Menü">
-              <button type="button" className={styles.moreMenuItem} onClick={() => { setSectionMenuOpen(false); navigate('/') }}>Projektindex</button>
-              {id && <button type="button" className={styles.moreMenuItem} onClick={() => { setSectionMenuOpen(false); navigate(`/projects/${id}/presentation`) }}>Präsentation</button>}
-              {id && <button type="button" className={styles.moreMenuItem} onClick={() => { setSectionMenuOpen(false); navigate(`/projects/${id}/exports`) }}>Exporte</button>}
-              {id && <button type="button" className={styles.moreMenuItem} onClick={() => { setSectionMenuOpen(false); navigate(`/projects/${id}/specification-packages`) }}>Werkstattpakete</button>}
-              {id && <button type="button" className={styles.moreMenuItem} onClick={() => { setSectionMenuOpen(false); navigate(`/projects/${id}/quote-lines`) }}>Angebot</button>}
-            </div>
-          )}
-        </div>
-        <span className={styles.projectName}>{project.name}</span>
-        <div className={styles.topbarActions}>
-          {lockStateLabel && (
-            <span className={styles.lockBadge} title={lockStateLabel}>
-              {lockStateLabel}
-            </span>
-          )}
-          {autoCompleteResult && (
-            <span className={styles.autoCompleteHint}>
-              ✓ {autoCompleteResult.created} Langteile generiert
-            </span>
-          )}
-          <div className={styles.modeSwitch} aria-label="Ansichtsmodus">
-            <button
-              type="button"
-              className={`${styles.modeBtn} ${viewMode === '2d' ? styles.modeBtnActive : ''}`}
-              onClick={() => setViewMode('2d')}
-            >
-              2D
-            </button>
-            <button
-              type="button"
-              className={`${styles.modeBtn} ${viewMode === 'split' ? styles.modeBtnActive : ''}`}
-              onClick={() => setViewMode('split')}
-              title={actionStates.viewSplit.enabled ? '2D und 3D parallel' : actionStates.viewSplit.reasonIfDisabled}
-              disabled={!actionStates.viewSplit.enabled}
-            >
-              Split
-            </button>
-            <button
-              type="button"
-              className={`${styles.modeBtn} ${viewMode === 'split3' ? styles.modeBtnActive : ''}`}
-              onClick={() => setViewMode('split3')}
-              title={actionStates.viewSplit.enabled ? '2D + 3D + Elevation' : actionStates.viewSplit.reasonIfDisabled}
-              disabled={!actionStates.viewSplit.enabled}
-            >
-              3-Pan
-            </button>
-            <button
-              type="button"
-              className={`${styles.modeBtn} ${viewMode === '3d' ? styles.modeBtnActive : ''}`}
-              onClick={() => setViewMode('3d')}
-            >
-              3D
-            </button>
-            <button
-              type="button"
-              className={`${styles.modeBtn} ${viewMode === 'elevation' ? styles.modeBtnActive : ''}`}
-              onClick={() => setViewMode('elevation')}
-              disabled={!actionStates.viewElevation.enabled}
-              title={actionStates.viewElevation.enabled ? 'Elevation bearbeiten' : actionStates.viewElevation.reasonIfDisabled}
-            >
-              ELV
-            </button>
-            <button
-              type="button"
-              className={`${styles.modeBtn} ${viewMode === 'section' ? styles.modeBtnActive : ''}`}
-              onClick={() => setViewMode('section')}
-              disabled={!actionStates.viewSection.enabled}
-              title={actionStates.viewSection.enabled ? 'Section bearbeiten' : actionStates.viewSection.reasonIfDisabled}
-            >
-              SEC
-            </button>
-          </div>
-          <span className={styles.editorModeBadge} title="Zentraler Editor-Modus">
-            Modus: {editorMode.modeLabel}
-          </span>
-          <label className={styles.visitorToggle}>
-            <input
-              type="checkbox"
-              checked={showVirtualVisitor}
-              onChange={(event) => setShowVirtualVisitor(event.target.checked)}
-            />
-            Besucher
-          </label>
-          <label className={styles.heightControl}>
-            Höhe {cameraHeightMm} mm
-            <input
-              type="range"
-              min={900}
-              max={2400}
-              step={10}
-              value={cameraHeightMm}
-              onChange={(event) => setCameraHeightMm(Number(event.target.value))}
-            />
-          </label>
-          <div className={styles.navigationWrapper} ref={navigationPanelRef}>
-            <button
-              type='button'
-              className={styles.btnSecondary}
-              onClick={() => setNavigationPanelOpen((prev) => !prev)}
-              disabled={!actionStates.panelNavigation.enabled}
-              title={actionStates.panelNavigation.reasonIfDisabled}
-            >
-              Navigation
-            </button>
-            {navigationPanelOpen && (
-              <NavigationSettingsPanel
-                settings={navigationSettings}
-                onChange={handleNavigationSettingsChange}
-              />
-            )}
-          </div>
-          <div className={styles.headerMenuWrapper} ref={toolboxMenuRef}>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={() => setToolboxMenuOpen((prev) => !prev)}
-            >
-              Toolboxen
-            </button>
-            {toolboxMenuOpen && (
-              <div className={`${styles.moreMenu} ${styles.headerMenu}`} aria-label="Toolbox-Menü">
-                <label className={styles.toolboxItem}><input type="checkbox" checked={leftSidebarVisible} onChange={(event) => setLeftSidebarVisible(event.target.checked)} /> Links</label>
-                <label className={styles.toolboxItem}><input type="checkbox" checked={rightSidebarVisible} onChange={(event) => setRightSidebarVisible(event.target.checked)} /> Rechts</label>
-                <label className={styles.toolboxItem}><input type="checkbox" checked={statusBarVisible} onChange={(event) => setStatusBarVisible(event.target.checked)} /> Statusleiste</label>
-                <label className={styles.toolboxItem}><input type="checkbox" checked={showAreasPanel} onChange={(event) => setShowAreasPanel(event.target.checked)} disabled={!actionStates.toggleAreasPanel.enabled} title={actionStates.toggleAreasPanel.reasonIfDisabled} /> Bereiche-Panel</label>
-                <label className={styles.toolboxItem}><input type="checkbox" checked={navigationPanelOpen} onChange={(event) => setNavigationPanelOpen(event.target.checked)} disabled={!actionStates.panelNavigation.enabled} title={actionStates.panelNavigation.reasonIfDisabled} /> Navigation</label>
-                <label className={styles.toolboxItem}><input type="checkbox" checked={cameraPresetPanelOpen} onChange={(event) => setCameraPresetPanelOpen(event.target.checked)} disabled={!actionStates.panelCamera.enabled} title={actionStates.panelCamera.reasonIfDisabled} /> Kamera</label>
-                <label className={styles.toolboxItem}><input type="checkbox" checked={screenshotPanelOpen} onChange={(event) => setScreenshotPanelOpen(event.target.checked)} disabled={!actionStates.panelCapture.enabled} title={actionStates.panelCapture.reasonIfDisabled} /> Capture</label>
-                <label className={styles.toolboxItem}><input type="checkbox" checked={renderEnvironmentPanelOpen} onChange={(event) => setRenderEnvironmentPanelOpen(event.target.checked)} disabled={!actionStates.panelRenderEnvironment.enabled} title={actionStates.panelRenderEnvironment.reasonIfDisabled} /> Render-Umgebung</label>
-                {actionStates.panelDaylight.visible !== false && <label className={styles.toolboxItem}><input type="checkbox" checked={daylightPanelOpen} onChange={(event) => setDaylightPanelOpen(event.target.checked)} disabled={!actionStates.panelDaylight.enabled} title={actionStates.panelDaylight.reasonIfDisabled} /> Tageslicht</label>}
-                {actionStates.panelMaterial.visible !== false && <label className={styles.toolboxItem}><input type="checkbox" checked={materialPanelOpen} onChange={(event) => setMaterialPanelOpen(event.target.checked)} disabled={!actionStates.panelMaterial.enabled} title={actionStates.panelMaterial.reasonIfDisabled} /> Materialien</label>}
-              </div>
-            )}
-          </div>
-          <div className={styles.cameraPresetWrapper} ref={cameraPresetPanelRef}>
-            <button
-              type='button'
-              className={styles.btnSecondary}
-              onClick={() => setCameraPresetPanelOpen((prev) => !prev)}
-              disabled={!actionStates.panelCamera.enabled}
-              title={actionStates.panelCamera.reasonIfDisabled}
-            >
-              Kamera
-            </button>
-            {cameraPresetPanelOpen && (
-              <CameraPresetPanel
-                presets={cameraPresets}
-                activePresetId={activeCameraPresetId}
-                loading={cameraPresetLoading}
-                saving={cameraPresetSaving}
-                cameraFovDeg={cameraFovDeg}
-                onSetCameraFovDeg={(next) => setCameraFovDeg(clampPresetFov(next))}
-                onSaveCurrentPreset={handleSaveCurrentCameraPreset}
-                onApplyPreset={handleApplyCameraPreset}
-                onDeletePreset={handleDeleteCameraPreset}
-                onSetDefaultPreset={handleSetDefaultCameraPreset}
-              />
-            )}
-          </div>
-          <div className={styles.screenshotWrapper} ref={screenshotPanelRef}>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={() => setScreenshotPanelOpen((prev) => !prev)}
-              disabled={!actionStates.panelCapture.enabled}
-              title={actionStates.panelCapture.reasonIfDisabled}
-            >
-              Capture
-            </button>
-            {screenshotPanelOpen && (
-              <div className={styles.screenshotPanel}>
-                <label className={styles.screenshotField}>
-                  Format
-                  <select
-                    value={screenshotOptions.format}
-                    onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
-                      ...screenshotOptions,
-                      format: event.target.value === 'jpeg' ? 'jpeg' : 'png',
-                    }))}
-                  >
-                    <option value="png">PNG</option>
-                    <option value="jpeg">JPEG</option>
-                  </select>
-                </label>
-
-                <label className={styles.screenshotField}>
-                  Breite (px)
-                  <input
-                    type="number"
-                    min={256}
-                    max={8192}
-                    value={screenshotOptions.width_px ?? ''}
-                    onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
-                      ...screenshotOptions,
-                      width_px: parseOptionalInt(event.target.value),
-                    }))}
-                    placeholder="auto"
-                  />
-                </label>
-
-                <label className={styles.screenshotField}>
-                  Hoehe (px)
-                  <input
-                    type="number"
-                    min={256}
-                    max={8192}
-                    value={screenshotOptions.height_px ?? ''}
-                    onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
-                      ...screenshotOptions,
-                      height_px: parseOptionalInt(event.target.value),
-                    }))}
-                    placeholder="auto"
-                  />
-                </label>
-
-                <label className={`${styles.screenshotField} ${styles.screenshotFieldFull}`}>
-                  Qualitaet: {Math.round(screenshotOptions.quality * 100)}%
-                  <input
-                    type="range"
-                    min={0.1}
-                    max={1}
-                    step={0.01}
-                    value={screenshotOptions.quality}
-                    onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
-                      ...screenshotOptions,
-                      quality: Number(event.target.value),
-                    }))}
-                  />
-                </label>
-
-                <label className={`${styles.screenshotField} ${styles.screenshotFieldFull}`}>
-                  <span>
-                    <input
-                      type="checkbox"
-                      checked={screenshotOptions.transparent_background}
-                      onChange={(event) => setScreenshotOptions(normalizeScreenshotOptions({
-                        ...screenshotOptions,
-                        transparent_background: event.target.checked,
-                      }))}
-                    />
-                    {' '}Transparenter Hintergrund
-                  </span>
-                </label>
-
-                <div className={styles.screenshotActions}>
-                  <button
-                    type="button"
-                    className={styles.btnPrimary}
-                    onClick={() => {
-                      void handleCaptureScreenshot()
-                    }}
-                    disabled={!actionStates.captureScreenshot.enabled}
-                    title={actionStates.captureScreenshot.reasonIfDisabled}
-                  >
-                    {screenshotBusy ? 'Screenshot...' : 'Screenshot'}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnSecondary}
-                    onClick={() => {
-                      void handleStartExport360()
-                    }}
-                    disabled={!actionStates.capture360.enabled}
-                    title={actionStates.capture360.reasonIfDisabled}
-                  >
-                    {export360Busy ? '360...' : '360 Export'}
-                  </button>
-                </div>
-                {export360Status && <div className={styles.screenshotMeta}>{export360Status}</div>}
-              </div>
-            )}
-          </div>
-          <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              aria-haspopup="true"
-              onClick={() => setMoreMenuOpen((prev) => !prev)}
-            >
-              Mehr ▾
-            </button>
-            {moreMenuOpen && (
-              <div className={styles.moreMenu} role="menu">
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); void handleAutoComplete() }}
-                  disabled={!actionStates.autoComplete.enabled}
-                  title={actionStates.autoComplete.enabled
-                    ? 'Arbeitsplatten, Sockel und Wangen automatisch generieren'
-                    : actionStates.autoComplete.reasonIfDisabled}
-                >
-                  {autoCompleteLoading ? 'Generiere…' : 'Auto vervollständigen'}
-                </button>
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); setIsPreviewPopoutOpen((prev) => !prev) }}
-                  disabled={!actionStates.previewPopout.enabled}
-                  title={actionStates.previewPopout.enabled
-                    ? '3D-Ansicht in separatem Fenster öffnen'
-                    : actionStates.previewPopout.reasonIfDisabled}
-                >
-                  {isPreviewPopoutOpen ? '3D-Fenster schließen' : '3D in Fenster'}
-                </button>
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/quote-lines`) }}
-                  disabled={!actionStates.navQuoteLines.enabled}
-                  title={actionStates.navQuoteLines.enabled ? 'Angebotspositionen oeffnen' : actionStates.navQuoteLines.reasonIfDisabled}
-                >
-                  Angebotspositionen
-                </button>
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/panorama-tours`) }}
-                  disabled={!actionStates.navPanoramaTours.enabled}
-                  title={actionStates.navPanoramaTours.enabled ? 'Panorama-Touren oeffnen' : actionStates.navPanoramaTours.reasonIfDisabled}
-                >
-                  Panorama-Touren
-                </button>
-                {actionStates.presentationMode.visible !== false && (
-                  <button
-                    role="menuitem"
-                    type="button"
-                    className={styles.moreMenuItem}
-                    onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/presentation?source=split-view`) }}
-                    disabled={!actionStates.presentationMode.enabled}
-                    title={actionStates.presentationMode.reasonIfDisabled}
-                  >
-                    Präsentationsmodus
-                  </button>
-                )}
-                {actionStates.panelDaylight.visible !== false && (
-                  <button
-                    role="menuitem"
-                    type="button"
-                    className={styles.moreMenuItem}
-                    onClick={() => { setMoreMenuOpen(false); setDaylightPanelOpen((prev) => !prev) }}
-                    disabled={!actionStates.panelDaylight.enabled}
-                    title={actionStates.panelDaylight.reasonIfDisabled}
-                  >
-                    {daylightPanelOpen ? 'Tageslichtpanel schließen' : 'Tageslichtpanel'}
-                  </button>
-                )}
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); setRenderEnvironmentPanelOpen((prev) => !prev) }}
-                  disabled={!actionStates.panelRenderEnvironment.enabled}
-                  title={actionStates.panelRenderEnvironment.reasonIfDisabled}
-                >
-                  {renderEnvironmentPanelOpen ? 'Render-Umgebung schließen' : 'Render-Umgebung'}
-                </button>
-                {actionStates.panelMaterial.visible !== false && (
-                  <button
-                    role="menuitem"
-                    type="button"
-                    className={styles.moreMenuItem}
-                    onClick={() => { setMoreMenuOpen(false); setMaterialPanelOpen((prev) => !prev) }}
-                    disabled={!actionStates.panelMaterial.enabled}
-                    title={actionStates.panelMaterial.reasonIfDisabled}
-                  >
-                    {materialPanelOpen ? 'Materialpanel schließen' : 'Materialpanel'}
-                  </button>
-                )}
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/specification-packages`) }}
-                  disabled={!actionStates.navSpecificationPackages.enabled}
-                  title={actionStates.navSpecificationPackages.enabled ? 'Werkstattpakete oeffnen' : actionStates.navSpecificationPackages.reasonIfDisabled}
-                >
-                  Werkstattpakete
-                </button>
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); navigate(`/projects/${id}/exports`) }}
-                  disabled={!actionStates.navViewerExports.enabled}
-                  title={actionStates.navViewerExports.enabled ? 'Viewer-Exports oeffnen' : actionStates.navViewerExports.reasonIfDisabled}
-                >
-                  Viewer-Exports
-                </button>
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); void handleGltfExport() }}
-                  disabled={!actionStates.gltfExport.enabled}
-                  title={actionStates.gltfExport.enabled ? 'Aktive Alternative als GLB exportieren' : actionStates.gltfExport.reasonIfDisabled}
-                >
-                  {gltfExportLoading ? 'GLB exportiere…' : 'GLB exportieren'}
-                </button>
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); void handleMarkAllDelivered() }}
-                  disabled={!actionStates.markAllDelivered.enabled}
-                  title={actionStates.markAllDelivered.enabled ? 'Alle Positionen als geliefert markieren' : actionStates.markAllDelivered.reasonIfDisabled}
-                >
-                  {bulkDeliveredLoading ? 'Markiere geliefert…' : 'Alles geliefert'}
-                </button>
-                <button
-                  role="menuitem"
-                  type="button"
-                  className={styles.moreMenuItem}
-                  onClick={() => { setMoreMenuOpen(false); setShowAreasPanel((prev) => !prev) }}
-                  disabled={!actionStates.toggleAreasPanel.enabled}
-                  title={actionStates.toggleAreasPanel.enabled ? 'Bereiche-Panel ein- oder ausblenden' : actionStates.toggleAreasPanel.reasonIfDisabled}
-                >
-                  {showAreasPanel ? 'Bereiche ausblenden' : 'Bereiche / Alternativen'}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
 
       <CadToolbox
         mode={editorMode.mode}
@@ -3566,6 +3137,32 @@ export function Editor() {
           onSheetChange={setActiveLayoutSheetId}
           showDaylightOptions={daylightEnabled}
         />
+      )}
+
+      {cameraPresetPanelOpen && (
+        <div className={styles.cameraDock}>
+          <CameraPresetPanel
+            presets={cameraPresets}
+            activePresetId={activeCameraPresetId}
+            loading={cameraPresetLoading}
+            saving={cameraPresetSaving}
+            cameraFovDeg={cameraFovDeg}
+            onSetCameraFovDeg={setCameraFovDeg}
+            onSaveCurrentPreset={handleSaveCurrentCameraPreset}
+            onApplyPreset={handleApplyCameraPreset}
+            onDeletePreset={handleDeleteCameraPreset}
+            onSetDefaultPreset={handleSetDefaultCameraPreset}
+          />
+        </div>
+      )}
+
+      {navigationPanelOpen && (
+        <div className={styles.navigationDock}>
+          <NavigationSettingsPanel
+            settings={navigationSettings}
+            onChange={handleNavigationSettingsChange}
+          />
+        </div>
       )}
 
       {renderEnvironmentPanelOpen && (

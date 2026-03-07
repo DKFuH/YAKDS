@@ -26,6 +26,11 @@ const useStyles = makeStyles({
       padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     },
   },
+  contentEditor: {
+    minHeight: 0,
+    padding: 0,
+    overflow: 'hidden',
+  },
 })
 
 export function AppShell() {
@@ -77,7 +82,7 @@ export function AppShell() {
     >
       <div className={styles.root}>
         <RibbonShell shellState={mergedShellState} editorBridgeState={editorBridgeState} kanbanBridgeState={kanbanBridgeState} />
-        <main className={styles.content}>
+        <main className={shellState.area === 'editor' ? styles.contentEditor : styles.content}>
           <Outlet />
         </main>
       </div>

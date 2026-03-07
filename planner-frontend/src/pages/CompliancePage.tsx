@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import {
-  Body1,
   Body1Strong,
   Button,
   Caption1,

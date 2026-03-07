@@ -2,6 +2,7 @@ import { createContext, useContext, type Dispatch, type ReactNode, type SetState
 import type { EditorActionStates } from '../../editor/actionStateResolver.js'
 import type { WorkflowStep } from '../../editor/workflowStateStore.js'
 import type { TenantPluginsResponse } from '../../api/tenantSettings.js'
+import type { PlannerViewMode } from '../../pages/plannerViewSettings.js'
 
 export interface AppShellEditorBridgeState {
   workflowStep: WorkflowStep
@@ -12,6 +13,16 @@ export interface AppShellEditorBridgeState {
   goToPreviousStep: () => void
   actionStates: EditorActionStates
   tenantPlugins: TenantPluginsResponse | null
+  /** Display info */
+  projectName: string
+  lockStateLabel: string | null
+  /** View mode control */
+  viewMode: PlannerViewMode
+  onSetViewMode: (mode: PlannerViewMode) => void
+  /** Panel toggles: navigation | camera | capture | renderEnvironment | daylight | material */
+  onTogglePanel: (panel: string) => void
+  /** Direct editor commands: screenshot | export360 | autoComplete | gltfExport | markDelivered */
+  onEditorCommand: (cmd: string) => void
 }
 
 interface AppShellEditorBridgeContextValue {

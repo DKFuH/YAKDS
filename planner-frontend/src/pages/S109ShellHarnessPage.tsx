@@ -69,6 +69,12 @@ export function S109ShellHarnessPage() {
       },
       actionStates,
       tenantPlugins: HARNESS_TENANT_PLUGINS,
+      projectName: 'Harness',
+      lockStateLabel: null,
+      viewMode: '2d',
+      onSetViewMode: () => { /* harness */ },
+      onTogglePanel: () => { /* harness */ },
+      onEditorCommand: () => { /* harness */ },
     })
 
     return () => {

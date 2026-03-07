@@ -52,6 +52,8 @@ export interface RibbonCommand {
   clipboardText?: string
   /** For kanban board actions */
   kanbanAction?: string
+  /** For editor view/panel actions: "view:2d", "panel:camera", etc. */
+  editorAction?: string
 }
 
 export interface RibbonGroup {
@@ -96,6 +98,8 @@ export interface RibbonStateInput {
   enabledPluginIds: string[]
   area: AppArea
   selectedKanbanProjectId: string | null
+  viewMode: string
+  openPanels: Record<string, boolean>
   /** The currently active primary tab (controlled externally) */
   activeTabId: RibbonTabId
 }
@@ -275,30 +279,31 @@ function buildCadTab(_editorMode: EditorMode): RibbonTab {
   }
 }
 
-function buildAnsichtTab(actionStates: EditorActionStates): RibbonTab {
+function buildAnsichtTab(actionStates: EditorActionStates, _viewMode: string, openPanels: Record<string, boolean>): RibbonTab {
+  function viewCmd(id: string, labelKey: string, mode: string, state: ResolvedActionState = { enabled: true, visible: true }): RibbonCommand {
+    return { id, labelKey, enabled: state.enabled, visible: state.visible !== false, reasonKey: state.reasonIfDisabled, editorAction: 'view:' + mode }
+  }
+
   const viewGroup = group('ansicht-view', 'ribbon.groups.view', [
-    enabledCmd('cmd-view-2d', 'ribbon.commands.view2d'),
-    cmd('cmd-view-split', 'ribbon.commands.viewSplit', actionStates.viewSplit),
-    enabledCmd('cmd-view-3d', 'ribbon.commands.view3d'),
-    cmd('cmd-view-elevation', 'ribbon.commands.viewElevation', actionStates.viewElevation),
-    cmd('cmd-view-section', 'ribbon.commands.viewSection', actionStates.viewSection),
+    viewCmd('cmd-view-2d', 'ribbon.commands.view2d', '2d'),
+    viewCmd('cmd-view-split', 'ribbon.commands.viewSplit', 'split', actionStates.viewSplit),
+    viewCmd('cmd-view-split3', 'ribbon.commands.viewSplit3', 'split3', actionStates.viewSplit),
+    viewCmd('cmd-view-3d', 'ribbon.commands.view3d', '3d'),
+    viewCmd('cmd-view-elevation', 'ribbon.commands.viewElevation', 'elevation', actionStates.viewElevation),
+    viewCmd('cmd-view-section', 'ribbon.commands.viewSection', 'section', actionStates.viewSection),
   ])
 
-  const visibilityGroup = group('ansicht-visibility', 'ribbon.groups.visibility', [
-    enabledCmd('cmd-visibility', 'ribbon.commands.visibility'),
-    enabledCmd('cmd-grid', 'ribbon.commands.grid'),
-  ])
-
-  const cameraGroup = group('ansicht-camera', 'ribbon.groups.cameraPresets', [
-    enabledCmd('cmd-camera-top', 'ribbon.commands.cameraTop'),
-    enabledCmd('cmd-camera-perspective', 'ribbon.commands.cameraPerspective'),
-    cmd('cmd-panel-camera', 'ribbon.commands.cameraPanel', actionStates.panelCamera),
+  const panelGroup = group('ansicht-panels', 'ribbon.groups.panels', [
+    { id: 'cmd-panel-navigation', labelKey: 'ribbon.commands.navigationPanel', enabled: actionStates.panelNavigation.enabled, visible: true, reasonKey: actionStates.panelNavigation.reasonIfDisabled, editorAction: 'panel:navigation' },
+    { id: 'cmd-panel-camera', labelKey: openPanels.camera ? 'ribbon.commands.cameraPanelClose' : 'ribbon.commands.cameraPanel', enabled: actionStates.panelCamera.enabled, visible: true, reasonKey: actionStates.panelCamera.reasonIfDisabled, editorAction: 'panel:camera' },
+    { id: 'cmd-panel-left', labelKey: 'ribbon.commands.toggleLeftSidebar', enabled: true, visible: true, editorAction: 'panel:leftSidebar' },
+    { id: 'cmd-panel-right', labelKey: 'ribbon.commands.toggleRightSidebar', enabled: true, visible: true, editorAction: 'panel:rightSidebar' },
   ])
 
   return {
     id: 'ansicht',
     labelKey: 'ribbon.tabs.ansicht',
-    groups: [viewGroup, visibilityGroup, cameraGroup].filter((g) => g.commands.length > 0),
+    groups: [viewGroup, panelGroup].filter((g) => g.commands.length > 0),
   }
 }
 
@@ -306,12 +311,13 @@ function buildRenderTab(actionStates: EditorActionStates, projectId: string | nu
   const screenshotGroup = group('render-screenshot', 'ribbon.groups.screenshot', [
     cmd('cmd-screenshot', 'ribbon.commands.screenshot', actionStates.captureScreenshot),
     cmd('cmd-360', 'ribbon.commands.capture360', actionStates.capture360),
-    cmd('cmd-panel-capture', 'ribbon.commands.capturePanel', actionStates.panelCapture),
+    { ...cmd('cmd-panel-capture', 'ribbon.commands.capturePanel', actionStates.panelCapture), editorAction: 'panel:capture' },
   ])
 
   const environmentGroup = group('render-environment', 'ribbon.groups.renderEnvironment', [
-    cmd('cmd-panel-render-env', 'ribbon.commands.renderEnvironmentPanel', actionStates.panelRenderEnvironment),
-    cmd('cmd-panel-daylight', 'ribbon.commands.daylightPanel', actionStates.panelDaylight),
+    { ...cmd('cmd-panel-render-env', 'ribbon.commands.renderEnvironmentPanel', actionStates.panelRenderEnvironment), editorAction: 'panel:renderEnvironment' },
+    { ...cmd('cmd-panel-daylight', 'ribbon.commands.daylightPanel', actionStates.panelDaylight), editorAction: 'panel:daylight' },
+    { ...cmd('cmd-panel-material', 'ribbon.commands.materialPanel', actionStates.panelMaterial), editorAction: 'panel:material' },
   ])
 
   const presentationGroup = group('render-presentation', 'ribbon.groups.presentation', [
@@ -635,6 +641,8 @@ export function resolveRibbonState(input: RibbonStateInput): RibbonState {
     enabledPluginIds,
     area,
     selectedKanbanProjectId,
+    viewMode,
+    openPanels,
     activeTabId,
   } = input
 
@@ -662,7 +670,7 @@ export function resolveRibbonState(input: RibbonStateInput): RibbonState {
     buildStartTab(actionStates, workflowStep),
     buildEinfuegenTab(projectId),
     buildCadTab(editorMode),
-    buildAnsichtTab(actionStates),
+    buildAnsichtTab(actionStates, viewMode, openPanels),
     buildRenderTab(actionStates, projectId),
     buildDatenTab(actionStates, backendEntries, projectId),
     buildPluginsTab(projectId, availablePlugins, enabledPluginIds, mcpActions),

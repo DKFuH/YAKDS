@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import {
   Badge,
   Body1,
@@ -128,13 +128,12 @@ const useStyles = makeStyles({
   documentList: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXS },
   documentCard: {
     borderRadius: tokens.borderRadiusMedium,
-    border: '1px solid',
-    borderColor: tokens.colorNeutralStroke1,
+    border: `1px solid ${tokens.colorNeutralStroke1}`,
     overflow: 'hidden',
     cursor: 'pointer',
-    '&:hover': { borderColor: tokens.colorBrandStroke1 },
+    '&:hover': { border: `1px solid ${tokens.colorBrandStroke1}` },
   },
-  documentCardActive: { borderColor: tokens.colorBrandStroke1, backgroundColor: tokens.colorBrandBackground2 },
+  documentCardActive: { border: `1px solid ${tokens.colorBrandStroke1}`, backgroundColor: tokens.colorBrandBackground2 },
   documentCardContent: { padding: tokens.spacingVerticalS + ' ' + tokens.spacingHorizontalM },
   documentActions: { display: 'flex', gap: tokens.spacingHorizontalS, flexWrap: 'wrap', marginTop: tokens.spacingVerticalXS },
   tagRow: { display: 'flex', flexWrap: 'wrap', gap: tokens.spacingHorizontalXS },
@@ -168,7 +167,6 @@ const useStyles = makeStyles({
 
 export function DocumentsPage() {
   const styles = useStyles()
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [projects, setProjects] = useState<Project[]>([])
   const [documents, setDocuments] = useState<ProjectDocument[]>([])

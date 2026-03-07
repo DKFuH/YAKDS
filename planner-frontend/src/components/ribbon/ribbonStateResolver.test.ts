@@ -39,6 +39,8 @@ function buildRibbonInput(overrides: Partial<RibbonStateInput> = {}): RibbonStat
     enabledPluginIds: [],
     area: 'editor',
     selectedKanbanProjectId: null,
+    viewMode: '2d',
+    openPanels: {},
     activeTabId: 'start',
     ...overrides,
   }

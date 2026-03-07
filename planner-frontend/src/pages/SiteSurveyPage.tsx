@@ -56,7 +56,7 @@ const useStyles = makeStyles({
     background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%',
     fontSize: tokens.fontSizeBase300,
   },
-  listItemActive: { background: tokens.colorBrandBackground2, borderColor: tokens.colorBrandStroke1 },
+  listItemActive: { background: tokens.colorBrandBackground2, border: `1px solid ${tokens.colorBrandStroke1}` },
   actionRow: { display: 'flex', gap: tokens.spacingHorizontalS, flexWrap: 'wrap', alignItems: 'center' },
   photoGrid: {
     display: 'grid',
@@ -130,7 +130,7 @@ export function SiteSurveyPage() {
   const [raumaufmassStatus, setRaumaufmassStatus] = useState<string | null>(null)
   const [egiFileName, setEgiFileName] = useState('')
   const [egiContent, setEgiContent] = useState<string | null>(null)
-  const [egiValidation, setEgiValidation] = useState<EgiParseResult | null>(null)
+  const [, setEgiValidation] = useState<EgiParseResult | null>(null)
   const [egiBusy, setEgiBusy] = useState(false)
   const [egiImportBusy, setEgiImportBusy] = useState(false)
   const [egiStatus, setEgiStatus] = useState<string | null>(null)

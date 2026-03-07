@@ -2,7 +2,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   font-family: var(--font-sans);
   background: var(--bg-light);
@@ -609,4 +609,22 @@
   overflow: hidden;
   display: flex;
   min-width: 0;
+}
+
+.cameraDock {
+  position: absolute;
+  top: 106px;
+  right: 360px;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  z-index: 70;
+}
+
+.navigationDock {
+  position: absolute;
+  top: 106px;
+  left: 16px;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  z-index: 70;
 }

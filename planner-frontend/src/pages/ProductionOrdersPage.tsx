@@ -36,9 +36,9 @@ const STATUS_NEXT: Partial<Record<ProductionOrderStatus, ProductionOrderStatus>>
   delivered: 'installed',
 }
 
-const STATUS_INTENT: Record<ProductionOrderStatus, 'informational' | 'warning' | 'success' | 'error'> = {
-  draft: 'informational',
-  confirmed: 'informational',
+const STATUS_INTENT: Record<ProductionOrderStatus, 'informative' | 'warning' | 'success' | 'error'> = {
+  draft: 'informative',
+  confirmed: 'informative',
   in_production: 'warning',
   ready: 'success',
   delivered: 'success',
@@ -91,7 +91,7 @@ const useStyles = makeStyles({
   },
   orderItemActive: {
     background: tokens.colorBrandBackground2,
-    borderColor: tokens.colorBrandStroke1,
+    border: `1px solid ${tokens.colorBrandStroke1}`,
   },
   statusDot: {
     width: '10px',
@@ -137,7 +137,7 @@ const useStyles = makeStyles({
   },
   freezeNotice: {
     background: tokens.colorPaletteLightTealBackground2,
-    border: `1px solid ${tokens.colorPaletteLightTealBorder1}`,
+    border: `1px solid ${tokens.colorPaletteLightGreenBorder1}`,
     borderRadius: tokens.borderRadiusMedium,
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     marginBottom: tokens.spacingVerticalM,
@@ -324,7 +324,7 @@ export function ProductionOrdersPage() {
               <div className={styles.metaGrid}>
                 <div className={styles.metaItem}>
                   <Caption1>Status</Caption1>
-                  <Badge appearance='tint' color={STATUS_INTENT[selectedOrder.status] === 'success' ? 'success' : STATUS_INTENT[selectedOrder.status] === 'warning' ? 'warning' : 'informational'}>
+                  <Badge appearance='tint' color={STATUS_INTENT[selectedOrder.status] === 'success' ? 'success' : STATUS_INTENT[selectedOrder.status] === 'warning' ? 'warning' : 'informative'}>
                     {STATUS_LABELS[selectedOrder.status]}
                   </Badge>
                 </div>

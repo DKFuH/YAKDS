@@ -21,7 +21,6 @@ import {
   Option,
   Select,
   Spinner,
-  Subtitle2,
   Title2,
   makeStyles,
   tokens,

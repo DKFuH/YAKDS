@@ -229,9 +229,9 @@ export function NestingPage() {
         <div className={styles.formGrid}>
           <Field label='Cutlist'>
             <Select value={selectedCutlistId} onChange={(_e, d) => setSelectedCutlistId(d.value)}>
-              <Option value=''>Bitte waehlen</Option>
+              <Option text='Bitte waehlen' value=''>Bitte waehlen</Option>
               {cutlists.map((cutlist) => (
-                <Option key={cutlist.id} value={cutlist.id}>
+                <Option key={cutlist.id} value={cutlist.id} text={new Date(cutlist.generated_at).toLocaleString('de-DE') + ' (' + (cutlist.summary?.total_parts ?? 0) + ' Teile)'}>
                   {new Date(cutlist.generated_at).toLocaleString('de-DE')} ({cutlist.summary?.total_parts ?? 0} Teile)
                 </Option>
               ))}

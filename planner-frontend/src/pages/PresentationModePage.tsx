@@ -87,7 +87,7 @@ const useStyles = makeStyles({
     background: tokens.colorNeutralBackground1, cursor: 'pointer', fontSize: tokens.fontSizeBase300,
   },
   presetBtnActive: {
-    borderColor: tokens.colorBrandStroke1, background: tokens.colorBrandBackground2,
+    border: `1px solid ${tokens.colorBrandStroke1}`, background: tokens.colorBrandBackground2,
     color: tokens.colorBrandForeground1,
   },
   captureGrid: {
@@ -403,7 +403,7 @@ export function PresentationModePage() {
               <Option value='split-view'>Split-View</Option>
               <Option value='manual-camera'>Freie Kamera</Option>
               {session.panorama_tours.map((tour) => (
-                <Option key={tour.id} value={`panorama:${tour.id}`}>Panorama: {tour.name}</Option>
+                <Option key={tour.id} value={`panorama:${tour.id}`} text={`Panorama: ${tour.name}`}>Panorama: {tour.name}</Option>
               ))}
             </Select>
           </Field>

@@ -1,4 +1,4 @@
-import { Body1Strong, Caption1, makeStyles, tokens } from '@fluentui/react-components'
+import { Body1Strong, Caption1, Subtitle2, makeStyles, tokens } from '@fluentui/react-components'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -61,6 +61,21 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalS,
     flexShrink: 0,
   },
+  projectTitle: {
+    flex: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: tokens.colorNeutralForeground2,
+  },
+  lockBadge: {
+    padding: `2px ${tokens.spacingHorizontalS}`,
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: tokens.colorStatusWarningBackground1,
+    color: tokens.colorStatusWarningForeground1,
+    fontSize: tokens.fontSizeBase100,
+    whiteSpace: 'nowrap',
+  },
 })
 
 export function RibbonShell({ shellState, editorBridgeState = null, kanbanBridgeState = null }: RibbonShellProps) {
@@ -70,6 +85,17 @@ export function RibbonShell({ shellState, editorBridgeState = null, kanbanBridge
 
   const tenantPlugins = editorBridgeState?.tenantPlugins ?? null
   const selectedKanbanProjectId = kanbanBridgeState?.selectedProjectId ?? null
+  const projectName = editorBridgeState?.projectName ?? null
+  const lockStateLabel = editorBridgeState?.lockStateLabel ?? null
+  const viewMode = editorBridgeState?.viewMode ?? '2d'
+  const openPanels = {
+    navigation: false,
+    camera: false,
+    capture: false,
+    renderEnvironment: false,
+    daylight: false,
+    material: false,
+  }
 
   const defaultTab: RibbonTabId = shellState.area === 'kanban' ? 'projekt' : 'start'
   const [activeTabId, setActiveTabId] = useState<RibbonTabId>(defaultTab)
@@ -117,6 +143,8 @@ export function RibbonShell({ shellState, editorBridgeState = null, kanbanBridge
         enabledPluginIds,
         area: shellState.area,
         selectedKanbanProjectId,
+        viewMode,
+        openPanels,
         activeTabId,
       }),
     [
@@ -129,6 +157,7 @@ export function RibbonShell({ shellState, editorBridgeState = null, kanbanBridge
       mcpActions,
       enabledPluginIds,
       selectedKanbanProjectId,
+      viewMode,
       activeTabId,
     ],
   )
@@ -170,6 +199,15 @@ export function RibbonShell({ shellState, editorBridgeState = null, kanbanBridge
         }
         return
       }
+      if (command.editorAction && editorBridgeState) {
+        const action = command.editorAction
+        if (action.startsWith('view:')) {
+          editorBridgeState.onSetViewMode(action.slice(5) as import('../../pages/plannerViewSettings.js').PlannerViewMode)
+        } else if (action.startsWith('panel:')) {
+          editorBridgeState.onTogglePanel(action.slice(6))
+        }
+        return
+      }
       if (command.kanbanAction && kanbanBridgeState && selectedKanbanProjectId) {
         const action = command.kanbanAction
         if (action === 'archive') {
@@ -188,7 +226,7 @@ export function RibbonShell({ shellState, editorBridgeState = null, kanbanBridge
         return
       }
     },
-    [shellState, navigate, kanbanBridgeState, selectedKanbanProjectId],
+    [shellState, navigate, kanbanBridgeState, selectedKanbanProjectId, editorBridgeState],
   )
 
   return (
@@ -200,6 +238,12 @@ export function RibbonShell({ shellState, editorBridgeState = null, kanbanBridge
           <Caption1 className={styles.brandTagline}>{t('shell.brandTagline')}</Caption1>
         </div>
 
+        {shellState.area === 'editor' && projectName && (
+          <Subtitle2 className={styles.projectTitle}>{projectName}</Subtitle2>
+        )}
+        {shellState.area === 'editor' && lockStateLabel && (
+          <span className={styles.lockBadge}>{lockStateLabel}</span>
+        )}
         <QuickAccessBar commands={ribbonState.quickAccess} onExecute={handleExecute} />
 
         <div className={styles.topBarRight}>
