@@ -68,6 +68,7 @@ import { specificationPackageRoutes } from './routes/specificationPackages.js'
 import { tenantSettingsRoutes } from './routes/tenantSettings.js'
 // Sprint 84 – Core-i18n
 import { localesRoutes } from './routes/locales.js'
+import { languagePackRoutes } from './routes/languagePacks.js'
 // Plugin-System
 import { getPlugins } from './plugins/pluginRegistry.js'
 import { bootstrapPlugins } from './plugins/index.js'
@@ -161,6 +162,7 @@ await app.register(specificationPackageRoutes, { prefix: '/api/v1' })
 await app.register(kitchenAssistantRoutes, { prefix: '/api/v1' })
 await app.register(tenantSettingsRoutes, { prefix: '/api/v1' })
 await app.register(localesRoutes, { prefix: '/api/v1' })
+await app.register(languagePackRoutes, { prefix: '/api/v1' })
 await app.register(offlineSyncRoutes, { prefix: '/api/v1' })
 await app.register(levelsRoutes, { prefix: '/api/v1' })
 await app.register(visibilityRoutes, { prefix: '/api/v1' })

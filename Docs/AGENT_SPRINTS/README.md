@@ -1,6 +1,6 @@
 ﻿# AGENT_SPRINTS - Sprint Index
 
-Stand: 2026-03-06
+Stand: 2026-03-07
 
 ---
 
@@ -8,11 +8,11 @@ Stand: 2026-03-06
 
 - Sprints `S47` bis `S107`: `done`
 - Sprint `S108`: `done`
-- Zwischensprints `S108a` bis `S108f` (SH3D): `planned`
+- Zwischensprints `S108a` bis `S108f` (SH3D): `done`
 - Sprint `S109`: `done`
 - S109 Foundation: `S109-fluent2-ui-foundation.md` `done`
 - RC-Tag fuer S109: `rc-s109-ui-shell-hardening`
-- Sprint `S110`: `in_progress` (Full Fluent2 Migration + Ribbon-Menueband)
+- Sprint `S110`: `done` (Full Fluent2 Migration + Ribbon-Menueband)
 - Projektname in den Spezifikationen: `OKP`
 
 ---
@@ -83,11 +83,11 @@ Stand: 2026-03-06
 | 106 | `S106-kamera-fov-und-presets.md` | done |
 | 107 | `S107-skybox-hdri-renderumgebung.md` | done |
 | 108 | `S108-one-click-screenshot-und-360-export.md` | done |
-| 108a | `S108a-sh3d-snap-modifier-hardening.md` | planned |
-| 108b | `S108b-sh3d-mode-action-insert-orchestrierung.md` | planned |
-| 108c | `S108c-sh3d-preferences-persistenz.md` | planned |
-| 108d | `S108d-sh3d-wall-topologie-robustheit.md` | planned |
-| 108e | `S108e-sh3d-room-validation-autofix.md` | planned |
-| 108f | `S108f-sh3d-dimension-assist-und-multiview.md` | planned |
+| 108a | `S108a-sh3d-snap-modifier-hardening.md` | done |
+| 108b | `S108b-sh3d-mode-action-insert-orchestrierung.md` | done |
+| 108c | `S108c-sh3d-preferences-persistenz.md` | done |
+| 108d | `S108d-sh3d-wall-topologie-robustheit.md` | done |
+| 108e | `S108e-sh3d-room-validation-autofix.md` | done |
+| 108f | `S108f-sh3d-dimension-assist-und-multiview.md` | done |
 | 109 | `S109-ui-workflow-und-cad-toolbox.md` | done |
-| 110 | `S110-post-s109-hardening-und-ci-gates.md` | in_progress (Fluent2 + Ribbon) |
+| 110 | `S110-post-s109-hardening-und-ci-gates.md` | done |

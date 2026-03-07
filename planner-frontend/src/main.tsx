@@ -1,4 +1,5 @@
 import { Component, StrictMode, useEffect, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { FluentProvider } from '@fluentui/react-components'
@@ -43,6 +44,7 @@ const tischlerPluginFlag = (import.meta as unknown as { env?: Record<string, str
 const tischlerPluginEnabled = String(tischlerPluginFlag ?? 'true').toLowerCase() !== 'false'
 
 function TenantPluginRoute({ pluginId, children }: { pluginId: string; children: ReactNode }) {
+  const { t } = useTranslation()
   const [enabled, setEnabled] = useState<boolean | null>(null)
   const [errored, setErrored] = useState(false)
 
@@ -73,7 +75,7 @@ function TenantPluginRoute({ pluginId, children }: { pluginId: string; children:
   }
 
   if (enabled === null) {
-    return <div style={{ padding: 32, textAlign: 'center' }}>Lade Einstellungen…</div>
+    return <div style={{ padding: 32, textAlign: 'center' }}>{t('common.loading')}</div>
   }
 
   if (!enabled) {

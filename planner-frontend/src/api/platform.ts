@@ -1,9 +1,8 @@
 import { shouldUseDemoFallback } from './client.js'
+import { getRuntimeTenantId } from './runtimeContext.js'
 import { listContacts, listProjects, searchGlobal as searchGlobalDemo } from './demoBackend.js'
 
 const BASE_URL = '/api/v1'
-const TENANT_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001'
-
 export interface GlobalSearchResult {
   type: 'project' | 'contact' | 'document'
   id: string
@@ -22,7 +21,7 @@ export interface GlobalSearchResponse {
 async function fetchCsv(path: string): Promise<Blob> {
   const response = await fetch(`${BASE_URL}${path}`, {
     headers: {
-      'X-Tenant-Id': TENANT_ID_PLACEHOLDER,
+      'X-Tenant-Id': getRuntimeTenantId(),
     },
   })
 
@@ -73,7 +72,7 @@ export const platformApi = {
 
     try {
       const response = await fetch(`${BASE_URL}/search?${params.toString()}`, {
-        headers: { 'X-Tenant-Id': TENANT_ID_PLACEHOLDER },
+        headers: { 'X-Tenant-Id': getRuntimeTenantId() },
       })
       if (!response.ok) {
         throw new Error(await response.text())
