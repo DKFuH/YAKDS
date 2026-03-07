@@ -11,196 +11,152 @@
 <a name="english"></a>
 ## 🇬🇧 English: Project Overview
 
-OpenKitchenPlanner is a web-based planning platform specifically designed for carpentry workshops and kitchen studios. It combines room modeling, catalog-based CAD workflows, pricing, professional quote generation, and production export pipelines within a single monorepo.
+OpenKitchenPlanner is a web-based planning platform for carpentry workshops and kitchen studios. It combines room modeling, catalog-based CAD workflows, pricing, quote generation, and production export pipelines in a single monorepo — with a Fluent 2 ribbon UI and full MCP integration.
 
-### 🚀 Release Status
-* **Current Channel:** `v0.1.0-rc1` (2026-03-04)
-* **Stabilization Focus:** Sprint 98 (Core-path hardening, tenant-scope checks, regression cleanup).
-* **Verification:** Full build & test suite status: **Green**.
+### 🚀 Status
+* **Version:** `0.1.1` (2026-03-07)
+* **Build:** Green — 160 frontend tests, full tsc + vite build clean.
+* **UI:** Fluent 2 Ribbon Shell across all areas (Kanban, Editor, Settings).
+* **Backend:** Fastify REST API + PostgreSQL (Prisma).
 
 ### 🛠 Core Capabilities
-* **Modeling:** Advanced polygonal rooms with wall-based constraints, sloped ceilings, and curved walls.
-* **Business:** 9-step pricing engine, automatic Bill of Materials (BOM) calculation, and professional PDF quote generation with custom branding.
-* **Project Management:** Integrated Kanban boards, Gantt charts, Document Management (DMS), and tenant-aware CRM features.
-* **Production:** Automated cutlists, CNC nesting (DXF export), and internal production order management.
-* **Interoperability:** Support for IFC (BIM), DXF/DWG, SketchUp import, and GLTF/GLB exports for AR/VR applications.
-* **AI Integration:** Native **MCP (Model Context Protocol)** support for AI-assisted planning and automation.
+* **Modeling:** Polygonal rooms with wall constraints, sloped ceilings, curved walls, multi-floor support.
+* **Business:** Pricing engine, Bill of Materials (BOM), PDF quote generation with custom branding.
+* **Project Management:** Kanban board, Gantt timeline, Document Management (DMS), CRM contacts.
+* **Production:** Automated cutlists, CNC nesting (DXF export), production order management.
+* **Interoperability:** IFC (BIM), DXF/DWG, SketchUp import, GLTF/GLB export for AR/VR.
+* **AI Integration:** Native **MCP (Model Context Protocol)** support for AI-assisted planning.
 
-### 🏗 Roadmap Overview
-* **Phase 1: MVP (Sprints 0-19):** Basic geometry, catalog system, and initial pricing logic.
-* **Phase 2: Professionalization (Sprints 20-60):** Multi-tenancy, high-end room interactions, and floor plan tracing.
-* **Phase 3: Industry Excellence (Sprints 61-83):** Multi-floor support, staircase modeling, and room acoustics visualization.
-* **Phase 4: Refinement (Sprints 84-98):** Internationalization (i18n), CAD-standard navigation, and deep system stabilization.
+### 🏗 Development Phases
+* **Phase 1–4 (Sprints 0–98):** MVP → multi-tenancy → industry features → stabilization.
+* **Phase 5 (Sprints 99–110):** Workflow engine, masterdata sync, mobile client, Fluent 2 migration, Ribbon Shell.
 
 ---
 
-### 📦 Detailed Installation Guide (EN)
+### 📦 Installation (EN)
 
-#### 📋 Prerequisites
-* **Node.js:** version `20.x` or `22.x` (LTS)
-* **Package Manager:** `npm` version `10+`
-* **Docker:** Docker Desktop or Engine + Compose (for Option A)
-* **Database:** PostgreSQL `15+` (if not using Docker)
+#### Prerequisites
+* **Node.js:** `20.x` or `22.x` (LTS)
+* **npm:** `10+`
+* **Database:** PostgreSQL `15+`
 
-#### 🐳 Setup Option A: Docker (Recommended)
-The fastest way to get the API and Database running in an isolated environment.
+#### Option A: Docker
+```bash
+git clone https://github.com/DKFuH/OKP.git
+cd OKP
+docker-compose up -d --build
+docker-compose exec api npm run db:push
+npm install
+npm run dev --workspace planner-frontend
+```
 
-1.  **Clone & Enter:**
-    ```bash
-    git clone https://github.com/DKFuH/OKP.git
-    cd OKP
-    ```
-2.  **Spin up Services:**
-    ```bash
-    docker-compose up -d --build
-    ```
-3.  **Database Migration:**
-    ```bash
-    # Push the Prisma schema to the Docker-Postgres instance
-    docker-compose exec api npm run db:push
-    ```
-4.  **Start Frontend:**
-    The frontend runs locally for better development performance (HMR).
-    ```bash
-    npm install
-    npm run dev --workspace planner-frontend
-    ```
+#### Option B: Local (e.g. Laragon)
 
-#### 💻 Setup Option B: Native Local Development
-1.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
-2.  **Environment Configuration:**
-    Create a `.env` file in `planner-api/`:
-    ```dotenv
-    DATABASE_URL="postgresql://okp:okp_dev@localhost:5432/okp?schema=public"
-    PORT=3000
-    HOST=0.0.0.0
-    FRONTEND_URL=http://localhost:5173
-    ```
-3.  **Initialize Database:**
-    ```bash
-    npm run db:generate
-    npm run db:push --workspace planner-api
-    ```
-4.  **Run Development Servers:**
-    ```bash
-    # Terminal 1: API
-    npm run dev --workspace planner-api
-
-    # Terminal 2: Frontend
-    npm run dev --workspace planner-frontend
-    ```
+1. Create a PostgreSQL database, e.g. `okp` with user `okp` / password `okp_dev`.
+2. Create `planner-api/.env`:
+   ```dotenv
+   DATABASE_URL="postgresql://okp:okp_dev@localhost:5432/okp"
+   PORT=3000
+   HOST=0.0.0.0
+   FRONTEND_URL=http://localhost:5173
+   ```
+3. Run:
+   ```bash
+   npm install
+   npm run db:push --workspace planner-api
+   # Terminal 1
+   npm run dev --workspace planner-api
+   # Terminal 2
+   npm run dev --workspace planner-frontend
+   ```
+4. Open **http://localhost:5173**
 
 ---
 
 <a name="deutsch"></a>
 ## 🇩🇪 Deutsch: Projektübersicht
 
-OpenKitchenPlanner ist eine webbasierte Planungsplattform für Schreinereien und Küchenstudios. Es vereint Raumplanung, Katalog- und CAD-Workflows, Kalkulation, Angebotserstellung und Export-Pipelines in einem Monorepo.
+OpenKitchenPlanner ist eine webbasierte Planungsplattform für Schreinereien und Küchenstudios. Sie vereint Raumplanung, Katalog-CAD, Kalkulation, Angebotserstellung und Produktions-Export in einem Monorepo — mit Fluent 2 Ribbon-UI und vollständiger MCP-Integration.
 
-### 🚀 Release-Status
-* **Aktueller Kanal:** `v0.1.0-rc1` (04.03.2026)
-* **Stabilisierungsschwerpunkt:** Sprint 98 (Härtung der Kernpfade, Mandanten-Prüfungen, Bereinigung von Regressionen).
+### 🚀 Status
+* **Version:** `0.1.1` (07.03.2026)
+* **Build:** Grün — 160 Frontend-Tests, tsc + vite sauber.
+* **UI:** Fluent 2 Ribbon-Shell in allen Bereichen (Kanban, Editor, Einstellungen).
+* **Backend:** Fastify REST-API + PostgreSQL (Prisma).
 
 ### 🛠 Kernfunktionen
-* **Modellierung:** Polygonale Räume mit Wand-Constraints, Dachschrägen und gebogenen Wänden.
-* **Business:** 9-stufige Kalkulations-Engine, Stücklisten (BOM) und PDF-Angebotserstellung mit Firmenbranding.
-* **Projektmanagement:** Kanban-Boards, Gantt-Diagramme, Dokumentenmanagement (DMS) und mandantenfähiges CRM.
-* **Produktion:** Zuschnittlisten, CNC-Nesting (DXF-Export) und interne Produktionsaufträge.
-* **Interop:** IFC (BIM), DXF/DWG, SketchUp-Import und GLTF/GLB-Exporte für AR/VR.
-* **KI-Integration:** Volle MCP-Unterstützung (Model Context Protocol) für KI-gestützte Planung.
+* **Modellierung:** Polygonale Räume mit Wand-Constraints, Dachschrägen, gebogenen Wänden, Mehr-Ebenen.
+* **Business:** Kalkulations-Engine, Stücklisten (BOM), PDF-Angebote mit Firmenbranding.
+* **Projektmanagement:** Kanban-Board, Gantt-Timeline, Dokumentenmanagement (DMS), Kontakte/CRM.
+* **Produktion:** Zuschnittlisten, CNC-Nesting (DXF-Export), Produktionsaufträge.
+* **Interop:** IFC (BIM), DXF/DWG, SketchUp-Import, GLTF/GLB-Export für AR/VR.
+* **KI-Integration:** Native MCP-Unterstützung (Model Context Protocol) für KI-gestützte Planung.
 
 ---
 
-### 📦 Ausführliche Installationsanweisung (DE)
+### 📦 Installation (DE)
 
-#### 📋 Voraussetzungen
-* **Node.js:** Version `20.x` oder `22.x` (LTS)
-* **Package Manager:** `npm` Version `10+`
-* **Docker:** Docker Desktop oder Compose (für Option A)
-* **Datenbank:** PostgreSQL `15+` (falls Docker nicht genutzt wird)
+#### Voraussetzungen
+* **Node.js:** `20.x` oder `22.x` (LTS)
+* **npm:** `10+`
+* **Datenbank:** PostgreSQL `15+`
 
-#### 🐳 Setup Option A: Docker (Empfohlen)
-Der schnellste Weg für API und Datenbank in einer isolierten Umgebung.
+#### Option A: Docker
+```bash
+git clone https://github.com/DKFuH/OKP.git
+cd OKP
+docker-compose up -d --build
+docker-compose exec api npm run db:push
+npm install
+npm run dev --workspace planner-frontend
+```
 
-1.  **Repository klonen:**
-    ```bash
-    git clone https://github.com/DKFuH/OKP.git
-    cd OKP
-    ```
-2.  **Container starten:**
-    ```bash
-    docker-compose up -d --build
-    ```
-3.  **Datenbank-Migration:**
-    ```bash
-    docker-compose exec api npm run db:push
-    ```
-4.  **Frontend starten:**
-    ```bash
-    npm install
-    npm run dev --workspace planner-frontend
-    ```
+#### Option B: Lokal (z. B. Laragon)
 
-#### 💻 Setup Option B: Lokale native Entwicklung
-1.  **Abhängigkeiten installieren:**
-    ```bash
-    npm install
-    ```
-2.  **Datenbank-Konfiguration:**
-    Erstellen Sie eine `.env` Datei in `planner-api/`:
-    ```dotenv
-    DATABASE_URL="postgresql://okp:okp_dev@localhost:5432/okp?schema=public"
-    PORT=3000
-    HOST=0.0.0.0
-    FRONTEND_URL=http://localhost:5173
-    ```
-3.  **Prisma initialisieren:**
-    ```bash
-    npm run db:generate
-    npm run db:push --workspace planner-api
-    ```
-4.  **Server starten:**
-    ```bash
-    # Terminal 1: API starten
-    npm run dev --workspace planner-api
-
-    # Terminal 2: Frontend starten
-    npm run dev --workspace planner-frontend
-    ```
+1. PostgreSQL-Datenbank anlegen, z. B. `yakds` / User `yakds` / Passwort `yakds_dev` (oder `okp`/`okp_dev`/`okp`).
+2. `planner-api/.env` anlegen:
+   ```dotenv
+   DATABASE_URL="postgresql://yakds:yakds_dev@localhost:5432/yakds"
+   PORT=3000
+   HOST=0.0.0.0
+   FRONTEND_URL=http://localhost:5173
+   ```
+3. Starten:
+   ```bash
+   npm install
+   npm run db:push --workspace planner-api
+   # Terminal 1
+   npm run dev --workspace planner-api
+   # Terminal 2
+   npm run dev --workspace planner-frontend
+   ```
+4. **http://localhost:5173** öffnen
 
 ---
 
-## 📂 Monorepo Structure
+## 📂 Monorepo-Struktur
 
 ```text
 OKP/
-├── planner-frontend/      # React app (Konva/Three.js)
-├── planner-api/           # Fastify REST API & MCP Server
-├── shared-schemas/        # Shared domain types (Zod)
-├── interop-cad/           # DXF/DWG import & export
-├── interop-sketchup/      # SKP import
-└── Docs/                  # Architecture, Roadmap, Sprint Docs
+├── planner-frontend/      # React + Fluent 2 + Konva/Three.js
+├── planner-api/           # Fastify REST-API & MCP-Server
+├── shared-schemas/        # Gemeinsame Domain-Typen (Zod)
+├── interop-cad/           # DXF/DWG Import & Export
+├── interop-sketchup/      # SKP-Import
+└── Docs/                  # Architektur, Roadmap, Sprint-Docs
 ```
 
-## 🧪 Testing & Verification
+## 🧪 Tests
 
 ```bash
-# Full monorepo tests
+# Alle Tests
 npm test
 
-# Security-focused smoke suite
-npm run test --workspace planner-api -- src/routes/quotes.test.ts src/routes/tenantSettings.test.ts
+# Nur Frontend
+npm run test --workspace planner-frontend
 ```
 
-## ⚖️ License / Lizenz
+## ⚖️ Lizenz / License
 
 Copyright © 2026 Tischlermeister Daniel Klas.
 Licensed under the Apache License 2.0.
-## Contributing
-
-- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Ready starter tasks: [Docs/GOOD_FIRST_ISSUES.md](Docs/GOOD_FIRST_ISSUES.md)
-- Use the GitHub issue and PR templates in `.github/`
