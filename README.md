@@ -1,7 +1,7 @@
 # OpenKitchenPlanner (OKP)
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-v0.1.0--rc1-green.svg)]()
+[![Status](https://img.shields.io/badge/Status-v0.1.1-green.svg)]()
 [![Node](https://img.shields.io/badge/Node-v20%20%7C%20v22-green)](https://nodejs.org/)
 
 [English](#english) | [Deutsch](#deutsch)
