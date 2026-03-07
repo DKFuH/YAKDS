@@ -286,7 +286,7 @@ export async function documentRoutes(app: FastifyInstance) {
         eventType: 'document_uploaded',
         entityType: 'document',
         entityId: document.id,
-        recipientEmail: `alerts+${tenantId}@yakds.local`,
+        recipientEmail: `alerts+${tenantId}@okp.local`,
         subject: `Neues Projektdokument: ${document.filename}`,
         message: `Im Projekt ${document.project_id} wurde ein Dokument vom Typ ${document.type} hochgeladen.`,
         metadata: {
@@ -650,7 +650,7 @@ export async function documentRoutes(app: FastifyInstance) {
       eventType: 'document_deleted',
       entityType: 'document',
       entityId: existing.id,
-      recipientEmail: `alerts+${tenantId}@yakds.local`,
+      recipientEmail: `alerts+${tenantId}@okp.local`,
       subject: `Projektdokument gelöscht: ${existing.filename}`,
       message: `Im Projekt ${existing.project_id} wurde ein Dokument gelöscht.`,
       metadata: {

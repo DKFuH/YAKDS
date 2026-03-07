@@ -3780,7 +3780,7 @@ export function Editor() {
       {isPreviewPopoutOpen && (
         <PopoutWindow
           title={`${project.name} - 3D Preview`}
-          name={`yakds-preview-${project.id}`}
+          name={`okp-preview-${project.id}`}
           onClose={() => setIsPreviewPopoutOpen(false)}
         >
           <Preview3D

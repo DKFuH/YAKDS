@@ -299,7 +299,7 @@ export async function projectRoutes(app: FastifyInstance) {
       update: {},
       create: {
         id: user_id,
-        email: `${user_id}@yakds.local`,
+        email: `${user_id}@okp.local`,
         name: user_id,
         password_hash: '',
       },
@@ -534,7 +534,7 @@ export async function projectRoutes(app: FastifyInstance) {
         eventType: 'project_status_changed',
         entityType: 'project',
         entityId: project.id,
-        recipientEmail: `alerts+${project.tenant_id}@yakds.local`,
+        recipientEmail: `alerts+${project.tenant_id}@okp.local`,
         subject: `Projektstatus geändert: ${project.name}`,
         message: `Projekt ${project.name} wurde auf ${project.project_status} gesetzt.`,
         metadata: {

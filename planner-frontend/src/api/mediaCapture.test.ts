@@ -21,8 +21,8 @@ describe('mediaCaptureApi', () => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
       value: {
-        location: { origin: 'https://yakds.local' },
-        __YAKDS_RUNTIME_CONTEXT__: { tenantId: TENANT_ID },
+        location: { origin: 'https://okp.local' },
+        __OKP_RUNTIME_CONTEXT__: { tenantId: TENANT_ID },
       },
     })
   })
@@ -50,8 +50,8 @@ describe('mediaCaptureApi', () => {
       { 'X-Tenant-Id': TENANT_ID },
     )
 
-    expect(result.download_url).toBe('https://yakds.local/api/v1/projects/project-1/documents/doc-1/download')
-    expect(result.preview_url).toBe('https://yakds.local/api/v1/projects/project-1/documents/doc-1/download')
+    expect(result.download_url).toBe('https://okp.local/api/v1/projects/project-1/documents/doc-1/download')
+    expect(result.preview_url).toBe('https://okp.local/api/v1/projects/project-1/documents/doc-1/download')
   })
 
   it('createExport360 forwards payload with tenant header', async () => {
@@ -96,7 +96,7 @@ describe('mediaCaptureApi', () => {
       '/projects/project-1/export-360/job-1',
       { 'X-Tenant-Id': TENANT_ID },
     )
-    expect(status.preview_url).toBe('https://yakds.local/api/v1/projects/project-1/documents/doc-render/download')
-    expect(status.download_url).toBe('https://yakds.local/api/v1/projects/project-1/documents/doc-render/download')
+    expect(status.preview_url).toBe('https://okp.local/api/v1/projects/project-1/documents/doc-render/download')
+    expect(status.download_url).toBe('https://okp.local/api/v1/projects/project-1/documents/doc-render/download')
   })
 })

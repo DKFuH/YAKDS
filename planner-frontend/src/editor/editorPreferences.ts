@@ -11,8 +11,9 @@ export interface PersistedEditorSettings {
   minEdgeLengthMm?: number
 }
 
-const SETTINGS_STORAGE_KEY_V1 = 'yakds.polygonEditor.settings.v1'
-const SETTINGS_STORAGE_KEY_LEGACY = 'yakds.polygonEditor.settings'
+const SETTINGS_STORAGE_KEY_V1 = 'okp.polygonEditor.settings.v1'
+const SETTINGS_STORAGE_KEY_LEGACY_YAKDS_V1 = 'yakds.polygonEditor.settings.v1'
+const SETTINGS_STORAGE_KEY_LEGACY_YAKDS = 'yakds.polygonEditor.settings'
 
 function resolveStorage(storage?: StorageLike): StorageLike | null {
   if (storage) {
@@ -54,14 +55,21 @@ export function loadEditorSettings(storage?: StorageLike): PersistedEditorSettin
       return parseEditorSettings(v1Raw)
     }
 
-    const legacyRaw = resolvedStorage.getItem(SETTINGS_STORAGE_KEY_LEGACY)
-    if (!legacyRaw) {
+    const legacyRaw = resolvedStorage.getItem(SETTINGS_STORAGE_KEY_LEGACY_YAKDS_V1)
+    if (legacyRaw) {
+      const parsedLegacy = parseEditorSettings(legacyRaw)
+      resolvedStorage.setItem(SETTINGS_STORAGE_KEY_V1, JSON.stringify(parsedLegacy))
+      return parsedLegacy
+    }
+
+    const oldestLegacyRaw = resolvedStorage.getItem(SETTINGS_STORAGE_KEY_LEGACY_YAKDS)
+    if (!oldestLegacyRaw) {
       return {}
     }
 
-    const parsedLegacy = parseEditorSettings(legacyRaw)
-    resolvedStorage.setItem(SETTINGS_STORAGE_KEY_V1, JSON.stringify(parsedLegacy))
-    return parsedLegacy
+    const parsedOldest = parseEditorSettings(oldestLegacyRaw)
+    resolvedStorage.setItem(SETTINGS_STORAGE_KEY_V1, JSON.stringify(parsedOldest))
+    return parsedOldest
   } catch {
     return {}
   }

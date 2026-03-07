@@ -162,7 +162,7 @@ describe('exportRoutes', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    expect(response.headers['x-yakds-export-fallback']).toBe('dwg->dxf')
+    expect(response.headers['x-okp-export-fallback']).toBe('dwg->dxf')
     expect(response.headers['content-disposition']).toContain('kitchen-plan.dxf')
     expect(response.headers['content-type']).toContain('application/dxf')
     expect(response.body).toContain('OKP_WALLS')

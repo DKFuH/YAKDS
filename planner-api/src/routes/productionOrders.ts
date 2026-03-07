@@ -206,7 +206,7 @@ export async function productionOrderRoutes(app: FastifyInstance) {
         eventType: 'custom',
         entityType: 'production_order',
         entityId: order.id,
-        recipientEmail: `alerts+${order.tenant_id}@yakds.local`,
+        recipientEmail: `alerts+${order.tenant_id}@okp.local`,
         subject: `Produktionsauftrag-Status geändert`,
         message: `Produktionsauftrag ${order.id} wurde auf '${targetStatus}' gesetzt.${isFreezing ? ' Planung ist jetzt eingefroren.' : ''}`,
         metadata: { status: targetStatus, frozen: isFreezing },

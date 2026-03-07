@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import * as fc from 'fast-check';
 
 import { applyDiscount, calcLineNet, calculatePriceSummary } from '@planner-api/services/priceCalculator.js';
-import type { BOMLine, GlobalDiscountSettings } from '@yakds/shared-schemas';
+import type { BOMLine, GlobalDiscountSettings } from '@okp/shared-schemas';
 
 // ── Arbitraries ──────────────────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@ const TENANT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript((tenantId: string) => {
-    ;(window as Window & { __YAKDS_RUNTIME_CONTEXT__?: { tenantId?: string } }).__YAKDS_RUNTIME_CONTEXT__ = { tenantId }
+    ;(window as Window & { __OKP_RUNTIME_CONTEXT__?: { tenantId?: string } }).__OKP_RUNTIME_CONTEXT__ = { tenantId }
   }, TENANT_ID)
 
   await page.route('**/api/v1/language-packs**', async (route) => {

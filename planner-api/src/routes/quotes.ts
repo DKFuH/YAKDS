@@ -182,7 +182,7 @@ export async function quoteRoutes(app: FastifyInstance) {
         eventType: 'quote_created',
         entityType: 'quote',
         entityId: quote.id,
-        recipientEmail: `alerts+${project.tenant_id}@yakds.local`,
+        recipientEmail: `alerts+${project.tenant_id}@okp.local`,
         subject: `Neues Angebot: ${quote.quote_number}`,
         message: `Für Projekt ${project.name} wurde das Angebot ${quote.quote_number} erstellt.`,
         metadata: {

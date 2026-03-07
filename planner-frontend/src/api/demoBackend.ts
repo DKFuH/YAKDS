@@ -96,7 +96,7 @@ interface DemoStore {
   }>
 }
 
-const STORAGE_KEY = 'yakds-demo-store-v1'
+const STORAGE_KEY = 'okp-demo-store-v1'
 
 function now(): string {
   return new Date().toISOString()
@@ -284,7 +284,7 @@ function loadStore(): DemoStore {
 function saveStore(store: DemoStore): void {
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store))
-    window.localStorage.setItem('yakds-demo-mode', 'true')
+    window.localStorage.setItem('okp-demo-mode', 'true')
   }
 }
 
@@ -295,7 +295,7 @@ function updateStore(mutator: (store: DemoStore) => DemoStore): DemoStore {
 }
 
 export function isDemoModeEnabled(): boolean {
-  return typeof window !== 'undefined' && window.localStorage.getItem('yakds-demo-mode') === 'true'
+  return typeof window !== 'undefined' && window.localStorage.getItem('okp-demo-mode') === 'true'
 }
 
 export function listProjects(): Project[] {

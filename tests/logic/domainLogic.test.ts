@@ -1,5 +1,5 @@
 /**
- * Complete Logic Test Suite – YAKDS
+ * Complete Logic Test Suite – OKP
  *
  * Validates fachliche Invarianten und deterministisches Verhalten für die fünf
  * wichtigsten Domain-Flows:

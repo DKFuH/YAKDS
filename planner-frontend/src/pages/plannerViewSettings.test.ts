@@ -38,7 +38,7 @@ describe('plannerViewSettings', () => {
 
   it('loads a full valid setting payload', () => {
     const storage = new MemoryStorage()
-    storage.setItem('yakds:planner-view:p-2', JSON.stringify({
+    storage.setItem('okp:planner-view:p-2', JSON.stringify({
       mode: 'split',
       split_ratio: 61,
       visitor_visible: false,
@@ -60,7 +60,7 @@ describe('plannerViewSettings', () => {
 
   it('applies defaults for missing fields', () => {
     const storage = new MemoryStorage()
-    storage.setItem('yakds:planner-view:p-3', JSON.stringify({ mode: '3d' }))
+    storage.setItem('okp:planner-view:p-3', JSON.stringify({ mode: '3d' }))
 
     expect(loadPlannerViewSettings('p-3', storage)).toEqual<PlannerViewSettings>({
       mode: '3d',
@@ -77,28 +77,28 @@ describe('plannerViewSettings', () => {
 
   it('keeps elevation mode when persisted', () => {
     const storage = new MemoryStorage()
-    storage.setItem('yakds:planner-view:p-7', JSON.stringify({ mode: 'elevation' }))
+    storage.setItem('okp:planner-view:p-7', JSON.stringify({ mode: 'elevation' }))
 
     expect(loadPlannerViewSettings('p-7', storage)?.mode).toBe('elevation')
   })
 
   it('keeps section mode when persisted', () => {
     const storage = new MemoryStorage()
-    storage.setItem('yakds:planner-view:p-8', JSON.stringify({ mode: 'section' }))
+    storage.setItem('okp:planner-view:p-8', JSON.stringify({ mode: 'section' }))
 
     expect(loadPlannerViewSettings('p-8', storage)?.mode).toBe('section')
   })
 
   it('normalizes invalid mode to 2d', () => {
     const storage = new MemoryStorage()
-    storage.setItem('yakds:planner-view:p-4', JSON.stringify({ mode: 'viewer3d' }))
+    storage.setItem('okp:planner-view:p-4', JSON.stringify({ mode: 'viewer3d' }))
 
     expect(loadPlannerViewSettings('p-4', storage)?.mode).toBe('2d')
   })
 
   it('clamps split ratio and camera height to safe bounds', () => {
     const storage = new MemoryStorage()
-    storage.setItem('yakds:planner-view:p-5', JSON.stringify({
+    storage.setItem('okp:planner-view:p-5', JSON.stringify({
       mode: 'split',
       split_ratio: 1,
       camera_height_mm: 4000,
@@ -119,7 +119,7 @@ describe('plannerViewSettings', () => {
 
   it('returns null for malformed JSON', () => {
     const storage = new MemoryStorage()
-    storage.setItem('yakds:planner-view:p-6', '{ broken json')
+    storage.setItem('okp:planner-view:p-6', '{ broken json')
 
     expect(loadPlannerViewSettings('p-6', storage)).toBeNull()
   })
@@ -140,6 +140,6 @@ describe('plannerViewSettings', () => {
 
     savePlannerViewSettings('abc', settings, storage)
 
-    expect(storage.getItem('yakds:planner-view:abc')).toBe(JSON.stringify(settings))
+    expect(storage.getItem('okp:planner-view:abc')).toBe(JSON.stringify(settings))
   })
 })

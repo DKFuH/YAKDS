@@ -1354,7 +1354,7 @@ Offline-Nutzung und leichtere Sharing-/Exportpfade erweitern.
 
 ## Phase 16 - Treppen, Levels & vertikale Projektlogik (Sprints 81-83)
 
-**Ziel:** YAKDS von der Ein-Ebenen-Planung zu echten Mehr-Ebenen-Projekten
+**Ziel:** OKP von der Ein-Ebenen-Planung zu echten Mehr-Ebenen-Projekten
 weiterentwickeln: Levels, Treppen, Deckenaussparungen, Vertikalschnitte und
 levelfaehige Layout-/Exportpfade.
 
@@ -1411,7 +1411,7 @@ levelfaehige Layout-/Exportpfade.
 
 ## Phase 17 - Internationalisierung & Sprachpakete (Sprints 84-86)
 
-**Ziel:** YAKDS bekommt echte Mehrsprachenfaehigkeit fuer UI, Tenant-Terminologie,
+**Ziel:** OKP bekommt echte Mehrsprachenfaehigkeit fuer UI, Tenant-Terminologie,
 Dokumente und Share-/Viewer-Pfade.
 
 **Leitidee:**
@@ -1555,7 +1555,7 @@ Sonderlogik in Core-Routen zu verteilen.
 
 ## Phase 21 - Produktstabilisierung vor weiterem Ausbau (Sprint 98)
 
-**Ziel:** Vor weiteren Ausbau-Sprints wird YAKDS wieder als durchgehend
+**Ziel:** Vor weiteren Ausbau-Sprints wird OKP wieder als durchgehend
 benutzbare Anwendung stabilisiert. Fokus ist nicht Feature-Breite, sondern ein
 sauber integrierter Produktkern.
 
@@ -1590,4 +1590,4 @@ sauber integrierter Produktkern.
 
 | Nach Sprint | Ergebnis |
 |-------------|----------|
-| 98 | YAKDS ist wieder als integrierte Anwendung beurteilbar statt nur als Sammlung einzelner Features |
+| 98 | OKP ist wieder als integrierte Anwendung beurteilbar statt nur als Sammlung einzelner Features |

@@ -38,7 +38,7 @@ Nicht in Scope:
 	- `planner-frontend/src/editor/editorPreferences.ts`
 	- zentrale `loadEditorSettings`/`saveEditorSettings` API
 - Migration unterstuetzt:
-	- legacy key `yakds.polygonEditor.settings` wird auf `yakds.polygonEditor.settings.v1` ueberfuehrt
+	- legacy key `yakds.polygonEditor.settings` wird auf `okp.polygonEditor.settings.v1` ueberfuehrt
 - Integration in `planner-frontend/src/editor/usePolygonEditor.ts`:
 	- Laden im Initial-State
 	- Speichern bei Settings-Aenderung

@@ -9,12 +9,12 @@ type DeferredSyncJob = {
 
 declare global {
   interface Window {
-    __yakdsOfflineBootstrapDone?: boolean
+    __okpOfflineBootstrapDone?: boolean
   }
 }
 
-const OFFLINE_QUEUE_STORAGE_KEY = 'yakds.offline-sync-queue.v1'
-const OFFLINE_BADGE_ID = 'yakds-offline-badge'
+const OFFLINE_QUEUE_STORAGE_KEY = 'okp.offline-sync-queue.v1'
+const OFFLINE_BADGE_ID = 'okp-offline-badge'
 
 function readQueue(): DeferredSyncJob[] {
   try {
@@ -209,8 +209,8 @@ function registerServiceWorker(): void {
 
 export function bootstrapOfflinePwa(): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return
-  if (window.__yakdsOfflineBootstrapDone) return
-  window.__yakdsOfflineBootstrapDone = true
+  if (window.__okpOfflineBootstrapDone) return
+  window.__okpOfflineBootstrapDone = true
 
   registerServiceWorker()
 

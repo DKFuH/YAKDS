@@ -139,7 +139,7 @@ function buildStepHeader(projectName: string): string[] {
     'ISO-10303-21;',
     'HEADER;',
     "FILE_DESCRIPTION(('ViewDefinition [CoordinationView_V2.0]'),'2;1');",
-    `FILE_NAME('${projectName}','${new Date().toISOString()}',('YAKDS'),('YAKDS'),'YAKDS IFC Engine','YAKDS','');`,
+    `FILE_NAME('${projectName}','${new Date().toISOString()}',('OKP'),('OKP'),'OKP IFC Engine','OKP','');`,
     "FILE_SCHEMA(('IFC4'));",
     'ENDSEC;',
     'DATA;',

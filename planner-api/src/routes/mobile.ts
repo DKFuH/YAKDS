@@ -309,7 +309,7 @@ export async function mobileRoutes(app: FastifyInstance) {
       eventType: 'custom',
       entityType: 'production_order',
       entityId: existing.id,
-      recipientEmail: `alerts+${tenantId}@yakds.local`,
+      recipientEmail: `alerts+${tenantId}@okp.local`,
       subject: 'Mobile step confirmed',
       message: `Production order ${existing.id} moved to ${body.data.to_status}`,
       metadata: {
@@ -368,7 +368,7 @@ export async function mobileRoutes(app: FastifyInstance) {
       eventType: 'custom',
       entityType: 'production_order_issue',
       entityId: order.id,
-      recipientEmail: `alerts+${tenantId}@yakds.local`,
+      recipientEmail: `alerts+${tenantId}@okp.local`,
       subject: 'Mobile issue reported',
       message: `Issue reported for production order ${order.id}`,
       metadata: {

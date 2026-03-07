@@ -15,7 +15,7 @@ export interface PlannerViewSettings extends NavigationSettings {
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>
 
 function settingsKey(projectId: string): string {
-  return `yakds:planner-view:${projectId}`
+  return `okp:planner-view:${projectId}`
 }
 
 export function clampNumber(value: number, min: number, max: number): number {

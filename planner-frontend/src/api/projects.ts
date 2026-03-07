@@ -61,7 +61,7 @@ export interface Room {
   updated_at: string
 }
 
-const RECENT_PROJECT_DETAILS_CACHE_KEY = 'yakds.recent-project-details.v1'
+const RECENT_PROJECT_DETAILS_CACHE_KEY = 'okp.recent-project-details.v1'
 const MAX_RECENT_PROJECT_DETAILS = 3
 
 type RecentProjectDetailsCache = ProjectDetail[]

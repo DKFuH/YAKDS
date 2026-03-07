@@ -2,22 +2,22 @@ const TENANT_HEADER = 'X-Tenant-Id'
 const USER_HEADER = 'X-User-Id'
 const TENANT_META_NAME = 'okp-tenant-id'
 const USER_META_NAME = 'okp-user-id'
-const TENANT_STORAGE_KEY = 'yakds:tenant-id'
-const USER_STORAGE_KEY = 'yakds:user-id'
+const TENANT_STORAGE_KEY = 'okp:tenant-id'
+const USER_STORAGE_KEY = 'okp:user-id'
 const TENANT_QUERY_PARAM = 'tenantId'
 const USER_QUERY_PARAM = 'userId'
 export const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001'
 export const DEFAULT_USER_ID = 'dev-user-id'
 const UUID_V4_OR_V1_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-export interface YakdsRuntimeContext {
+export interface OkpRuntimeContext {
   tenantId?: string
   userId?: string
 }
 
 declare global {
   interface Window {
-    __YAKDS_RUNTIME_CONTEXT__?: YakdsRuntimeContext
+    __OKP_RUNTIME_CONTEXT__?: OkpRuntimeContext
   }
 }
 
@@ -50,7 +50,7 @@ function normalizeUserId(value: unknown): string | null {
 export function getRuntimeTenantId(): string {
   if (typeof window === 'undefined') return DEFAULT_TENANT_ID
 
-  const fromRuntime = normalizeTenantId(window.__YAKDS_RUNTIME_CONTEXT__?.tenantId)
+  const fromRuntime = normalizeTenantId(window.__OKP_RUNTIME_CONTEXT__?.tenantId)
   if (fromRuntime) {
     return fromRuntime
   }
@@ -91,7 +91,7 @@ export function getRuntimeTenantId(): string {
 export function getRuntimeUserId(): string {
   if (typeof window === 'undefined') return DEFAULT_USER_ID
 
-  const fromRuntime = normalizeUserId(window.__YAKDS_RUNTIME_CONTEXT__?.userId)
+  const fromRuntime = normalizeUserId(window.__OKP_RUNTIME_CONTEXT__?.userId)
   if (fromRuntime) {
     return fromRuntime
   }

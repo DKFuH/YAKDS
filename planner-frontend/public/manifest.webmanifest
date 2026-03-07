@@ -1,7 +1,7 @@
 {
-  "name": "YAKDS Küchenplaner",
-  "short_name": "YAKDS",
-  "description": "YAKDS – Küchenplanung und Aufmaß, auch offline nutzbar.",
+  "name": "OKP Küchenplaner",
+  "short_name": "OKP",
+  "description": "OKP – Küchenplanung und Aufmaß, auch offline nutzbar.",
   "lang": "de",
   "start_url": "/",
   "scope": "/",

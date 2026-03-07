@@ -18,9 +18,6 @@
       "@okp/shared-schemas": [
         "shared-schemas/src/index.ts"
       ],
-      "@yakds/shared-schemas": [
-        "shared-schemas/src/index.ts"
-      ],
       "@okp/dxf-import": [
         "interop-cad/dxf-import/src/index.ts"
       ],

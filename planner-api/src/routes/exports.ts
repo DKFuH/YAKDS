@@ -119,12 +119,12 @@ async function assertProjectInTenantScope(reply: FastifyReply, tenantId: string,
 }
 
 function normalizeFilename(filename?: string): string {
-  const trimmed = filename?.trim() || 'yakds-export.dxf'
+  const trimmed = filename?.trim() || 'okp-export.dxf'
   return trimmed.toLowerCase().endsWith('.dxf') ? trimmed : `${trimmed}.dxf`
 }
 
 function normalizeDwgFilename(filename?: string): string {
-  const trimmed = filename?.trim() || 'yakds-export.dwg'
+  const trimmed = filename?.trim() || 'okp-export.dwg'
   return trimmed.toLowerCase().endsWith('.dwg') ? trimmed : `${trimmed}.dwg`
 }
 
@@ -212,7 +212,7 @@ export async function exportRoutes(app: FastifyInstance) {
     const requestedFilename = normalizeDwgFilename(parsed.data.filename)
     const fallbackFilename = requestedFilename.replace(/\.dwg$/i, '.dxf')
 
-    reply.header('x-yakds-export-fallback', 'dwg->dxf')
+    reply.header('x-okp-export-fallback', 'dwg->dxf')
     reply.header('content-disposition', `attachment; filename="${fallbackFilename}"`)
     reply.type('application/dxf; charset=utf-8')
     return reply.send(dxf)

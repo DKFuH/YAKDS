@@ -30,7 +30,7 @@ type E2eMediaMock = {
 
 declare global {
   interface Window {
-    __YAKDS_E2E_MEDIA_MOCK__?: E2eMediaMock
+    __OKP_E2E_MEDIA_MOCK__?: E2eMediaMock
   }
 }
 
@@ -99,7 +99,7 @@ export function CaptureDialogHarnessPage() {
       const normalizedOptions = normalizeScreenshotOptions(screenshotOptions)
       const capture = captureScreenshotFromRoot(captureRoot, '3d', normalizedOptions)
       const extension = normalizedOptions.format === 'jpeg' ? 'jpg' : 'png'
-      const mockScreenshot = window.__YAKDS_E2E_MEDIA_MOCK__?.screenshotResult
+      const mockScreenshot = window.__OKP_E2E_MEDIA_MOCK__?.screenshotResult
 
       if (mockScreenshot) {
         setScreenshotMessage(`Screenshot gespeichert: ${mockScreenshot.filename}`)
@@ -130,7 +130,7 @@ export function CaptureDialogHarnessPage() {
 
     try {
       const normalizedOptions = normalizeScreenshotOptions(screenshotOptions)
-      const mock = window.__YAKDS_E2E_MEDIA_MOCK__
+      const mock = window.__OKP_E2E_MEDIA_MOCK__
       const request = mock?.exportCreateResult
         ? mock.exportCreateResult
         : await mediaCaptureApi.createExport360(PROJECT_ID, {

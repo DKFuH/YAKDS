@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yakds-shell-v1'
+const CACHE_NAME = 'okp-shell-v1'
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/pwa-icon.svg']
 
 self.addEventListener('install', (event) => {

@@ -11,7 +11,7 @@ describe('runtimeContext', () => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
       value: {
-        __YAKDS_RUNTIME_CONTEXT__: {
+        __OKP_RUNTIME_CONTEXT__: {
           tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         },
       },
@@ -40,7 +40,7 @@ describe('runtimeContext', () => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
       value: {
-        __YAKDS_RUNTIME_CONTEXT__: { tenantId: 'invalid-tenant' },
+        __OKP_RUNTIME_CONTEXT__: { tenantId: 'invalid-tenant' },
       },
     })
 
@@ -58,7 +58,7 @@ describe('runtimeContext', () => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
       value: {
-        __YAKDS_RUNTIME_CONTEXT__: {
+        __OKP_RUNTIME_CONTEXT__: {
           tenantId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
         },
       },
@@ -89,7 +89,7 @@ describe('runtimeContext', () => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
       value: {
-        __YAKDS_RUNTIME_CONTEXT__: {
+        __OKP_RUNTIME_CONTEXT__: {
           userId: 'user-runtime-1',
         },
       },
@@ -129,7 +129,7 @@ describe('runtimeContext', () => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
       value: {
-        __YAKDS_RUNTIME_CONTEXT__: {
+        __OKP_RUNTIME_CONTEXT__: {
           tenantId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
           userId: 'user-auth-1',
         },

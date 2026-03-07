@@ -163,7 +163,7 @@ Verifikation:
 
 - Individuelle One-Off-Integrationen ohne Standardprofil
 - komplexe ETL-Pipelines fuer historische Massendaten
-- vollumfaengliche Finanzbuchhaltung innerhalb von YAKDS
+- vollumfaengliche Finanzbuchhaltung innerhalb von OKP
 
 ---
 

@@ -20,7 +20,7 @@ function createMemoryStorage(seed: Record<string, string> = {}) {
 describe('editorPreferences', () => {
   it('loads persisted v1 settings', () => {
     const storage = createMemoryStorage({
-      'yakds.polygonEditor.settings.v1': JSON.stringify({
+      'okp.polygonEditor.settings.v1': JSON.stringify({
         gridSizeMm: 125,
         angleSnap: false,
         angleStepDeg: 30,
@@ -36,7 +36,22 @@ describe('editorPreferences', () => {
     expect(loaded.magnetismEnabled).toBe(true)
   })
 
-  it('migrates legacy settings key into v1 key', () => {
+  it('migrates legacy YAKDS v1 key into new OKP v1 key', () => {
+    const storage = createMemoryStorage({
+      'yakds.polygonEditor.settings.v1': JSON.stringify({
+        gridSizeMm: 90,
+        lengthSnapStepMm: 25,
+      }),
+    })
+
+    const loaded = loadEditorSettings(storage)
+
+    expect(loaded.gridSizeMm).toBe(90)
+    expect(loaded.lengthSnapStepMm).toBe(25)
+    expect(storage.read('okp.polygonEditor.settings.v1')).toBe(JSON.stringify(loaded))
+  })
+
+  it('migrates oldest legacy YAKDS key into new OKP v1 key', () => {
     const storage = createMemoryStorage({
       'yakds.polygonEditor.settings': JSON.stringify({
         gridSizeMm: 90,
@@ -48,12 +63,12 @@ describe('editorPreferences', () => {
 
     expect(loaded.gridSizeMm).toBe(90)
     expect(loaded.lengthSnapStepMm).toBe(25)
-    expect(storage.read('yakds.polygonEditor.settings.v1')).toBe(JSON.stringify(loaded))
+    expect(storage.read('okp.polygonEditor.settings.v1')).toBe(JSON.stringify(loaded))
   })
 
   it('returns empty settings for malformed payloads', () => {
     const storage = createMemoryStorage({
-      'yakds.polygonEditor.settings.v1': '{bad-json}',
+      'okp.polygonEditor.settings.v1': '{bad-json}',
     })
 
     expect(loadEditorSettings(storage)).toEqual({})
@@ -71,7 +86,7 @@ describe('editorPreferences', () => {
       storage,
     )
 
-    const raw = storage.read('yakds.polygonEditor.settings.v1')
+    const raw = storage.read('okp.polygonEditor.settings.v1')
     expect(raw).not.toBeNull()
     expect(raw).toContain('"gridSizeMm":100')
     expect(raw).toContain('"lengthSnapStepMm":50')
