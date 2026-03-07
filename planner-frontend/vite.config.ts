@@ -56,10 +56,16 @@ function tsJsFallbackPlugin() {
 
 export default defineConfig({
   plugins: [react(), tsJsFallbackPlugin()],
+  optimizeDeps: {
+    // Pre-bundle at startup so Vite doesn't trigger mid-session re-optimization
+    // (which causes React null errors during HMR when new icon imports are added)
+    include: ['@fluentui/react-components', '@fluentui/react-icons'],
+  },
   resolve: {
     alias: {
       '@shared': resolve(__dirname, '../shared-schemas/src'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   server: {
     port: 5173,
