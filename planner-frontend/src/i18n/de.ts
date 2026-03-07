@@ -274,6 +274,11 @@ export const de = {
       noProjectSelected: 'Bitte zuerst ein Projekt auswählen',
     },
   },
+  editor: {
+    lockState: {
+      unknownUser: 'Unbekannt',
+    },
+  },
 }
 
 export type Messages = typeof de

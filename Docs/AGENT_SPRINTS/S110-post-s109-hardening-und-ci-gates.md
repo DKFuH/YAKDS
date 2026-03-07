@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-110-fluent2-ribbon-shell`
 **Gruppe:** C
-**Status:** `in_progress`
+**Status:** `done`
 **Abhaengigkeiten:** S109
 
 ## Ziel
@@ -235,3 +235,99 @@ Umgesetzt in dieser Runde:
 - Accessibility-Haertung (Keyboard-Navigation, ARIA-Labels verfeinern)
 - Performance-/Bundle-Analyse
 - AppHeader.tsx koennte bei Bedarf entfernt werden (derzeit noch vorhanden)
+
+---
+
+## Fortschritt (Bereich-basiertes Ribbon + Kanban-Navigation)
+
+Umgesetzt in dieser Runde:
+
+### AppArea-Erkennung
+
+- `appShellState.ts` erweitert:
+  - `AppArea`-Typ: `'kanban' | 'editor' | 'project-detail' | 'settings' | 'app'`
+  - `areaFromPathname(pathname)` leitet Bereich aus aktueller Route ab
+  - `area` in `AppShellState`-Interface + Rueckgabewert von `useAppShellState`
+
+### Kanban-Ribbon (Hauptseite `/`)
+
+- `ribbonStateResolver.ts` erweitert:
+  - `RibbonStateInput` erhaelt `area: AppArea`
+  - Neue Tab-Builder: `buildKanbanProjektTab`, `buildKanbanAendernTab`, `buildEinstellungenTab`, `buildHilfeTab`
+  - `resolveRibbonState` verzweigt nach `area`:
+    - `kanban`: Projekt, Aendern, Einstellungen, Hilfe (kein CAD-Kontext-Kram)
+    - alle anderen: bestehende Editor-Tabs
+
+- Kanban-Tab-Struktur:
+  - **Projekt**: Neues Projekt (`?new=1` → Dialog oeffnet sofort), Im Editor oeffnen, Dokumente, Archivieren, Loeschen
+  - **Aendern**: Status (Lead/Planung/Angebot/Auftrag/Produktion/Montage), Duplizieren, Kundendaten
+  - **Einstellungen**: Einstellungen, Plugins, Firmeneinstellungen
+  - **Hilfe**: Hilfe, Ueber OKP
+
+- `RibbonShell.tsx` angepasst:
+  - `useEffect` resettet aktiven Tab beim Bereichswechsel (`projekt` fuer Kanban, `start` fuer Editor)
+  - `area` wird an `resolveRibbonState` weitergegeben
+
+- `ProjectList.tsx` erweitert:
+  - `useSearchParams`-Hook: erkennt `?new=1` und oeffnet Neues-Projekt-Dialog automatisch
+  - URL wird danach sofort bereinigt (`replace: true`)
+
+### i18n
+
+- `de.ts` + `en.ts` je um ~30 Keys erweitert:
+  - Tabs: `projekt`, `aendern`, `einstellungen`, `hilfe`
+  - Gruppen: `newProject`, `projectActions`, `manage`, `status`, `projectChange`, `system`, `info`
+  - Commands: `newProject`, `openInEditor`, `archiveProject`, `deleteProject`, Status-Commands, `duplicateProject`, `customerData`, `companySettings`, `help`, `about`
+  - Reasons: `noProjectSelected`
+
+### Tests
+
+- `ribbonStateResolver.test.ts`: `area`-Pflichtfeld ergaenzt, 24 Tests gruen
+
+### Offen (naechste Runde)
+
+- KanbanBridge (aehnlich EditorBridge): gewaehltes Projekt ans Ribbon melden
+  → dann werden Archivieren/Loeschen/Status/Duplizieren im Ribbon aktiv
+- Editor-Seitenleisten (`LeftSidebar`, `RightSidebar`) -> Fluent-Migration (`.module.css` entfernen)
+- Editor aufraumen: seltene Panels als Drawer statt dauerhaft offen
+
+---
+
+## Fortschritt (Fixing Sprints FS-1 bis FS-6 abgeschlossen - 2026-03-07)
+
+Durchgefuehrt nach der Hauptimplementierung zur Haertung und Bereinigung:
+
+### FS-1: Stale .js-Artefakte geloescht
+
+- 198 veraltete pre-compiled `.js`-Dateien aus `planner-frontend/src/` entfernt
+- Vitest lud diese statt der `.ts`-Quellen → 18 Testfehler + aufgeblaehte Testzahl (307 statt 160)
+- Nach Loeschung: 160 Tests, alle gruen; `tsc --noEmit` clean
+
+### FS-2: AppHeader.tsx entfernt
+
+- `planner-frontend/src/components/layout/AppHeader.tsx` geloescht (via `git rm`)
+- Vollstaendig durch `RibbonShell.tsx` ersetzt; keine Imports mehr vorhanden
+
+### FS-3: KanbanBridge API-Calls (bestaetigt)
+
+- `onArchive`, `onDelete`, `onDuplicate`, `onStatusChange` in `ProjectList.tsx` bereits korrekt
+  mit `projectsApi.archive`, `projectsApi.delete`, `projectsApi.threeDots`, `projectsApi.updateStatus` verdrahtet
+- Kein Handlungsbedarf
+
+### FS-4: Kontext-Tabs Dynamik (bestaetigt)
+
+- `Wandtools`, `Oeffnung`, `Objekt`-Tabs in `ribbonStateResolver.ts` korrekt nach `workflowStep` / `editorMode` aktiviert
+- `workflowStep` fliesst via `workflowStateStore` → `appShellState` → `RibbonShell` → `resolveRibbonState`
+- Kein Handlungsbedarf
+
+### FS-5: Letzten hardcoded String auf i18n umgestellt
+
+- `Editor.tsx` LockState-Label enthielt `'Unbekannt'` (Fallback fuer unbekannten Sperr-User)
+- `useTranslation`-Hook in `Editor.tsx` ergaenzt
+- `'Unbekannt'` durch `t('editor.lockState.unknownUser')` ersetzt
+- `de.ts` + `en.ts` um `editor.lockState.unknownUser` erweitert
+
+### FS-6: Dokumentation aktualisiert
+
+- `STATUS.md` auf Stand 2026-03-07 gebracht
+- Sprint 110 als `done` markiert

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import type { SectionLine, Vertex } from '@shared/types'
 import { projectsApi, type ProjectDetail, type ProjectLockState } from '../api/projects.js'
@@ -329,6 +330,7 @@ function delay(ms: number) {
 }
 
 export function Editor() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const appShellBridge = useAppShellEditorBridge()
@@ -1342,7 +1344,7 @@ export function Editor() {
       tenantPlugins,
       projectName: project?.name ?? '',
       lockStateLabel: projectLockState?.locked
-        ? `🔒 ${projectLockState.locked_by_user ?? 'Unbekannt'}${projectLockState.locked_by_host ? ` @ ${projectLockState.locked_by_host}` : ''}${projectLockState.locked_at ? ` · ${new Date(projectLockState.locked_at).toLocaleString()}` : ''}`
+        ? `🔒 ${projectLockState.locked_by_user ?? t('editor.lockState.unknownUser')}${projectLockState.locked_by_host ? ` @ ${projectLockState.locked_by_host}` : ''}${projectLockState.locked_at ? ` · ${new Date(projectLockState.locked_at).toLocaleString()}` : ''}`
         : null,
       viewMode,
       onSetViewMode: setViewMode,

@@ -276,4 +276,9 @@ export const en: Messages = {
       noProjectSelected: 'Please select a project first',
     },
   },
+  editor: {
+    lockState: {
+      unknownUser: 'Unknown',
+    },
+  },
 }
