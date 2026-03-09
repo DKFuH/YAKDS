@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Sprint-Planung für MVP (Sprints 0–19), Phase 2 (Sprints 20–24), Phase 3 (Sprints 25–30), Phase 4 (Sprints 31–40), Phase 5 (Sprints 41–45), Phase 6 (Sprints 46–50), Phase 7 (Sprints 51–55), Phase 8 (Sprints 56–60) und Phase 9 (Infrastruktur & Integration) inkl. aktuellem Fortschritt. Stand: 2026-03-03.
+Sprint-Planung für MVP (Sprints 0–19), Phase 2 (Sprints 20–24), Phase 3 (Sprints 25–30), Phase 4 (Sprints 31–40), Phase 5 (Sprints 41–45), Phase 6 (Sprints 46–50), Phase 7 (Sprints 51–55), Phase 8 (Sprints 56–60) und Phase 9 (Infrastruktur & Integration) inkl. aktuellem Fortschritt. Stand: 2026-03-09.
 
 ---
 
@@ -1390,6 +1390,8 @@ levelfaehige Layout-/Exportpfade.
 | `viewer-export` | 80 | Exporte / Sharing | Export-Registry, Share-Tokens, Document-Pipeline |
 | `stairs` | 82 | Vertikale Geometrie | Level-Geometry-Hooks, 2D/3D-Extensions |
 | `multilevel-docs` | 83 | Layout / Export | Sheets, Sections, Export-Extensions |
+| `feng-shui` | 114 | Analyse / Feng Shui | FengShuiPage, Slot-Registry, API-Anbindung |
+| `raumakustik` | 116 | Analyse / Akustik | Editor-Guard, Slot-Registry, Plugin-Meta |
 
 ### Sprint-Metadaten
 
@@ -1591,3 +1593,116 @@ sauber integrierter Produktkern.
 | Nach Sprint | Ergebnis |
 |-------------|----------|
 | 98 | OKP ist wieder als integrierte Anwendung beurteilbar statt nur als Sammlung einzelner Features |
+
+---
+
+## Phase 22 - Fluent 2 UI-Migration (Sprints 109-110)
+
+**Ziel:** Die gesamte Anwendungs-UI auf das Fluent 2 Design-System migrieren
+und das Ribbon-Menueband als einzigen Navigations-Shell einfuehren.
+
+**Leitidee:**
+
+- einheitliches Design-Token-System (`makeStyles`, `tokens`)
+- Ribbon-Shell ersetzt AppHeader vollstaendig
+- alle Seiten frei von CSS-Modulen
+
+### Sprint-Uebersicht
+
+| Sprint | Status | Thema | Deliverables |
+|--------|--------|-------|--------------|
+| 109 | `done` | Fluent 2 UI Foundation | FluentProvider, AppShell, RibbonShell, AppHeader entfernt |
+| 110 | `done` | Fluent2-Vollmigration & Ribbon-Menueband | alle Seiten migriert, alle Ribbon-Bereiche verdrahtet, KanbanBridge & EditorBridge |
+
+### Fixing Sprints FS-1 bis FS-6
+
+Unmittelbar nach Sprint 110 durchgefuehrt:
+
+| Sprint | Status | Thema |
+|--------|--------|-------|
+| FS-1 | `done` | 198 veraltete `.js`-Artefakte geloescht, Testsuite normalisiert (160 Tests gruem) |
+| FS-2 | `done` | `AppHeader.tsx` vollstaendig entfernt |
+| FS-3 | `done` | KanbanBridge-Callbacks mit echten API-Calls bestaetigt |
+| FS-4 | `done` | Kontext-Tabs dynamisch ueber `workflowStep`/`editorMode` aktiviert bestaetigt |
+| FS-5 | `done` | Letzten hardcoded String (`'Unbekannt'`) auf i18n umgestellt |
+| FS-6 | `done` | Dokumentation aktualisiert |
+
+### Sprint-Metadaten
+
+| Sprint | Owner | ETA | Abhaengigkeiten | DoD-Kurzfassung |
+|--------|-------|-----|----------------|-----------------|
+| 109 | Frontend | Phase 22 | S84, S87 | FluentProvider aktiv, AppHeader entfernt, RibbonShell rendert in allen Areas |
+| 110 | Frontend | Phase 22 | S109 | Alle Seiten ohne CSS-Modul, Ribbon-Tabs greifen korrekt, 160 Tests gruen |
+
+### Meilenstein Phase 22
+
+| Nach Sprint | Ergebnis |
+|-------------|----------|
+| 109 | Anwendung hat einheitliche Fluent-2-Shell |
+| 110 | Kein CSS-Modul mehr im Pages-Verzeichnis; Ribbon-Navigation vollstaendig |
+
+---
+
+## Phase 23 - UI-Qualitaet & Plugin-Infrastruktur (Sprints 111-116)
+
+**Ziel:** Ribbon-Icons, Editor-UX, verbleibende CSS-Migrationen und das
+Plugin-System auf produktionsreifen Stand bringen. Alle 11 Backend-Plugins
+sind im Frontend vollstaendig verdrahtet.
+
+**Leitidee:**
+
+- Fluent-Icons konsistent auf allen Ribbon-Kommandos
+- Editor-Seitenleiste nach AutoCAD-Vorbild restrukturiert
+- Editor.tsx CSS-frei (makeStyles)
+- Neues Plugin: Feng Shui Analyse
+- Plugins-Seite als Rich-Card-UI
+- Plugin-Luecken (raumakustik, survey-import) geschlossen
+
+### Sprint-Uebersicht
+
+| Sprint | Status | Thema | Deliverables |
+|--------|--------|-------|--------------|
+| 111 | `done` | Fluent Icons – Ribbon-Kommandos | alle Ribbon-Commands mit Fluent-Icons, Microsoft-Best-Practice-Mapping |
+| 112 | `done` | Editor-Sidebar-Restruktur & Einfuegen-Menue | AutoCAD-artige Seitenleisten, Einfuegen-Menue mit Import-Eintraegen |
+| 113 | `done` | Editor.tsx CSS-Migration + Import-Handler | `Editor.module.css` -> `makeStyles`/`tokens` (36 Klassen); DXF/IFC/SketchUp-Handler |
+| 114 | `done` | Plugin `feng-shui`: Feng Shui Analyse | `FengShuiPage`, Route, i18n, Slot-Registry, API-Anbindung (`fengshuiApi`) |
+| 115 | `done` | Plugins-Seite ueberholt | Rich Cards, Switch, Kategorie-Gruppen, Active/Inaktiv-Badge, Unsaved-Banner |
+| 116 | `done` | Plugin-Luecken geschlossen | `raumakustik` & `survey-import` in Registry, Editor-Guard und Plugin-Meta |
+
+### Plugin-Matrix (vollstaendig)
+
+| Plugin-ID | Sprint | Bereich | Status |
+|-----------|--------|---------|--------|
+| `asset-library` | 75 | Katalog / Assets | `done` |
+| `presentation` | 76 | Rendering / Kundenmodus | `done` |
+| `daylight` | 77 | Umwelt / Tageslicht | `done` |
+| `materials` | 78 | Materialien / Texturen | `done` |
+| `survey-import` | 79/116 | Aufmass / Import | `done` |
+| `viewer-export` | 80 | Exporte / Sharing | `done` |
+| `stairs` | 82 | Vertikale Geometrie | `done` |
+| `multilevel-docs` | 83 | Layout / Export | `done` |
+| `tischler` | 97 | Produktion / Schnittliste | `done` |
+| `feng-shui` | 114 | Analyse / Feng Shui | `done` |
+| `raumakustik` | 116 | Analyse / Akustik | `done` |
+
+### Sprint-Metadaten
+
+| Sprint | Owner | ETA | Abhaengigkeiten | DoD-Kurzfassung |
+|--------|-------|-----|----------------|-----------------|
+| 111 | Frontend | Phase 23 | S110 | Alle Ribbon-Commands haben Fluent-Icons |
+| 112 | Frontend | Phase 23 | S110, S111 | Seitenleisten sind nach AutoCAD-Vorbild strukturiert |
+| 113 | Frontend | Phase 23 | S110, S112 | Editor.tsx ist frei von CSS-Modulen; Import-Handler sind verdrahtet |
+| 114 | Full-Stack | Phase 23 | S110, fengshui-API | Feng-Shui-Plugin ist vollstaendig routebar und API-verbunden |
+| 115 | Frontend | Phase 23 | S114 | Plugins-Seite zeigt Rich Cards mit Kategorie-Gruppen |
+| 116 | Full-Stack | Phase 23 | S114, S115 | Alle 11 Plugins sind lueckenlos in Frontend und Backend registriert |
+
+### Meilenstein Phase 23
+
+| Nach Sprint | Ergebnis |
+|-------------|----------|
+| 111 | Ribbon sieht professionell und konsistent mit Fluent-Design aus |
+| 112 | Editor-Workflow ist intuitiver und naeher an etablierten CAD-Konventionen |
+| 113 | Editor.tsx ist technisch schuldfrei (kein CSS-Modul, Handler verdrahtet) |
+| 114 | Kunden koennen Feng-Shui-Analysen mit Bagua-Zonen und Befunden durchfuehren |
+| 115 | Plugin-Aktivierung ist selbsterklaerend und professionell gestaltbar |
+| 116 | Kein Plugin existiert im Backend ohne Frontend-Entsprechung |
