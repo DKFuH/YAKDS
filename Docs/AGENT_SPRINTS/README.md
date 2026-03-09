@@ -13,8 +13,8 @@ Stand: 2026-03-09
 - S109 Foundation: `S109-fluent2-ui-foundation.md` `done`
 - RC-Tag fuer S109: `rc-s109-ui-shell-hardening`
 - Sprint `S110`: `done` (Full Fluent2 Migration + Ribbon-Menueband)
-- Sprint `S111`: `done` (CAD-Interop Provider-Schnitt, Phase 1)
-- Sprint `S112`: `in_progress` (CAD-Interop Ausbau und Provider-Plugin-System)
+- Sprint `S117`: `done` (CAD-Interop Provider-Schnitt, Phase 1)
+- Sprint `S118`: `in_progress` (CAD-Interop Ausbau und Provider-Plugin-System)
 - Projektname in den Spezifikationen: `OKP`
 
 ---
@@ -93,5 +93,5 @@ Stand: 2026-03-09
 | 108f | `S108f-sh3d-dimension-assist-und-multiview.md` | done |
 | 109 | `S109-ui-workflow-und-cad-toolbox.md` | done |
 | 110 | `S110-post-s109-hardening-und-ci-gates.md` | done |
-| 111 | `S111-cad-interop-provider-schnitt.md` | done |
-| 112 | `S112-cad-interop-ausbau-und-provider-plugin.md` | in_progress |
+| 117 | `S117-cad-interop-provider-schnitt.md` | done |
+| 118 | `S118-cad-interop-ausbau-und-provider-plugin.md` | in_progress |

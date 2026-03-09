@@ -1,13 +1,13 @@
-# Sprint 112 - CAD-Interop Ausbau und Provider-Plugin-System
+# Sprint 118 - CAD-Interop Ausbau und Provider-Plugin-System
 
-**Branch:** `feature/sprint-112-cad-provider-expansion`
+**Branch:** `feature/sprint-118-cad-provider-expansion`
 **Gruppe:** B
 **Status:** `in_progress`
-**Abhaengigkeiten:** S111
+**Abhaengigkeiten:** S117
 
 ## Ziel
 
-Nach dem Provider-Schnitt aus `S111` wird die CAD-/BIM-Interop zu einem ausbaubaren Subsystem weiterentwickelt.
+Nach dem Provider-Schnitt aus `S117` wird die CAD-/BIM-Interop zu einem ausbaubaren Subsystem weiterentwickelt.
 
 Dieser Sprint ist der grosse Ausbau-Sprint und umfasst:
 - neue Zielformate
@@ -25,7 +25,7 @@ Leitidee:
 
 Bereits umgesetzt:
 
-- plugin-faehige Interop-Registry auf Basis von `S111`
+- plugin-faehige Interop-Registry auf Basis von `S117`
 - erweiterte Capability- und Artifact-Deskriptoren
 - vereinheitlichte Interop-API fuer:
   - `GET /api/v1/interop/capabilities`
@@ -48,7 +48,7 @@ Noch offen:
 
 ## Hintergrund
 
-Nach `S111` existiert bereits ein einheitlicher Provider-Layer fuer:
+Nach `S117` existiert bereits ein einheitlicher Provider-Layer fuer:
 - `DXF`
 - `DWG`
 - `SKP`
@@ -223,7 +223,7 @@ Damit kann das Frontend sauber kommunizieren:
 
 ### Phase 1 - Provider-Plugin-System
 
-- Provider aus `S111` auf plugin-faehige Registrierung erweitern
+- Provider aus `S117` auf plugin-faehige Registrierung erweitern
 - `embedded` und `external` Provider im selben Registry-Modell fuehren
 - Konfiguration pro Deployment:
   - aktiviert
@@ -368,7 +368,7 @@ Bereits geliefert in diesem Stand:
 
 ## DoD
 
-- `S111`-Provider-Schnitt ist erweitert und produktiv tragfaehig
+- `S117`-Provider-Schnitt ist erweitert und produktiv tragfaehig
 - neue Artefakt- und Jobmodelle sind aktiv
 - mindestens ein neuer Nicht-Legacy-Provider ausserhalb des bisherigen Sets ist integriert
 - Frontend ist capability-getrieben fuer Interop

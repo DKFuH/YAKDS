@@ -71,18 +71,18 @@ Naechster Fokus: E2E-Tests fuer Ribbon-Navigation (Playwright), verbleibende CSS
 
 ## Interop-Stand 2026-03-09
 
-- `S111` ist abgeschlossen:
+- `S117` ist abgeschlossen:
   - Provider-Schnitt fuer `DXF`, `DWG`, `SKP`, `IFC`
   - Registry
   - Capability-Endpunkt
   - Route-Migration auf den Provider-Layer
-- `S112` ist in Arbeit:
+- `S118` ist in Arbeit:
   - plugin-faehige Registry aktiv
   - neue Export-Formate `STL`, `STEP`, `OBJ`, `3MF`
   - vereinheitlichte Interop-Jobs/Artefakte als API-Layer
   - persistente Export-Artefakte ueber `Document`
 
-Offen in `S112`:
+Offen in `S118`:
 
 - eigenes persistentes `interop_jobs`-/`interop_artifacts`-Modell
 - externe/native Worker-Bridge

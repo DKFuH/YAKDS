@@ -1,6 +1,6 @@
-# Sprint 111 - CAD-Interop Provider-Schnitt (Phase 1)
+# Sprint 117 - CAD-Interop Provider-Schnitt (Phase 1)
 
-**Branch:** `feature/sprint-111-cad-provider-phase1`
+**Branch:** `feature/sprint-117-cad-provider-phase1`
 **Gruppe:** B
 **Status:** `planned`
 **Abhaengigkeiten:** S52, S53, S80
@@ -252,4 +252,3 @@ export interface InteropProvider {
 - native `SKP`-Binary-Integration
 - `STEP`, `STL`, `IGES`
 - mandantenfaehiges Plugin-Deployment fuer proprietaere Provider
-

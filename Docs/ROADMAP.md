@@ -1801,11 +1801,11 @@ Parallel zur UI-/Plugin-Linie wurde die Interop-Architektur modernisiert.
 
 Aktueller Stand:
 
-- `S111` abgeschlossen:
+- `S117` abgeschlossen:
   - Provider-Schnitt fuer `DXF`, `DWG`, `SKP`, `IFC`
   - Registry und Capability-Modell
   - Import-/Export-Routen auf Provider delegiert
-- `S112` in Arbeit:
+- `S118` in Arbeit:
   - plugin-faehige Registry
   - vereinheitlichte Interop-Jobs/Artefakte als API-Layer
   - neue Export-Formate:
@@ -1815,7 +1815,7 @@ Aktueller Stand:
     - `3MF`
   - persistente Export-Dokumente inkl. Download-URLs
 
-Noch offen in `S112`:
+Noch offen in `S118`:
 
 - persistente `interop_jobs`-/`interop_artifacts`-Tabellen
 - externe/native Worker fuer schwere oder proprietaere Provider
