@@ -1596,7 +1596,93 @@ sauber integrierter Produktkern.
 
 ---
 
-## Phase 22 - Fluent 2 UI-Migration (Sprints 109-110)
+## Phase 22 - Workflow, Masterdaten & Plattform-Reife (Sprints 99-103)
+
+**Ziel:** Prozess-Automatisierung, Stammdaten-Synchronisation, Mobile-Zugriff,
+Reporting und ERP-Anbindung als Plattformschicht einfuehren.
+
+### Sprint-Uebersicht
+
+| Sprint | Status | Thema | Deliverables |
+|--------|--------|-------|--------------|
+| 99 | `done` | Workflow Engine (BPMN Light) | Workflow-Runtime, Prozessschritte, Events, Trigger |
+| 100 | `done` | Masterdaten Registry & Studio-Sync | Stammdaten-Repository, Sync-Jobs, Tenant-Overrides |
+| 101 | `done` | Mobile Status Client | Progressive-Web-App fuer Lead- und Produktionsstatus |
+| 102 | `done` | Process Reporting & Transparenz-Dashboards | Prozess-KPIs, Workflow-Tracking-Dashboard |
+| 103 | `done` | ERP Integration Hooks (DATEV & Drittsysteme) | Outbound-Hooks, DATEV-Mapping, Webhook-Registry |
+
+### Sprint-Metadaten
+
+| Sprint | Owner | ETA | Abhaengigkeiten | DoD-Kurzfassung |
+|--------|-------|-----|----------------|-----------------|
+| 99 | Full-Stack | Phase 22 | S94, S98 | Workflow-Runtime laeuft, Prozessschritte sind konfigurierbar |
+| 100 | Full-Stack | Phase 22 | S92, S99 | Stammdaten sind tenant-weit synchronisierbar |
+| 101 | Full-Stack | Phase 22 | S79, S99, S100 | Status-Updates sind mobil und offline verfuegbar |
+| 102 | Full-Stack | Phase 22 | S49, S99, S100 | Reporting-Dashboards zeigen Workflow-Fortschritt |
+| 103 | Full-Stack | Phase 22 | S48, S99, S100, S102 | DATEV-Export und Drittsystem-Hooks laufen produktiv |
+
+### Meilenstein Phase 22
+
+| Nach Sprint | Ergebnis |
+|-------------|----------|
+| 99 | Prozesse koennen automatisiert und nachvollziehbar gesteuert werden |
+| 100 | Stammdaten sind tenantweit konsistent und synchronisierbar |
+| 101 | Produktions- und Lead-Status sind mobil abrufbar |
+| 102 | Prozessfortschritt ist transparent und auswertbar |
+| 103 | OKP kann an externe ERP-Systeme und Buchaltung angebunden werden |
+
+---
+
+## Phase 23 - Editor-UX-Tiefe & Kern-Haertung (Sprints 104-108)
+
+**Ziel:** Den Editor auf professionelles CAD-Niveau bringen: Elevation/Section-Views,
+Dollhouse-Modus, Kamera-Presets, HDRI-Umgebungen, Screenshot-Export und eine
+vollstaendige Integration.
+
+### Sprint-Uebersicht
+
+| Sprint | Status | Thema | Deliverables |
+|--------|--------|-------|--------------|
+| 104 | `done` | Interaktive Elevation- & Section-View | Wandansichten, Schnittansichten, synchron mit 2D |
+| 105 | `done` | Automatische Wandtransparenz & Dollhouse | Kamerahoehen-Regel, Dollhouse-Ansicht, Sichtbarkeitsautomatik |
+| 106 | `done` | Kamera-FOV & gespeicherte Presets | FOV-Schieberegler, benannte Kamerapresets, Recall |
+| 107 | `done` | Skybox/HDRI-Renderumgebung | HDRI-Auswahl, Umgebungsvorschau, Licht-Preset-Integration |
+| 108 | `done` | One-click Screenshot & 360-Export | Ein-Klick-Screenshot, 360-Einzelbild-Export, Batch-Pipeline |
+
+### Zwischensprints S108a–S108f (Editor-Kern-Haertung)
+
+| Sprint | Status | Thema |
+|--------|--------|-------|
+| S108a | `done` | Snap & Modifier Hardening (Editor-Kern) |
+| S108b | `done` | Mode, Action & Insert-Orchestrierung (Editor-Kern) |
+| S108c | `done` | Preferences-Persistenz (Editor-Kern) |
+| S108d | `done` | Wall-Topologie-Robustheit (Editor-Kern) |
+| S108e | `done` | Room-Validation & Auto-Fix (Editor-Kern) |
+| S108f | `done` | Dimension Assist & Multi-View-Objekte (Editor-Kern) |
+
+### Sprint-Metadaten
+
+| Sprint | Owner | ETA | Abhaengigkeiten | DoD-Kurzfassung |
+|--------|-------|-----|----------------|-----------------|
+| 104 | Full-Stack | Phase 23 | S59, S64, S102 | Wandansichten sind interaktiv, korrekt bemaßt und editierbar |
+| 105 | Full-Stack | Phase 23 | S74, S77, S88 | Dollhouse-Modus schaltet Waende automatisch transparent |
+| 106 | Full-Stack | Phase 23 | S74, S87, S101 | Kamera-FOV ist einstellbar und Presets sind persistiert |
+| 107 | Full-Stack | Phase 23 | S76, S77, S78 | HDRI-Umgebungen sind auswaehlbar und beeinflussen das Rendering |
+| 108 | Full-Stack | Phase 23 | S69, S80, S107 | Screenshots und 360-Exports funktionieren mit einem Klick |
+
+### Meilenstein Phase 23
+
+| Nach Sprint | Ergebnis |
+|-------------|----------|
+| 104 | Planer koennen Raeume direkt in Wandansicht und Schnitt beurteilen |
+| 105 | 3D-Navigation fuehlt sich intuitiver und automatischer an |
+| 106 | Kamerasteuerung ist professionell und reproduzierbar |
+| 107 | Renderqualitaet ist realistischer durch echte Umgebungsbeleuchtung |
+| 108 | Exports fuer Kunden funktionieren ohne technisches Wissen |
+
+---
+
+## Phase 24 - Fluent 2 UI-Migration (Sprints 109-110)
 
 **Ziel:** Die gesamte Anwendungs-UI auf das Fluent 2 Design-System migrieren
 und das Ribbon-Menueband als einzigen Navigations-Shell einfuehren.
@@ -1631,8 +1717,8 @@ Unmittelbar nach Sprint 110 durchgefuehrt:
 
 | Sprint | Owner | ETA | Abhaengigkeiten | DoD-Kurzfassung |
 |--------|-------|-----|----------------|-----------------|
-| 109 | Frontend | Phase 22 | S84, S87 | FluentProvider aktiv, AppHeader entfernt, RibbonShell rendert in allen Areas |
-| 110 | Frontend | Phase 22 | S109 | Alle Seiten ohne CSS-Modul, Ribbon-Tabs greifen korrekt, 160 Tests gruen |
+| 109 | Frontend | Phase 24 | S84, S87 | FluentProvider aktiv, AppHeader entfernt, RibbonShell rendert in allen Areas |
+| 110 | Frontend | Phase 24 | S109 | Alle Seiten ohne CSS-Modul, Ribbon-Tabs greifen korrekt, 160 Tests gruen |
 
 ### Meilenstein Phase 22
 
@@ -1643,7 +1729,7 @@ Unmittelbar nach Sprint 110 durchgefuehrt:
 
 ---
 
-## Phase 23 - UI-Qualitaet & Plugin-Infrastruktur (Sprints 111-116)
+## Phase 25 - UI-Qualitaet & Plugin-Infrastruktur (Sprints 111-116)
 
 **Ziel:** Ribbon-Icons, Editor-UX, verbleibende CSS-Migrationen und das
 Plugin-System auf produktionsreifen Stand bringen. Alle 11 Backend-Plugins
@@ -1689,12 +1775,12 @@ sind im Frontend vollstaendig verdrahtet.
 
 | Sprint | Owner | ETA | Abhaengigkeiten | DoD-Kurzfassung |
 |--------|-------|-----|----------------|-----------------|
-| 111 | Frontend | Phase 23 | S110 | Alle Ribbon-Commands haben Fluent-Icons |
-| 112 | Frontend | Phase 23 | S110, S111 | Seitenleisten sind nach AutoCAD-Vorbild strukturiert |
-| 113 | Frontend | Phase 23 | S110, S112 | Editor.tsx ist frei von CSS-Modulen; Import-Handler sind verdrahtet |
-| 114 | Full-Stack | Phase 23 | S110, fengshui-API | Feng-Shui-Plugin ist vollstaendig routebar und API-verbunden |
-| 115 | Frontend | Phase 23 | S114 | Plugins-Seite zeigt Rich Cards mit Kategorie-Gruppen |
-| 116 | Full-Stack | Phase 23 | S114, S115 | Alle 11 Plugins sind lueckenlos in Frontend und Backend registriert |
+| 111 | Frontend | Phase 25 | S110 | Alle Ribbon-Commands haben Fluent-Icons |
+| 112 | Frontend | Phase 25 | S110, S111 | Seitenleisten sind nach AutoCAD-Vorbild strukturiert |
+| 113 | Frontend | Phase 25 | S110, S112 | Editor.tsx ist frei von CSS-Modulen; Import-Handler sind verdrahtet |
+| 114 | Full-Stack | Phase 25 | S110, fengshui-API | Feng-Shui-Plugin ist vollstaendig routebar und API-verbunden |
+| 115 | Frontend | Phase 25 | S114 | Plugins-Seite zeigt Rich Cards mit Kategorie-Gruppen |
+| 116 | Full-Stack | Phase 25 | S114, S115 | Alle 11 Plugins sind lueckenlos in Frontend und Backend registriert |
 
 ### Meilenstein Phase 23
 
