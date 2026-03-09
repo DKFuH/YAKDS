@@ -78,7 +78,7 @@ import { NavigationSettingsPanel } from '../components/editor/NavigationSettings
 import { useAppShellEditorBridge } from '../components/layout/AppShellEditorBridge.js'
 import { resolvePluginSlotEntries } from '../plugins/pluginSlotRegistry.js'
 import type { ProjectEnvironment, SunPreview } from '../plugins/daylight/index.js'
-import styles from './Editor.module.css'
+import { makeStyles, tokens } from '@fluentui/react-components'
 import {
   defaultsForNavigationProfile,
   resolveNavigationSettings,
@@ -330,7 +330,267 @@ function delay(ms: number) {
   })
 }
 
+
+const useStyles = makeStyles({
+  shell: {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    overflow: 'hidden',
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  center: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    color: tokens.colorNeutralForeground3,
+  },
+  bulkDeliveredSuccess: {
+    margin: '0.5rem 1rem 0',
+    padding: '0.5rem 0.75rem',
+    borderRadius: tokens.borderRadiusSmall,
+    fontSize: '0.8rem',
+    backgroundColor: tokens.colorPaletteGreenBackground1,
+    border: '1px solid ' + tokens.colorPaletteGreenBorder2,
+    color: tokens.colorPaletteGreenForeground1,
+  },
+  bulkDeliveredError: {
+    margin: '0.5rem 1rem 0',
+    padding: '0.5rem 0.75rem',
+    borderRadius: tokens.borderRadiusSmall,
+    fontSize: '0.8rem',
+    backgroundColor: tokens.colorPaletteRedBackground1,
+    border: '1px solid ' + tokens.colorPaletteRedBorder2,
+    color: tokens.colorPaletteRedForeground1,
+  },
+  shortcutFeedback: {
+    margin: '0.35rem 1rem 0',
+    padding: '0.45rem 0.75rem',
+    borderRadius: tokens.borderRadiusSmall,
+    fontSize: '0.8rem',
+    backgroundColor: tokens.colorPaletteYellowBackground1,
+    border: '1px solid ' + tokens.colorPaletteYellowBorder2,
+    color: tokens.colorPaletteYellowForeground2,
+  },
+  btnSecondary: {
+    ':disabled': {
+      opacity: '0.5',
+      cursor: 'not-allowed',
+    },
+  },
+  workspace: {
+    display: 'flex',
+    flex: '1',
+    overflow: 'hidden',
+  },
+  daylightDock: {
+    position: 'absolute',
+    top: '106px',
+    right: '16px',
+    width: '340px',
+    maxWidth: 'calc(100vw - 32px)',
+    zIndex: 70,
+  },
+  daylightDockShifted: {
+    top: '470px',
+  },
+  renderEnvironmentDock: {
+    position: 'absolute',
+    top: '106px',
+    right: '16px',
+    width: '340px',
+    maxWidth: 'calc(100vw - 32px)',
+    zIndex: 70,
+  },
+  materialDock: {
+    position: 'absolute',
+    top: '106px',
+    right: '16px',
+    width: '340px',
+    maxWidth: 'calc(100vw - 32px)',
+    zIndex: 70,
+  },
+  materialDockShifted: {
+    top: '470px',
+  },
+  materialDockShiftedDouble: {
+    top: '834px',
+  },
+  editorViewport: {
+    display: 'flex',
+    flex: '1',
+    minWidth: '0',
+  },
+  splitLayout: {
+    display: 'flex',
+    flex: '1',
+    minWidth: '0',
+  },
+  splitPane: {
+    display: 'flex',
+    minWidth: '0',
+    flex: '0 0 auto',
+  },
+  splitPanePrimary: {
+    flexBasis: 'var(--split-left)',
+  },
+  splitPaneSecondary: {
+    flexBasis: 'calc(100% - var(--split-left) - 8px)',
+  },
+  splitDivider: {
+    width: '8px',
+    cursor: 'col-resize',
+    flex: '0 0 8px',
+    backgroundImage: 'linear-gradient(to right, transparent 0, transparent 3px, ' + tokens.colorNeutralStroke1 + ' 3px, ' + tokens.colorNeutralStroke1 + ' 5px, transparent 5px, transparent 100%)',
+    ':hover': {
+      backgroundImage: 'linear-gradient(to right, transparent 0, transparent 2px, ' + tokens.colorBrandBackground + ' 2px, ' + tokens.colorBrandBackground + ' 6px, transparent 6px, transparent 100%)',
+    },
+  },
+  projectionPanel: {
+    display: 'flex',
+    flex: '1',
+    flexDirection: 'column',
+    gap: '0.75rem',
+    padding: '0.9rem',
+    overflow: 'auto',
+    backgroundColor: tokens.colorNeutralBackground3,
+  },
+  projectionHeader: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: '0.75rem',
+  },
+  projectionTitle: {
+    margin: '0',
+    fontSize: '1rem',
+    color: tokens.colorNeutralForeground1,
+  },
+  projectionField: {
+    display: 'inline-flex',
+    flexDirection: 'column',
+    gap: '0.25rem',
+    fontSize: '0.78rem',
+    color: tokens.colorNeutralForeground3,
+    '& input, & select': {
+      border: '1px solid ' + tokens.colorNeutralStroke1,
+      borderRadius: tokens.borderRadiusSmall,
+      backgroundColor: tokens.colorNeutralBackground1,
+      color: tokens.colorNeutralForeground1,
+      padding: '0.35rem 0.45rem',
+    },
+  },
+  projectionHint: {
+    margin: '0',
+    color: tokens.colorNeutralForeground3,
+    fontSize: '0.84rem',
+  },
+  projectionError: {
+    margin: '0',
+    color: tokens.colorPaletteRedForeground1,
+    fontSize: '0.84rem',
+  },
+  svgViewport: {
+    border: '1px solid ' + tokens.colorNeutralStroke1,
+    borderRadius: tokens.borderRadiusSmall,
+    backgroundColor: '#fff',
+    padding: '0.75rem',
+    minHeight: '220px',
+  },
+  projectionConfigGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: '0.55rem',
+  },
+  projectionToggles: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.85rem',
+    fontSize: '0.82rem',
+    color: tokens.colorNeutralForeground1,
+  },
+  projectionMeta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.75rem',
+    fontSize: '0.78rem',
+    color: tokens.colorNeutralForeground3,
+  },
+  projectionColumns: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: '0.8rem',
+    '& h4': {
+      margin: '0 0 0.35rem',
+      fontSize: '0.84rem',
+      color: tokens.colorNeutralForeground1,
+    },
+  },
+  projectionList: {
+    margin: '0',
+    paddingLeft: '1rem',
+    display: 'grid',
+    gap: '0.3rem',
+    fontSize: '0.78rem',
+    color: tokens.colorNeutralForeground3,
+    '& button': {
+      border: '1px solid ' + tokens.colorNeutralStroke1,
+      backgroundColor: tokens.colorNeutralBackground1,
+      color: tokens.colorNeutralForeground1,
+      borderRadius: tokens.borderRadiusSmall,
+      padding: '0.2rem 0.4rem',
+      cursor: 'pointer',
+    },
+  },
+  split3Layout: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gridTemplateRows: '1fr 1fr',
+    flex: '1',
+    minWidth: '0',
+    gap: '2px',
+    backgroundColor: '#1a1a1a',
+  },
+  split3Left: {
+    gridRow: '1 / 3',
+    overflow: 'hidden',
+    display: 'flex',
+    minWidth: '0',
+  },
+  split3TopRight: {
+    gridRow: '1 / 2',
+    overflow: 'hidden',
+    display: 'flex',
+    minWidth: '0',
+  },
+  split3BottomRight: {
+    gridRow: '2 / 3',
+    overflow: 'hidden',
+    display: 'flex',
+    minWidth: '0',
+  },
+  cameraDock: {
+    position: 'absolute',
+    top: '106px',
+    right: '360px',
+    width: '300px',
+    maxWidth: 'calc(100vw - 32px)',
+    zIndex: 70,
+  },
+  navigationDock: {
+    position: 'absolute',
+    top: '106px',
+    left: '16px',
+    width: '300px',
+    maxWidth: 'calc(100vw - 32px)',
+    zIndex: 70,
+  },
+})
+
 export function Editor() {
+  const styles = useStyles()
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -1330,6 +1590,19 @@ export function Editor() {
       setBulkDeliveredLoading(false)
     }
   }, [selectedAlternativeId])
+  const handleImportFile = useCallback((format: 'dxf' | 'ifc' | 'sketchup') => {
+    const labels: Record<string, string> = { dxf: 'DXF/DWG', ifc: 'IFC', sketchup: 'SketchUp' }
+    const accept: Record<string, string> = { dxf: '.dxf,.dwg', ifc: '.ifc', sketchup: '.skp' }
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = accept[format] ?? ''
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (!file) return
+      setShortcutFeedback(labels[format] + ': ' + file.name + ' (Import noch nicht implementiert)')
+    }
+    input.click()
+  }, [])
 
     useEffect(() => {
     if (!appShellBridge) {
@@ -1369,6 +1642,9 @@ export function Editor() {
         else if (cmd === 'cmd:autocomplete') void handleAutoComplete()
         else if (cmd === 'cmd:gltfExport') void handleGltfExport()
         else if (cmd === 'cmd:markDelivered') void handleMarkAllDelivered()
+        else if (cmd === 'cmd:importDxf') void handleImportFile('dxf')
+        else if (cmd === 'cmd:importIfc') void handleImportFile('ifc')
+        else if (cmd === 'cmd:importSketchup') void handleImportFile('sketchup')
       },
     })
   }, [
@@ -1378,6 +1654,7 @@ export function Editor() {
     handleAutoComplete,
     handleCaptureScreenshot,
     handleGltfExport,
+    handleImportFile,
     handleMarkAllDelivered,
     handleStartExport360,
     tenantPlugins,
