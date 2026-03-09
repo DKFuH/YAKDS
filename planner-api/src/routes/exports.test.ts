@@ -124,7 +124,7 @@ describe('exportRoutes', () => {
     await app.close()
   })
 
-  it('returns a clear staging error for native DWG exports by default', async () => {
+  it('returns a DWG download request as DXF-compatible CAD attachment', async () => {
     const app = Fastify()
     await app.register(tenantMiddleware)
     await app.register(exportRoutes, { prefix: '/api/v1' })
@@ -136,16 +136,16 @@ describe('exportRoutes', () => {
       payload: createPayload(),
     })
 
-    expect(response.statusCode).toBe(501)
-    expect(response.json()).toEqual({
-      error: 'DWG_EXPORT_NOT_AVAILABLE',
-      message: 'Native DWG export is not wired yet. Use /exports/dxf or set allow_dxf_fallback=true.',
-    })
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['x-okp-export-fallback']).toBe('dwg->dxf')
+    expect(response.headers['content-disposition']).toContain('kitchen-plan.dxf')
+    expect(response.headers['content-type']).toContain('application/dxf')
+    expect(response.body).toContain('ENTITIES')
 
     await app.close()
   })
 
-  it('can fall back from DWG export requests to DXF attachments when allowed', async () => {
+  it('returns DXF-compatible CAD attachment for project-scoped DWG exports', async () => {
     const app = Fastify()
     await app.register(tenantMiddleware)
     await app.register(exportRoutes, { prefix: '/api/v1' })
@@ -157,7 +157,6 @@ describe('exportRoutes', () => {
       payload: {
         ...createPayload(),
         filename: 'kitchen-plan.dwg',
-        allow_dxf_fallback: true,
       },
     })
 
@@ -165,7 +164,28 @@ describe('exportRoutes', () => {
     expect(response.headers['x-okp-export-fallback']).toBe('dwg->dxf')
     expect(response.headers['content-disposition']).toContain('kitchen-plan.dxf')
     expect(response.headers['content-type']).toContain('application/dxf')
-    expect(response.body).toContain('OKP_WALLS')
+    expect(response.body).toContain('ENTITIES')
+    expect(response.body).toContain('\nLINE\n')
+
+    await app.close()
+  })
+
+  it('returns a SketchUp Ruby import script for SKP exports', async () => {
+    const app = Fastify()
+    await app.register(tenantMiddleware)
+    await app.register(exportRoutes, { prefix: '/api/v1' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/exports/skp',
+      headers: { 'x-tenant-id': tenantId },
+      payload: createPayload(),
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['content-disposition']).toContain('kitchen-plan.skp.rb')
+    expect(response.headers['content-type']).toContain('application/ruby')
+    expect(response.body).toContain('Sketchup.active_model')
 
     await app.close()
   })

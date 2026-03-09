@@ -3,8 +3,9 @@ import { z } from 'zod'
 import type { ExportPayload } from '@okp/shared-schemas'
 import { exportToDxf } from '@okp/dxf-export'
 import { prisma } from '../db.js'
-
 import { sendBadRequest, sendForbidden, sendNotFound } from '../errors.js'
+import { buildDwgBuffer } from '../services/interop/dwgExport.js'
+import { buildSkpRubyScript } from '../services/interop/skpExport.js'
 
 type GltfBoundary = {
   wall_segments?: Array<{
@@ -128,6 +129,30 @@ function normalizeDwgFilename(filename?: string): string {
   return trimmed.toLowerCase().endsWith('.dwg') ? trimmed : `${trimmed}.dwg`
 }
 
+function normalizeSkpFilename(filename?: string): string {
+  const trimmed = filename?.trim() || 'okp-export.skp.rb'
+  if (trimmed.toLowerCase().endsWith('.skp.rb')) {
+    return trimmed
+  }
+  if (trimmed.toLowerCase().endsWith('.skp')) {
+    return `${trimmed}.rb`
+  }
+  if (trimmed.toLowerCase().endsWith('.rb')) {
+    return trimmed
+  }
+  return `${trimmed}.skp.rb`
+}
+
+function mapWallSegmentsForCad(payload: z.infer<typeof ExportRequestSchema>['payload']) {
+  return payload.wallSegments.map((segment) => ({
+    id: segment.id,
+    x0_mm: segment.start.x_mm,
+    y0_mm: segment.start.y_mm,
+    x1_mm: segment.end.x_mm,
+    y1_mm: segment.end.y_mm,
+  }))
+}
+
 export async function exportRoutes(app: FastifyInstance) {
   const dxfHandler = async (
     request: { body: unknown; params?: unknown; tenantId?: string | null },
@@ -201,27 +226,73 @@ export async function exportRoutes(app: FastifyInstance) {
       return reply
     }
 
-    if (!parsed.data.allow_dxf_fallback) {
-      return reply.status(501).send({
-        error: 'DWG_EXPORT_NOT_AVAILABLE',
-        message: 'Native DWG export is not wired yet. Use /exports/dxf or set allow_dxf_fallback=true.',
-      })
-    }
-
-    const dxf = exportToDxf(parsed.data.payload as ExportPayload)
+    const buffer = buildDwgBuffer({
+      projectName: parsed.data.filename?.trim() || `project-${projectId}`,
+      wall_segments: mapWallSegmentsForCad(parsed.data.payload),
+      placements: [],
+    })
     const requestedFilename = normalizeDwgFilename(parsed.data.filename)
     const fallbackFilename = requestedFilename.replace(/\.dwg$/i, '.dxf')
 
     reply.header('x-okp-export-fallback', 'dwg->dxf')
+    reply.header('x-okp-export-note', 'dwg endpoint currently returns ASCII DXF content for CAD compatibility')
     reply.header('content-disposition', `attachment; filename="${fallbackFilename}"`)
     reply.type('application/dxf; charset=utf-8')
-    return reply.send(dxf)
+    return reply.send(buffer)
+  }
+
+  const skpHandler = async (
+    request: { body: unknown; params?: unknown; tenantId?: string | null },
+    reply: FastifyReply,
+  ) => {
+    const tenantId = getTenantId(request)
+    if (!tenantId) {
+      return sendForbidden(reply, 'Tenant scope is required')
+    }
+
+    const parsed = ExportRequestSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return sendBadRequest(reply as never, parsed.error.errors[0].message)
+    }
+
+    const params = ExportProjectParamsSchema.safeParse(request.params)
+    const routeProjectId = params.success ? params.data.projectId : null
+    const bodyProjectId = parsed.data.project_id ?? null
+    const projectId = routeProjectId ?? bodyProjectId
+
+    if (!projectId) {
+      return sendBadRequest(reply as never, 'project_id is required for tenant-scoped exports.')
+    }
+
+    if (routeProjectId && bodyProjectId && routeProjectId !== bodyProjectId) {
+      return sendBadRequest(reply as never, 'project_id in payload must match route parameter.')
+    }
+
+    const project = await assertProjectInTenantScope(reply, tenantId, projectId)
+    if (!project) {
+      return reply
+    }
+
+    const script = buildSkpRubyScript({
+      projectName: parsed.data.filename?.trim() || `project-${projectId}`,
+      wall_segments: mapWallSegmentsForCad(parsed.data.payload),
+      placements: [],
+      ceiling_height_mm: 2600,
+    })
+    const filename = normalizeSkpFilename(parsed.data.filename)
+
+    reply.header('x-okp-export-note', 'skp endpoint returns a SketchUp Ruby import script')
+    reply.header('content-disposition', `attachment; filename="${filename}"`)
+    reply.type('application/ruby; charset=utf-8')
+    return reply.send(script)
   }
 
   app.post('/exports/dxf', dxfHandler)
   app.post('/projects/:projectId/export-dxf', dxfHandler)
   app.post('/exports/dwg', dwgHandler)
   app.post('/projects/:projectId/export-dwg', dwgHandler)
+  app.post('/exports/skp', skpHandler)
+  app.post('/projects/:projectId/export-skp', skpHandler)
 
   app.post<{ Params: { id: string } }>('/alternatives/:id/export/gltf', async (request, reply) => {
     const tenantId = getTenantId(request)

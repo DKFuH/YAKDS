@@ -98,6 +98,10 @@ function createSkpPayload() {
   ).toString('base64')
 }
 
+function createDwgPayload() {
+  return Buffer.from('AC1015stub-dwg-payload', 'ascii').toString('base64')
+}
+
 function createImportJob(overrides: Record<string, unknown> = {}) {
   return {
     id: importJobId,
@@ -277,7 +281,7 @@ describe('importRoutes', () => {
     await app.close()
   })
 
-  it('stores DWG uploads as reviewable import jobs', async () => {
+  it('parses DWG uploads into reviewable import jobs', async () => {
     const app = Fastify()
     await app.register(tenantMiddleware)
     await app.register(importRoutes, { prefix: '/api/v1' })
@@ -290,7 +294,7 @@ describe('importRoutes', () => {
         project_id: projectId,
         source_filename: 'room.dwg',
         source_format: 'dwg',
-        file_base64: Buffer.from('dwg-binary').toString('base64'),
+        file_base64: createDwgPayload(),
       },
     })
 
@@ -299,9 +303,13 @@ describe('importRoutes', () => {
     const body = response.json()
     expect(body.status).toBe('done')
     expect(body.source_format).toBe('dwg')
-    expect(body.import_asset.raw_upload_base64).toBe(Buffer.from('dwg-binary').toString('base64'))
+    expect(body.import_asset.raw_upload_base64).toBe(createDwgPayload())
+    expect(body.import_asset.wall_segments).toEqual([])
+    expect(body.import_asset.arc_entities_detected).toBe(0)
+    expect(body.import_asset.needs_review).toBe(true)
     expect(body.protocol[0]).toMatchObject({
       status: 'needs_review',
+      reason: expect.stringContaining('DWG'),
     })
     expect(registerProjectDocumentMock).toHaveBeenCalledWith(
       expect.objectContaining({

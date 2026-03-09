@@ -8,6 +8,7 @@ import type { CadLayer } from '@okp/shared-schemas'
 import { prisma } from '../db.js'
 import { sendBadRequest, sendForbidden, sendNotFound, sendServerError } from '../errors.js'
 import { registerProjectDocument } from '../services/documentRegistry.js'
+import { parseDwgBuffer } from '../services/interop/dwgImport.js'
 
 const LegacyImportJobSchema = z.object({
   project_id: z.string().uuid(),
@@ -857,12 +858,13 @@ export async function importRoutes(app: FastifyInstance) {
       let protocol: unknown
 
       if (sourceFormat === 'dwg') {
+        const parsedAsset = await parseDwgBuffer(sourceBuffer, parsed.data.source_filename)
         const dwgProtocol = [
-          {
+          ...parsedAsset.warnings.map((warning) => ({
             entity_id: null,
-            status: 'needs_review' as const,
-            reason: 'DWG upload stored, but binary DWG parsing is not wired yet.',
-          },
+            status: parsedAsset.needs_review ? ('needs_review' as const) : ('imported' as const),
+            reason: warning,
+          })),
           ...Object.entries(parsed.data.layer_mapping ?? {}).map(([layerName, entry]) => ({
             entity_id: null,
             status: entry.action,
@@ -878,6 +880,9 @@ export async function importRoutes(app: FastifyInstance) {
             dwgProtocol,
             parsed.data.file_base64,
           ),
+          wall_segments: parsedAsset.wall_segments,
+          arc_entities_detected: parsedAsset.arc_entities_detected,
+          needs_review: parsedAsset.needs_review,
           ...(parsed.data.layer_mapping
             ? {
               mapping_state: {
