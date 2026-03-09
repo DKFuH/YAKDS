@@ -16,6 +16,7 @@ uploads/
 .agent-sprint-queue/
 .agent-sprint-watch-state.json
 .agent-subagent-request-*.json
+.claude/
 planner-frontend/src/**/*.js
 planner-frontend/src/**/*.js.map
 shared-schemas/src/**/*.js
