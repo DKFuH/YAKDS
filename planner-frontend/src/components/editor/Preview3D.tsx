@@ -11,7 +11,7 @@ import {
   resolveRenderEnvironmentVisual,
   type RenderEnvironmentSettings,
 } from './renderEnvironmentState.js'
-import { createSceneRenderer, type RendererBackend } from './rendererCapabilities.js'
+import { createSceneRenderer, isOffscreenCanvasSupported, type RendererBackend } from './rendererCapabilities.js'
 import { makeStyles, tokens } from '@fluentui/react-components'
 
 const useStyles = makeStyles({
@@ -488,7 +488,10 @@ export function Preview3D({
 room, verticalConnections = [], cameraState = null, onCameraStateChange, sunlight = null, navigationSettings, autoDollhouseSettings = null, renderEnvironment = null, fovDeg = 55 }: Props) {
   const styles = useStyles();
 
+  const useOffscreenWorker = isOffscreenCanvasSupported()
   const rootRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const workerRef = useRef<Worker | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
@@ -988,7 +991,121 @@ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunligh
     }
   }, [geometryInput, navigationSettings, showReference])
 
+  // ── OffscreenCanvas worker path ──────────────────────────────────────────
   useEffect(() => {
+    if (!useOffscreenWorker || !canvasRef.current || !geometryInput) return
+
+    const canvas = canvasRef.current
+    setRendererBackend(null)
+    setRendererError(null)
+
+    // Transfer drawing control to the worker. Once transferred the main
+    // thread can no longer draw to the canvas — only the worker can.
+    const offscreen = canvas.transferControlToOffscreen()
+
+    const worker = new Worker(
+      new URL('../../workers/preview3DWorker.ts', import.meta.url),
+      { type: 'module' },
+    )
+    workerRef.current = worker
+
+    worker.onmessage = (e: MessageEvent) => {
+      const msg = e.data
+      if (msg.type === 'ready') setRendererBackend(msg.backend as RendererBackend)
+      if (msg.type === 'cameraChanged') onCameraStateChangeRef.current?.(msg.state)
+      if (msg.type === 'error') setRendererError(msg.message as string)
+    }
+
+    const rect = canvas.getBoundingClientRect()
+    worker.postMessage(
+      {
+        type: 'init',
+        canvas: offscreen,
+        width: canvas.clientWidth,
+        height: canvas.clientHeight,
+        pixelRatio: window.devicePixelRatio,
+        rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+        input: geometryInput,
+        navigationSettings,
+        showReference,
+        fov: fovRef.current,
+        sunlight,
+        renderEnvironment,
+        autoDollhouseSettings,
+        cameraState,
+      },
+      [offscreen],
+    )
+
+    // Forward pointer and wheel events from the DOM canvas to the worker.
+    // OrbitControls in the worker relies on these via the EventProxy.
+    const forwardPointer = (e: PointerEvent) => {
+      worker.postMessage({
+        type: 'event', eventKind: 'pointer', eventType: e.type,
+        clientX: e.clientX, clientY: e.clientY,
+        button: e.button, buttons: e.buttons,
+        pointerId: e.pointerId, pointerType: e.pointerType, isPrimary: e.isPrimary,
+        ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
+      })
+    }
+    const forwardWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      worker.postMessage({
+        type: 'event', eventKind: 'wheel', eventType: e.type,
+        clientX: e.clientX, clientY: e.clientY,
+        deltaX: e.deltaX, deltaY: e.deltaY, deltaZ: e.deltaZ, deltaMode: e.deltaMode,
+        ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
+      })
+    }
+    const forwardContext = (e: MouseEvent) => {
+      e.preventDefault()
+      worker.postMessage({
+        type: 'event', eventKind: 'context', eventType: e.type,
+        clientX: e.clientX, clientY: e.clientY,
+        button: e.button, buttons: e.buttons,
+        ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
+      })
+    }
+    // Document-level move/up so drag works outside the canvas element.
+    const forwardDocPointer = (e: PointerEvent) => forwardPointer(e)
+
+    canvas.addEventListener('pointerdown', forwardPointer)
+    canvas.addEventListener('wheel', forwardWheel, { passive: false })
+    canvas.addEventListener('contextmenu', forwardContext)
+    document.addEventListener('pointermove', forwardDocPointer)
+    document.addEventListener('pointerup', forwardDocPointer)
+
+    // Keep the canvas pixel size in sync with its CSS-layout size.
+    const resizeObserver = new ResizeObserver(() => {
+      const r = canvas.getBoundingClientRect()
+      worker.postMessage({
+        type: 'resize',
+        width: canvas.clientWidth,
+        height: canvas.clientHeight,
+        rect: { left: r.left, top: r.top, width: r.width, height: r.height },
+      })
+    })
+    resizeObserver.observe(canvas)
+
+    return () => {
+      canvas.removeEventListener('pointerdown', forwardPointer)
+      canvas.removeEventListener('wheel', forwardWheel)
+      canvas.removeEventListener('contextmenu', forwardContext)
+      document.removeEventListener('pointermove', forwardDocPointer)
+      document.removeEventListener('pointerup', forwardDocPointer)
+      resizeObserver.disconnect()
+      worker.postMessage({ type: 'dispose' })
+      worker.terminate()
+      workerRef.current = null
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geometryInput, navigationSettings, showReference, useOffscreenWorker])
+
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'setCameraState', state: cameraState })
+      return
+    }
     const next = cameraState
     const camera = cameraRef.current
     const controls = controlsRef.current
@@ -1010,6 +1127,10 @@ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunligh
   }, [cameraState])
 
   useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'setFov', fov: fovDeg })
+      return
+    }
     const camera = cameraRef.current
     if (!camera) {
       return
@@ -1020,6 +1141,10 @@ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunligh
   }, [fovDeg])
 
   useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'setSunlight', sunlight })
+      return
+    }
     const ambient = ambientLightRef.current
     const directional = directionalLightRef.current
     if (!ambient || !directional) return
@@ -1027,6 +1152,10 @@ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunligh
   }, [sunlight])
 
   useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'setRenderEnvironment', settings: renderEnvironment })
+      return
+    }
     const scene = sceneRef.current
     const hemisphere = environmentHemisphereRef.current
     const directional = environmentDirectionalRef.current
@@ -1040,6 +1169,10 @@ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunligh
   }, [renderEnvironment])
 
   useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'setNavigationSettings', settings: navigationSettings })
+      return
+    }
     const controls = controlsRef.current
     if (!controls) {
       return
@@ -1079,6 +1212,12 @@ room, verticalConnections = [], cameraState = null, onCameraStateChange, sunligh
       </header>
       {rendererError !== null ? (
         <div className={styles.empty}>{rendererError}</div>
+      ) : useOffscreenWorker ? (
+        <canvas
+          ref={canvasRef}
+          className={styles.canvas}
+          style={{ display: 'block', width: '100%', height: '100%' }}
+        />
       ) : (
         <div ref={rootRef} className={styles.canvas} />
       )}
