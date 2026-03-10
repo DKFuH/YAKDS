@@ -44,10 +44,8 @@ Leitidee:
 
 ### Noch offen
 
-**1. OffscreenCanvas Worker-Rendering** (Prio: mittel)
-  - `isOffscreenCanvasSupported()` ist vorbereitet, aber noch nicht verwendet
-  - Render-Loop in dediziertem Web Worker ausfuehren um Main-Thread zu entlasten
-  - Voraussetzung: Three.js `WebGPURenderer` + `OffscreenCanvas.transferControlToOffscreen()`
+**1. OffscreenCanvas Worker-Rendering** (Prio: mittel) → **umgesetzt in S120**
+  - `preview3DWorker.ts` implementiert; `Preview3D.tsx` nutzt Worker-Pfad wenn OffscreenCanvas verfuegbar
 
 **2. `renderer.init()` in `createSceneRenderer` verlagern** (Prio: niedrig, Cleanuparbeit)
   - aktuell muss der Aufrufer `await renderer.init()` manuell aufrufen nach `createSceneRenderer()`
