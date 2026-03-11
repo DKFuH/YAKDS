@@ -1,0 +1,22 @@
+FROM node:22-slim
+
+WORKDIR /app
+
+# Copy workspace manifests for layer caching.
+COPY package*.json ./
+COPY planner-frontend/package*.json ./planner-frontend/
+COPY shared-schemas/package*.json ./shared-schemas/
+
+RUN npm install --workspaces
+
+# Copy source code.
+COPY shared-schemas/ ./shared-schemas/
+COPY planner-frontend/ ./planner-frontend/
+
+# Build shared-schemas so the alias resolves at dev time.
+RUN npm run build --workspace=@okp/shared-schemas
+
+EXPOSE 5173
+
+# --host exposes Vite on 0.0.0.0 so Docker port-forwarding works.
+CMD ["npm", "run", "dev", "--workspace=planner-frontend", "--", "--host"]

@@ -49,8 +49,9 @@ type LanguagePackStore = {
   delete: (args: unknown) => Promise<Record<string, unknown>>
 }
 
-function getStore(): LanguagePackStore {
-  return (prisma as unknown as { languagePack: LanguagePackStore }).languagePack
+function getStore(): LanguagePackStore | null {
+  const candidate = (prisma as unknown as { languagePack?: LanguagePackStore }).languagePack
+  return candidate ?? null
 }
 
 function normalizeLocaleCode(code: string): string {
@@ -102,6 +103,20 @@ export async function languagePackRoutes(app: FastifyInstance) {
     }
 
     const store = getStore()
+    if (!store) {
+      if (parsed.data.resolved && parsed.data.locale_code) {
+        const localeCode = normalizeLocaleCode(parsed.data.locale_code)
+        const coreMessages = CoreMessagesByLocale[localeCode] ?? {}
+        return reply.send({
+          items: [],
+          locale_code: localeCode,
+          resolved_messages: coreMessages,
+        })
+      }
+
+      return reply.send([])
+    }
+
     const raw = await store.findMany({
       where,
       orderBy: [{ scope: 'asc' }, { name: 'asc' }],
@@ -145,6 +160,9 @@ export async function languagePackRoutes(app: FastifyInstance) {
     }
 
     const store = getStore()
+    if (!store) {
+      return sendNotFound(reply, 'Language packs are not available in this database schema')
+    }
     const created = await store.create({
       data: {
         tenant_id: tenantId,
@@ -171,6 +189,9 @@ export async function languagePackRoutes(app: FastifyInstance) {
     }
 
     const store = getStore()
+    if (!store) {
+      return sendNotFound(reply, 'Language packs are not available in this database schema')
+    }
     const existing = await store.findUnique({ where: { id: request.params.id } })
     if (!existing || !isPackOwnedByTenant(existing, tenantId)) {
       return sendNotFound(reply, 'Language pack not found')
@@ -195,6 +216,9 @@ export async function languagePackRoutes(app: FastifyInstance) {
     }
 
     const store = getStore()
+    if (!store) {
+      return sendNotFound(reply, 'Language packs are not available in this database schema')
+    }
     const existing = await store.findUnique({ where: { id: request.params.id } })
     if (!existing || !isPackOwnedByTenant(existing, tenantId)) {
       return sendNotFound(reply, 'Language pack not found')

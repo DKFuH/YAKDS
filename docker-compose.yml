@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: okp_dev
       POSTGRES_DB: okp
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,12 +26,37 @@ services:
       FRONTEND_URL: http://localhost:5173
       NODE_OPTIONS: --no-warnings
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes: []
     depends_on:
       postgres:
         condition: service_healthy
     command: npm run dev --workspace=planner-api
+
+  frontend:
+    build:
+      context: .
+      dockerfile: planner-frontend/Dockerfile.dev
+    environment:
+      # Vite dev-server proxy target: API is reachable as "api" inside Docker network.
+      VITE_API_TARGET: http://api:3000
+    ports:
+      - "5174:5173"
+    depends_on:
+      - api
+
+  # Production-style frontend (nginx + built bundle).
+  # Start with: docker compose up frontend-prod
+  frontend-prod:
+    build:
+      context: .
+      dockerfile: planner-frontend/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    profiles:
+      - prod
 
 volumes:
   postgres_data:
