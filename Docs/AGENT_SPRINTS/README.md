@@ -1,6 +1,6 @@
 ﻿# AGENT_SPRINTS - Sprint Index
 
-Stand: 2026-03-09
+Stand: 2026-03-11
 
 ---
 
@@ -15,7 +15,16 @@ Stand: 2026-03-09
 - Sprint `S110`: `done` (Full Fluent2 Migration + Ribbon-Menueband)
 - Sprint `S117`: `done` (CAD-Interop Provider-Schnitt, Phase 1)
 - Sprint `S118`: `in_progress` (CAD-Interop Ausbau und Provider-Plugin-System)
+- Sprint `S121`: `planned` (Tenant-Scope und Produktkern-Recovery)
+- Sprint `S122`: `planned` (Editor-Goldpfade und Room-Bootstrap)
+- Sprint `S123`: `planned` (Browser-CI-Gates und Shell-Regressionen)
 - Projektname in den Spezifikationen: `OKP`
+
+Review-Hinweis 2026-03-11:
+
+- Die Laufzeitpruefung auf dem lokalen Frontend (`:5173`) und auf einer isolierten Review-Instanz hat Widersprueche zwischen Doku und Realitaet gezeigt.
+- `S109` und `S110` bleiben historisch `done`, haben aber aktuelle Runtime-Regressionen in Browser und Playwright.
+- `S118` bleibt fachlich sinnvoll, ist aber gegenwaertig von Kernproblemen in Tenant-Scoping, Produktpfad und Browser-Gates blockiert.
 
 ---
 
@@ -95,3 +104,6 @@ Stand: 2026-03-09
 | 110 | `S110-post-s109-hardening-und-ci-gates.md` | done |
 | 117 | `S117-cad-interop-provider-schnitt.md` | done |
 | 118 | `S118-cad-interop-ausbau-und-provider-plugin.md` | in_progress |
+| 121 | `S121-tenant-scope-und-produktkern-recovery.md` | planned |
+| 122 | `S122-editor-goldene-pfade-und-room-bootstrap.md` | planned |
+| 123 | `S123-browser-ci-gates-und-shell-regressionen.md` | planned |

@@ -1,6 +1,6 @@
 # STATUS.md
 
-Projektstatus per 2026-03-09.
+Projektstatus per 2026-03-11.
 
 ---
 
@@ -24,6 +24,9 @@ Projektstatus per 2026-03-09.
 - Sprint 114 (Feng Shui Analyse-Plugin): abgeschlossen
 - Sprint 115 (Plugins-Seite ueberholt): abgeschlossen
 - Sprint 116 (Raumakustik & Survey-Import Plugin-Luecken): abgeschlossen
+- Sprint 121 (Tenant-Scope und Produktkern-Recovery): geplant
+- Sprint 122 (Editor-Goldpfade und Room-Bootstrap): geplant
+- Sprint 123 (Browser-CI-Gates und Shell-Regressionen): geplant
 
 Aktuell auf `main`:
 
@@ -39,13 +42,23 @@ Aktuell auf `main`:
 - Sprint 113: Editor.tsx CSS-Modul -> makeStyles/tokens migriert; Import-Handler fuer DXF/IFC/SketchUp verdrahtet
 - Sprint 114: Feng Shui Analyse-Plugin mit Bagua-Zonen, Befunden, Score und API-Anbindung
 - Sprint 115: Plugins-Einstellungsseite komplett ueberholt – Rich Cards, Switch, Kategorie-Badges, Unsaved-Banner
-- Sprint 116: Plugin-Luecken geschlossen – raumakustik & survey-import in Registry, Editor-Guard und Plugins-Seite
+- Sprint 116: Plugin-Luecken geschlossen - raumakustik & survey-import in Registry, Editor-Guard und Plugins-Seite
+- Sprint 121: Tenant-Scope global reparieren, Demo-Fallback enttarnen, Kernpfad gegen echtes Backend stabilisieren
+- Sprint 122: Projekt -> Editor -> erster Raum -> produktiver Editor-Flow ohne Sackgasse
+- Sprint 123: Playwright-/Browser-Gates an reale Shell und Goldpfade anpassen und wieder hart schalten
 
 ---
 
 ## Aktueller Fokus
 
-Sprint 116 ist abgeschlossen. Durchgefuehrt in S111 bis S116 (UI-Qualitaet & Plugin-Infrastruktur):
+Review-Stand 2026-03-11:
+
+- Browser-Pruefung auf `http://127.0.0.1:5173` zeigt Default-Start im Demo-Modus; reale Backend-Funktion wird dadurch verdeckt.
+- Tenant-gebundene Routen (`/tenant/settings`, `/tenant/plugins`, `camera-presets`, `layout-styles`, `acoustic-grids`) liefern im Laufzeitcheck `403 Missing tenant scope`.
+- Playwright `planner-frontend` ist nicht gruen: `9 passed`, `4 failed` in den `S109`-Shell-Specs.
+- Projektanlage und Editor-Start funktionieren nur teilweise: Editor 1.1 rendert, startet aber fuer neue Projekte ohne Raum und damit nicht DoD-konform produktiv.
+
+Historischer Umsetzungsstand in S111 bis S116 (UI-Qualitaet & Plugin-Infrastruktur):
 
 - **S111**: Alle Ribbon-Kommandos mit Fluent-Icons versehen (Microsoft-Best-Practice-Mapping)
 - **S112**: AutoCAD-artige Seitenleisten-Restruktur; Einfuegen-Menue mit DXF/IFC/SketchUp-Eintraegen
@@ -57,7 +70,11 @@ Sprint 116 ist abgeschlossen. Durchgefuehrt in S111 bis S116 (UI-Qualitaet & Plu
 Plugin-Stand (alle 11 registrierten Plugins vollstaendig verdrahtet):
 `presentation`, `viewer-export`, `tischler`, `daylight`, `materials`, `stairs`, `multilevel-docs`, `asset-library`, `feng-shui`, `raumakustik`, `survey-import`
 
-Naechster Fokus: E2E-Tests fuer Ribbon-Navigation (Playwright), verbleibende CSS-Modul-Migrationen (LeftSidebar, RightSidebar, ConstraintsPanel, KitchenAssistantPanel).
+Naechster Fokus:
+
+- `S121` vorziehen und Tenant-Scope / Produktkern reparieren
+- `S122` fuer echten Editor-Goldpfad umsetzen
+- `S123` als harte Browser-/CI-Absicherung nachziehen
 
 ---
 
@@ -81,6 +98,10 @@ Naechster Fokus: E2E-Tests fuer Ribbon-Navigation (Playwright), verbleibende CSS
   - neue Export-Formate `STL`, `STEP`, `OBJ`, `3MF`
   - vereinheitlichte Interop-Jobs/Artefakte als API-Layer
   - persistente Export-Artefakte ueber `Document`
+
+Wichtiger Hinweis:
+
+- `S118` bleibt in Arbeit, ist aber nicht der naechste operative Schwerpunkt, solange Tenant-Scoping und der Kern-Produktpfad im Browser regressiv sind.
 
 Offen in `S118`:
 

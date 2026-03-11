@@ -2,7 +2,7 @@
 
 **Branch:** `feature/sprint-117-cad-provider-phase1`
 **Gruppe:** B
-**Status:** `planned`
+**Status:** `done`
 **Abhaengigkeiten:** S52, S53, S80
 
 ## Ziel
